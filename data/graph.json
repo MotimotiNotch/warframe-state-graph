@@ -1,0 +1,836 @@
+{
+  "nodes": {
+    "apostasy-prologue": {
+      "id": "apostasy-prologue",
+      "name": "Apostasy Prologue",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "chains-of-harrow"
+      ],
+      "contains": [],
+      "note": "縦の深さ検証用チェーン（7段目）。"
+    },
+    "arcane-trickery": {
+      "id": "arcane-trickery",
+      "name": "Arcane Trickery",
+      "type": "Mod",
+      "satisfied": true,
+      "requires": [
+        "void-trader-visit"
+      ],
+      "contains": [],
+      "note": "ボイドトレーダー来訪時に交換（Arcane）。"
+    },
+    "ash-prime": {
+      "id": "ash-prime",
+      "name": "Ash Prime",
+      "type": "Frame",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "ash-prime-neuroptics",
+        "ash-prime-chassis",
+        "ash-prime-systems"
+      ],
+      "evaluation": "育成中（Forma 2/4, Helminth未）",
+      "note": "所持・レベリング済みだがForma待ち。"
+    },
+    "ash-prime-chassis": {
+      "id": "ash-prime-chassis",
+      "name": "Ash Prime Chassis",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [
+        "orokin-cell"
+      ],
+      "contains": [],
+      "note": "設計図クラフト待ち。"
+    },
+    "ash-prime-neuroptics": {
+      "id": "ash-prime-neuroptics",
+      "name": "Ash Prime Neuroptics",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [
+        "orokin-cell"
+      ],
+      "contains": [],
+      "note": "設計図クラフト待ち。"
+    },
+    "ash-prime-systems": {
+      "id": "ash-prime-systems",
+      "name": "Ash Prime Systems",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [
+        "orokin-cell"
+      ],
+      "contains": [],
+      "note": "設計図クラフト待ち。"
+    },
+    "ash-stealth-build": {
+      "id": "ash-stealth-build",
+      "name": "Ash Stealth Build",
+      "type": "Build",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "dragon-nikana",
+        "ash-prime",
+        "seeking-shuriken",
+        "smoke-shadow",
+        "fatal-teleport",
+        "covert-lethality",
+        "arcane-trickery",
+        "handspring",
+        "nest-test-a",
+        "stress-0",
+        "deep-1"
+      ],
+      "note": "Ash Prime + Dragon Nikana によるステルス特化ビルド（横幅・深さ確認用に拡張）"
+    },
+    "baro-kiteer-visit": {
+      "id": "baro-kiteer-visit",
+      "name": "Baro Ki'Teer 来訪",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "次回来訪待ち。"
+    },
+    "chains-of-harrow": {
+      "id": "chains-of-harrow",
+      "name": "Chains of Harrow",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "saya-vigil"
+      ],
+      "contains": [],
+      "note": "縦の深さ検証用チェーン（8段目）。"
+    },
+    "covert-lethality": {
+      "id": "covert-lethality",
+      "name": "Covert Lethality",
+      "type": "Mod",
+      "satisfied": false,
+      "requires": [
+        "teshin-token"
+      ],
+      "contains": [],
+      "note": "テシンの証と交換。"
+    },
+    "deep-1": {
+      "id": "deep-1",
+      "name": "深さテスト第1階層",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "deep-2"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-10": {
+      "id": "deep-10",
+      "name": "深さテスト第10階層",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "deep-11"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-11": {
+      "id": "deep-11",
+      "name": "深さテスト第11階層",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "deep-12"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-12": {
+      "id": "deep-12",
+      "name": "深さテスト第12階層",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-2": {
+      "id": "deep-2",
+      "name": "深さテスト第2階層",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "deep-3"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-3": {
+      "id": "deep-3",
+      "name": "深さテスト第3階層",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "deep-4"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-4": {
+      "id": "deep-4",
+      "name": "深さテスト第4階層",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "deep-5"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-5": {
+      "id": "deep-5",
+      "name": "深さテスト第5階層",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "deep-6"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-6": {
+      "id": "deep-6",
+      "name": "深さテスト第6階層",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "deep-7"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-7": {
+      "id": "deep-7",
+      "name": "深さテスト第7階層",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "deep-8"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-8": {
+      "id": "deep-8",
+      "name": "深さテスト第8階層",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "deep-9"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "deep-9": {
+      "id": "deep-9",
+      "name": "深さテスト第9階層",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "deep-10"
+      ],
+      "note": "深さ頭打ち確認用"
+    },
+    "dragon-nikana": {
+      "id": "dragon-nikana",
+      "name": "Dragon Nikana",
+      "type": "Weapon",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "dragon-nikana-riven"
+      ],
+      "evaluation": "一軍",
+      "note": "武器自体は所持済み。Rivenの完成度は別ノードで管理。"
+    },
+    "dragon-nikana-riven": {
+      "id": "dragon-nikana-riven",
+      "name": "Dragon Nikana Riven",
+      "type": "Riven",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "riven-stat-cc",
+        "riven-stat-cd",
+        "riven-stat-range",
+        "riven-stat-neg"
+      ],
+      "evaluation": "要リロール",
+      "note": "CC/CD偏重、Range低め。もう1〜2回Kuvaでロールしたい。入れ子検証用に3階層目のcontainsを追加。"
+    },
+    "fatal-teleport": {
+      "id": "fatal-teleport",
+      "name": "Fatal Teleport",
+      "type": "Mod",
+      "satisfied": true,
+      "requires": [
+        "baro-kiteer-visit"
+      ],
+      "contains": [],
+      "note": "バロキティア来訪時の限定オファリング。"
+    },
+    "handspring": {
+      "id": "handspring",
+      "name": "Handspring",
+      "type": "Mod",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "未所持だが前提なし、いつでも入手可能。"
+    },
+    "natah-quest": {
+      "id": "natah-quest",
+      "name": "Natah",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "war-within-quest"
+      ],
+      "contains": [],
+      "note": "縦の深さ検証用チェーン（4段目）。"
+    },
+    "nest-test-a": {
+      "id": "nest-test-a",
+      "name": "入れ子テスト A",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "nest-test-b"
+      ],
+      "note": "A→B→C の直線的な入れ子（分岐なし）を確認するための専用テストノード。"
+    },
+    "nest-test-b": {
+      "id": "nest-test-b",
+      "name": "入れ子テスト B",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "nest-test-c",
+        "nest-test-b-inner-a"
+      ],
+      "note": "A→B→Cの中間ノード。B自身が「外側の続き(C)」と「内側の入れ子(A'→B'→C')」の2方向に分岐する検証用ノード。"
+    },
+    "nest-test-b-inner-a": {
+      "id": "nest-test-b-inner-a",
+      "name": "入れ子テスト B内 A'",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "nest-test-b-inner-b"
+      ],
+      "note": "Bが内側に持つ独立したA'→B'→C'鎖の起点。"
+    },
+    "nest-test-b-inner-b": {
+      "id": "nest-test-b-inner-b",
+      "name": "入れ子テスト B内 B'",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "nest-test-b-inner-c"
+      ],
+      "note": "内側チェーンの中間ノード。"
+    },
+    "nest-test-b-inner-c": {
+      "id": "nest-test-b-inner-c",
+      "name": "入れ子テスト B内 C'",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "内側チェーンの末端ノード。"
+    },
+    "nest-test-c": {
+      "id": "nest-test-c",
+      "name": "入れ子テスト C",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "A→B→Cの末端ノード。"
+    },
+    "orokin-cell": {
+      "id": "orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "3つのパーツ全てから共有参照される素材（複数親からの合流テスト用）。"
+    },
+    "red-veil-rank-5": {
+      "id": "red-veil-rank-5",
+      "name": "Red Veil Rank 5",
+      "type": "Syndicate",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "現在Rank3。Standing周回でRank5到達を目指す。"
+    },
+    "riven-stat-cc": {
+      "id": "riven-stat-cc",
+      "name": "+165% Critical Chance",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "3階層目（Build→Weapon→Riven→Stat）の末端ノード。"
+    },
+    "riven-stat-cd": {
+      "id": "riven-stat-cd",
+      "name": "+120% Critical Damage",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "3階層目の末端ノード。"
+    },
+    "riven-stat-neg": {
+      "id": "riven-stat-neg",
+      "name": "-45% Zoom (負ステ)",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "デメリットステータス。"
+    },
+    "riven-stat-range": {
+      "id": "riven-stat-range",
+      "name": "+18% Range",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "低めのロール。要リロールの理由。"
+    },
+    "saya-vigil": {
+      "id": "saya-vigil",
+      "name": "Saya's Vigil",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "縦の深さ検証用チェーン（9段目、末端でACTIONABLE）。"
+    },
+    "second-dream-quest": {
+      "id": "second-dream-quest",
+      "name": "The Second Dream",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "apostasy-prologue"
+      ],
+      "contains": [],
+      "note": "縦の深さ検証用チェーン（6段目）。"
+    },
+    "seeking-shuriken": {
+      "id": "seeking-shuriken",
+      "name": "Seeking Shuriken",
+      "type": "Mod",
+      "satisfied": false,
+      "requires": [
+        "red-veil-rank-5"
+      ],
+      "contains": [],
+      "note": "Red Veil Rank5でオファリング解禁。未所持。"
+    },
+    "smoke-shadow": {
+      "id": "smoke-shadow",
+      "name": "Smoke Shadow",
+      "type": "Mod",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "所持済み。"
+    },
+    "steel-path-junction": {
+      "id": "steel-path-junction",
+      "name": "Steel Path 解放",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "natah-quest"
+      ],
+      "contains": [],
+      "note": "星系全ノード完了で解放。まだ未達。"
+    },
+    "stress-0": {
+      "id": "stress-0",
+      "name": "雑テストノードすごく長い名前その1番目レベル1",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-1",
+        "stress-16"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-1": {
+      "id": "stress-1",
+      "name": "雑テストノードすごく長い名前その2番目レベル2",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-2",
+        "stress-9"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-10": {
+      "id": "stress-10",
+      "name": "雑テストノードすごく長い名前その11番目レベル4",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-11",
+        "stress-12"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-11": {
+      "id": "stress-11",
+      "name": "雑テストノードすごく長い名前その12番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-12": {
+      "id": "stress-12",
+      "name": "雑テストノードすごく長い名前その13番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-13": {
+      "id": "stress-13",
+      "name": "雑テストノードすごく長い名前その14番目レベル4",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-14",
+        "stress-15"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-14": {
+      "id": "stress-14",
+      "name": "雑テストノードすごく長い名前その15番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-15": {
+      "id": "stress-15",
+      "name": "雑テストノードすごく長い名前その16番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-16": {
+      "id": "stress-16",
+      "name": "雑テストノードすごく長い名前その17番目レベル2",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-17",
+        "stress-24"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-17": {
+      "id": "stress-17",
+      "name": "雑テストノードすごく長い名前その18番目レベル3",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-18",
+        "stress-21"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-18": {
+      "id": "stress-18",
+      "name": "雑テストノードすごく長い名前その19番目レベル4",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-19",
+        "stress-20"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-19": {
+      "id": "stress-19",
+      "name": "雑テストノードすごく長い名前その20番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-2": {
+      "id": "stress-2",
+      "name": "雑テストノードすごく長い名前その3番目レベル3",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-3",
+        "stress-6"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-20": {
+      "id": "stress-20",
+      "name": "雑テストノードすごく長い名前その21番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-21": {
+      "id": "stress-21",
+      "name": "雑テストノードすごく長い名前その22番目レベル4",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-22",
+        "stress-23"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-22": {
+      "id": "stress-22",
+      "name": "雑テストノードすごく長い名前その23番目レベル5",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-23": {
+      "id": "stress-23",
+      "name": "雑テストノードすごく長い名前その24番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-24": {
+      "id": "stress-24",
+      "name": "雑テストノードすごく長い名前その25番目レベル3",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-25",
+        "stress-28"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-25": {
+      "id": "stress-25",
+      "name": "雑テストノードすごく長い名前その26番目レベル4",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "stress-26",
+        "stress-27"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-26": {
+      "id": "stress-26",
+      "name": "雑テストノードすごく長い名前その27番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-27": {
+      "id": "stress-27",
+      "name": "雑テストノードすごく長い名前その28番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-28": {
+      "id": "stress-28",
+      "name": "雑テストノードすごく長い名前その29番目レベル4",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-29",
+        "stress-30"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-29": {
+      "id": "stress-29",
+      "name": "雑テストノードすごく長い名前その30番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-3": {
+      "id": "stress-3",
+      "name": "雑テストノードすごく長い名前その4番目レベル4",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-4",
+        "stress-5"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-30": {
+      "id": "stress-30",
+      "name": "雑テストノードすごく長い名前その31番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-4": {
+      "id": "stress-4",
+      "name": "雑テストノードすごく長い名前その5番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-5": {
+      "id": "stress-5",
+      "name": "雑テストノードすごく長い名前その6番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-6": {
+      "id": "stress-6",
+      "name": "雑テストノードすごく長い名前その7番目レベル4",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-7",
+        "stress-8"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-7": {
+      "id": "stress-7",
+      "name": "雑テストノードすごく長い名前その8番目レベル5",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-8": {
+      "id": "stress-8",
+      "name": "雑テストノードすごく長い名前その9番目レベル5",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "雑テスト生成ノード"
+    },
+    "stress-9": {
+      "id": "stress-9",
+      "name": "雑テストノードすごく長い名前その10番目レベル3",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "stress-10",
+        "stress-13"
+      ],
+      "note": "雑テスト生成ノード"
+    },
+    "teshin-token": {
+      "id": "teshin-token",
+      "name": "テシンの証",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [
+        "steel-path-junction"
+      ],
+      "contains": [],
+      "note": "Steel Path周回報酬。深さ検証用の3段目チェーン。"
+    },
+    "void-trader-visit": {
+      "id": "void-trader-visit",
+      "name": "Baro来訪（Void Trader）",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": [],
+      "note": "次回来訪待ち。"
+    },
+    "war-within-quest": {
+      "id": "war-within-quest",
+      "name": "The War Within",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "second-dream-quest"
+      ],
+      "contains": [],
+      "note": "縦の深さ検証用チェーン（5段目）。"
+    }
+  }
+}

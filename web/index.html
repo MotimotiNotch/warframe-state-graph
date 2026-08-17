@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warframe State Graph — Chain View</title>
+<style>
+  :root {
+    --bg: #12141a;
+    --panel: #1b1e27;
+    --border: #2a2e3a;
+    --text: #e4e6ec;
+    --muted: #8a8f9c;
+    --actionable: #4fd88a;
+    --blocked: #e0616b;
+    --satisfied: #5a95e0;
+    --root: #f0c674;
+    --accent: #f0c674;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    padding: 14px;
+  }
+  h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 2px; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 10px; }
+
+  select {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .progress-wrap { margin: 4px 0 10px; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--satisfied); transition: width 0.3s ease; }
+  .progress-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  .layout {
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+  }
+  @media (max-width: 800px) {
+    .layout { flex-direction: column; }
+  }
+
+  #graph-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    flex: 3 1 0;
+    min-width: 0;
+    position: relative;
+  }
+
+  /* イラストソフトのレイヤーパネル的な、ホバーで出すショートカット一覧。
+     クリックは常に1段だけ進む基本ルールは変えず、これは複数段を一気に飛ぶための上乗せ。 */
+  .flyout {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    font-size: 0.78rem;
+    z-index: 20;
+    max-height: 220px;
+    max-width: 260px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    min-width: 160px;
+  }
+  .flyout.hidden { display: none; }
+  .flyout .flyout-label {
+    color: var(--muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px 4px;
+  }
+  .flyout .item {
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .flyout .item:hover { background: var(--border); color: var(--accent); }
+  .flyout .item.not-clickable { color: var(--muted); cursor: default; }
+  .flyout .item.not-clickable:hover { background: none; color: var(--muted); }
+  .flyout .depth-tag {
+    font-size: 0.68rem;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+  .panel-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .breadcrumb {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: -6px 0 10px;
+    /* 深く潜って経路が長くなっても見切れないよう、暗黙の折り返しに頼らず明示的にwrapさせる */
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .breadcrumb .crumb {
+    cursor: pointer;
+    color: var(--text);
+  }
+  .breadcrumb .crumb:hover { color: var(--accent); }
+  .breadcrumb .crumb.current {
+    color: var(--muted);
+    cursor: default;
+    pointer-events: none;
+  }
+  .breadcrumb .sep { margin: 0 4px; opacity: 0.5; }
+  #graph-wrap {
+    overflow: auto;
+    height: 75vh;
+    min-height: 320px;
+  }
+  #graph-svg { display: block; }
+
+  circle.node { cursor: pointer; transition: stroke-width 0.15s ease; }
+  circle.node:hover { stroke-width: 4; }
+  circle.node.selected { stroke-width: 5; }
+  circle.node.drillable { cursor: zoom-in; }
+  text.node-label {
+    fill: var(--text);
+    font-size: 11px;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+  line.edge-contains { stroke: var(--border); stroke-width: 1.5; }
+  line.edge-requires { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+  #resizer {
+    flex: 0 0 12px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: col-resize;
+  }
+  #resizer .grip {
+    width: 4px;
+    height: 44px;
+    background: var(--border);
+    border-radius: 3px;
+    transition: background 0.15s ease;
+  }
+  #resizer:hover .grip, #resizer.dragging .grip { background: var(--accent); }
+  @media (max-width: 800px) {
+    #resizer { display: none; }
+  }
+
+  #panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    flex: 1 1 260px;
+    min-width: 220px;
+    font-size: 0.85rem;
+    min-height: 200px;
+  }
+  #panel .ph-name { font-size: 1.02rem; font-weight: 600; margin-bottom: 6px; }
+  #panel .ph-row { color: var(--muted); margin: 3px 0; }
+  #panel .ph-state {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    margin-top: 8px;
+  }
+  #panel .empty { color: var(--muted); }
+
+  button.toggle {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  button.toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 200;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; width: 100%; max-width: 520px;
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 1rem; }
+  .modal label { display: block; font-size: 0.78rem; color: var(--muted); margin: 8px 0 3px; }
+  .modal input[type=text], .modal select, .modal textarea {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; font-family: inherit;
+  }
+  .modal textarea { min-height: 50px; resize: vertical; }
+  .modal .row { display: flex; gap: 8px; }
+  .modal .row > div { flex: 1; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .modal .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.82rem; }
+  .modal .checkbox-row input { width: auto; }
+  .wfcd-part { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-top: 8px; }
+  .wfcd-part .part-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+  .wfcd-part select { margin-top: 2px; }
+  .badge-vaulted { display: inline-block; background: #e0616b22; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
+  .badge-resurgence { display: inline-block; background: #f0c67422; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
+</style>
+</head>
+<body>
+  <h1>⚔️ Warframe State Graph <span style="opacity:.55;font-weight:400;font-size:.75em">— Chain View</span></h1>
+  <nav style="font-size:.85rem;margin-bottom:8px;">
+    <a href="/" style="color:var(--accent);text-decoration:none;margin-right:12px;">Chain View</a>
+    <a href="/loadouts.html" style="color:var(--muted);text-decoration:none;">Loadouts</a>
+  </nav>
+  <div class="sub">依存関係を線で繋いだグラフ表示（Chain View）。ノードをクリックで詳細・トグル。</div>
+
+  <select id="build-select"></select>
+  <button class="toggle" id="new-node-btn" style="margin-left:8px;">＋ ノード追加</button>
+  <button class="toggle" id="wfcd-import-btn" style="margin-left:4px;">🔎 WFCDから自動生成</button>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--root)"></i>Build（ビルド）</span>
+    <span><i class="dot" style="background:var(--actionable)"></i>Actionable（実行可能）</span>
+    <span><i class="dot" style="background:var(--blocked)"></i>Blocked（前提待ち）</span>
+    <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
+    <span>― contains（構成）</span>
+    <span>┄ requires（前提）</span>
+    <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i>中身アリ（クリックでドリルダウン）</span>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label"></div>
+  </div>
+
+  <div class="layout">
+    <div id="graph-panel">
+      <div class="panel-title">Chain View</div>
+      <div id="breadcrumb" class="breadcrumb"></div>
+      <div id="graph-wrap"><svg id="graph-svg"></svg></div>
+      <div id="flyout" class="flyout hidden"></div>
+    </div>
+    <div id="resizer" title="ドラッグして比率を変更"><div class="grip"></div></div>
+    <div id="panel">
+      <div class="panel-title">Inspector</div>
+      <div id="panel-body"><div class="empty">ノードを選択してください</div></div>
+    </div>
+  </div>
+
+  <!-- ノード新規作成・編集フォーム。data/graph.json直接編集だった状態を解消するための最小限のUI。 -->
+  <div id="node-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="node-modal-title">ノード追加</h3>
+      <label>ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
+      <input type="text" id="node-id">
+      <label>名前</label>
+      <input type="text" id="node-name">
+      <div class="row">
+        <div>
+          <label>種別</label>
+          <select id="node-type"></select>
+        </div>
+      </div>
+      <label>Requires（前提条件ノードID、カンマ区切り）</label>
+      <input type="text" id="node-requires">
+      <label>Contains（構成要素ノードID、カンマ区切り）</label>
+      <input type="text" id="node-contains">
+      <label>評価/メモ（Riven判定・Lichボーナス属性等の自由記述）</label>
+      <textarea id="node-evaluation"></textarea>
+      <label>Note</label>
+      <textarea id="node-note"></textarea>
+      <div class="checkbox-row"><input type="checkbox" id="node-mastery-track"><label style="margin:0" for="node-mastery-track">マスタリー担当パーツ（Zaw Strike/Kitgun Chamber/Amp Prism等、Gild必須）</label></div>
+      <div class="actions">
+        <button class="toggle" id="node-modal-delete" style="display:none;border-color:var(--blocked);color:var(--blocked);">削除</button>
+        <button class="toggle" id="node-modal-cancel">キャンセル</button>
+        <button class="toggle" id="node-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WFCD自動生成インポートウィザード。パーツ→レリック候補はOR関係なのでユーザーが1つ選ぶ。 -->
+  <div id="wfcd-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>WFCDから自動生成</h3>
+      <div class="row">
+        <div>
+          <label>種別</label>
+          <select id="wfcd-node-type"><option value="Frame">Frame</option><option value="Weapon">Weapon</option></select>
+        </div>
+        <div>
+          <label>名前（WFCD実データと完全一致）</label>
+          <input type="text" id="wfcd-name" placeholder="例: Braton Prime">
+        </div>
+      </div>
+      <div class="actions" style="justify-content:flex-start;margin-top:8px;">
+        <button class="toggle" id="wfcd-fetch-btn">候補を取得</button>
+      </div>
+      <div id="wfcd-preview"></div>
+      <div class="actions">
+        <button class="toggle" id="wfcd-modal-cancel">閉じる</button>
+        <button class="toggle" id="wfcd-modal-import" style="display:none;">この内容でグラフに追加</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const STATE_COLOR = {
+  ROOT: "var(--root)",
+  SATISFIED: "var(--satisfied)",
+  ACTIONABLE: "var(--actionable)",
+  BLOCKED: "var(--blocked)",
+};
+const STATE_LABEL_JA = { SATISFIED: "達成済み", ACTIONABLE: "実行可能", BLOCKED: "前提待ち" };
+
+// focus: 今Chain Viewが中心に据えているノード（Buildルートとは限らない）。
+// history: focusを移すたびに直前の位置を積む「戻る」履歴（ブラウザ/Obsidianのノート間移動と同じモデル）。
+// パンくず（Buildルートからの一本道）はやめた。orokin-cellのように複数の親から参照される
+// 真のDAGでは「唯一の正しい経路」が存在しないため、木構造前提のパンくずは実データと合わない。
+// 1回のビューではcontainsを1段しか展開しない（computeLayout側で制御）。requiresは常に全展開のまま。
+const state = { graph: null, buildId: null, focus: null, history: [], report: null, selected: null };
+
+async function loadGraph() {
+  await refreshGraph();
+  populateBuildSelect();
+}
+
+// トグル操作直後など、フォーカス位置・履歴を保ったままグラフデータだけ再取得したい場合に使う。
+async function refreshGraph() {
+  const res = await fetch("/api/graph");
+  state.graph = await res.json();
+}
+
+function populateBuildSelect() {
+  const sel = document.getElementById("build-select");
+  const builds = Object.values(state.graph.nodes).filter(n => n.type === "Build" || n.type === "Goal");
+  sel.innerHTML = builds.map(n => `<option value="${n.id}">${n.name}</option>`).join("");
+  sel.onchange = () => { selectBuild(sel.value); };
+  if (builds.length) {
+    sel.value = builds[0].id;
+    selectBuild(builds[0].id);
+  }
+}
+
+function selectBuild(buildId) {
+  state.buildId = buildId;
+  state.focus = buildId;
+  state.history = [];
+  state.selected = null;
+  loadReport();
+}
+
+// 単鎖の自動フラット化は廃止（各段ごとに個別クリック・個別に戻るのが期待挙動と確認済み）。
+// クリックしたノードへそのままフォーカスを移す。
+// 現在のフォーカスからnodeIdまでの contains 経路上にある中間ノードを求める
+// （フライアウトのショートカットで複数段を一気に飛んだ場合、実際に通過したはずの
+// 中間ノードがパンくずから欠落しないようにするため）。通常の1段クリックでは空配列になる。
+function ancestorsBetweenFocusAnd(nodeId) {
+  const parentOf = {};
+  const seen = new Set();
+  (function walk(id) {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const node = state.report.nodes[id];
+    if (!node) return;
+    for (const childId of (node.contains || [])) {
+      if (!(childId in parentOf)) parentOf[childId] = id;
+      walk(childId);
+    }
+  })(state.focus);
+
+  const path = [];
+  let cur = nodeId;
+  while (cur !== state.focus && parentOf[cur] !== undefined) {
+    path.unshift(cur);
+    cur = parentOf[cur];
+  }
+  return path.slice(0, -1); // nodeId自身は除き、間にある中間ノードだけ返す
+}
+
+function focusOn(nodeId) {
+  const intermediates = ancestorsBetweenFocusAnd(nodeId);
+  state.history.push(state.focus, ...intermediates);
+  state.focus = nodeId;
+  state.selected = nodeId; // 移動先ノード自身の情報がInspectorから消えないようにする
+  loadReport();
+}
+
+// 経路上の途中まで一気に戻る（ホバーリストからの直接ジャンプ用）。
+function jumpToHistory(index) {
+  state.focus = state.history[index];
+  state.history = state.history.slice(0, index);
+  state.selected = state.focus;
+  loadReport();
+}
+
+// containsの子孫を再帰的に辿り、分岐点（子が2つ以上あるノード）だけを集める。
+// state.report.nodesは現在のフォーカスの全子孫を含む（描画は1段に制限しているだけ）ので
+// 追加のAPI呼び出しなしでショートカット一覧を作れる。
+// 子孫を全部リストする（葉ノードも含む）。達成チェックリストとして機能させるため、
+// 未達の葉ノードも見えている必要がある。ただしジャンプ先になれる（クリックできる）のは
+// それ自体が入れ子（containsを持つ）ノードだけ — clickableで区別する。
+// 子孫のうち、それ自体が入れ子（containsを持つ＝クリックでさらに飛べる）ノードだけをリストする。
+// 完了ドットは自分のsatisfiedではなく「中身が全部完了してるか」で判定する
+// （satisfiedは中身の状態と独立のフラグなので、そのまま使うと本体済み/中身未達を見逃す。
+// これにより葉ノードを別途並べなくても、入れ子ノードのドットだけで中の状態が分かる）。
+function collectDescendants(nodeId, depth = 0, seen = new Set()) {
+  if (seen.has(nodeId)) return [];
+  seen.add(nodeId);
+  const node = state.report.nodes[nodeId];
+  if (!node) return [];
+  let results = [];
+  for (const childId of (node.contains || [])) {
+    const child = state.report.nodes[childId];
+    if (!child) continue;
+    if ((child.contains?.length ?? 0) > 0) {
+      const c = containsCompletion(state.report, childId);
+      const satisfied = c.total > 0 && c.done === c.total;
+      results.push({ id: childId, name: child.name, depth, satisfied, clickable: true });
+    }
+    results = results.concat(collectDescendants(childId, depth + 1, seen));
+  }
+  return results;
+}
+
+let flyoutHideTimer = null;
+
+function showFlyout(anchorEl, label, items, onPick) {
+  clearTimeout(flyoutHideTimer);
+  const flyout = document.getElementById("flyout");
+  if (!items.length) { flyout.classList.add("hidden"); return; }
+
+  flyout.innerHTML = `<div class="flyout-label">${label}</div>` + items.map((it, i) => {
+    // ✅/⬜のような別記号ではなく、凡例・グラフ本体と同じドット言語（青=Satisfied）で揃える。
+    const dot = it.satisfied === undefined ? "" :
+      `<i class="dot" style="background:${it.satisfied ? "var(--satisfied)" : "var(--border)"}"></i> `;
+    const clickable = it.clickable !== false; // フィールドが無い呼び出し元は従来通り全部クリック可
+    const cls = "item" + (clickable ? "" : " not-clickable");
+    // 深い入れ子でインデントが際限なく伸びて横に破綻しないよう、表示上の段数に上限をかける
+    // （実際の深さ情報は失わない、あくまで見た目のインデント幅だけの話）。
+    // 頭打ち後は段数が潰れて区別つかなくなるので、実際の深さを数字で補足する。
+    const depth = it.depth ?? 0;
+    const capped = 6;
+    const indent = "　".repeat(Math.min(depth, capped));
+    const depthTag = depth >= capped ? `<span class="depth-tag">D${depth}</span> ` : "";
+    return `<div class="${cls}" data-i="${i}" title="${it.name}">${indent}${depthTag}${dot}${it.name}</div>`;
+  }).join("");
+
+  const panelRect = document.getElementById("graph-panel").getBoundingClientRect();
+  const anchorRect = anchorEl.getBoundingClientRect();
+  flyout.classList.remove("hidden");
+
+  // 右端・下端でのはみ出しを避ける（多数の入れ子でリストが縦横に育っても親パネル内に収まるように）。
+  const flyoutW = flyout.offsetWidth;
+  const flyoutH = flyout.offsetHeight;
+  let left = anchorRect.left - panelRect.left + anchorRect.width / 2;
+  let top = anchorRect.bottom - panelRect.top + 6;
+  left = Math.min(left, panelRect.width - flyoutW - 4);
+  left = Math.max(left, 4);
+  if (top + flyoutH > panelRect.height) {
+    top = anchorRect.top - panelRect.top - flyoutH - 6; // 収まらなければノードの上側に出す
+  }
+  flyout.style.left = left + "px";
+  flyout.style.top = top + "px";
+
+  flyout.querySelectorAll(".item:not(.not-clickable)").forEach(el => {
+    el.addEventListener("click", () => { onPick(items[Number(el.dataset.i)]); hideFlyout(); });
+  });
+  flyout.onmouseenter = () => clearTimeout(flyoutHideTimer);
+  flyout.onmouseleave = scheduleHideFlyout;
+}
+
+function scheduleHideFlyout() {
+  flyoutHideTimer = setTimeout(hideFlyout, 150);
+}
+
+function hideFlyout() {
+  document.getElementById("flyout").classList.add("hidden");
+}
+
+async function loadReport() {
+  if (!state.focus) return;
+  const res = await fetch(`/api/next-actions?build=${encodeURIComponent(state.focus)}`);
+  if (!res.ok) return;
+  state.report = await res.json();
+  renderBreadcrumb();
+  renderProgress();
+  renderGraph();
+  renderPanel();
+}
+
+// 「パンくず」は経路表示ではなく「今どこにいるか」＋「戻る」だけのシンプルな表示にする。
+// 内部モデル（focus + history＝戻る履歴）は変えず、表示だけ常時パンくずにする。
+// state.historyがそのまま経路（Buildルートから現在地までの訪問順）になっている。
+// 「← 戻る」ボタンの位置にパンくずトレイルを常時表示する。内部モデル（focus + history）は変えず、
+// state.history（訪問順の経路）+ 現在地をそのまま並べるだけ。途中のパンくずはクリックで直接ジャンプ。
+function renderBreadcrumb() {
+  const el = document.getElementById("breadcrumb");
+  const trail = [...state.history, state.focus];
+  el.innerHTML = trail.map((id, i) => {
+    const isLast = i === trail.length - 1;
+    const name = state.graph.nodes[id]?.name ?? id;
+    const cls = isLast ? "crumb current" : "crumb";
+    return `<span class="${cls}" data-idx="${i}">${name}</span>`;
+  }).join(`<span class="sep">▸</span>`);
+
+  el.querySelectorAll(".crumb:not(.current)").forEach(elm => {
+    elm.addEventListener("click", () => jumpToHistory(Number(elm.dataset.idx)));
+  });
+}
+
+function renderProgress() {
+  const { done, total } = state.report.progress;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("progress-label").textContent = `${done} / ${total} 完了（${pct}%）`;
+}
+
+// 現在のビューのルート(buildId)を起点にBFS展開し、階層レイアウト（深さ=行）の座標を計算する。
+// requiresは常に全展開（Next Actionの前提チェーンは常に見える必要がある）。
+// containsはルート直下の1段だけ展開する。それより深い入れ子（子がさらにcontainsを持つ場合）は
+// このビューには出さず、その子をクリックしてドリルダウンした先で初めて見える。
+// これをしないと自己相似な入れ子（A→B[A'→B'→C']→C 等）が1画面に無制限展開されて爆発する。
+function computeLayout(report) {
+  const nodes = report.nodes;
+  const buildId = report.buildId;
+  const depth = { [buildId]: 0 };
+  const edges = [];
+  const queue = [buildId];
+  const visited = new Set([buildId]);
+
+  while (queue.length) {
+    const id = queue.shift();
+    const node = nodes[id];
+    if (!node) continue;
+    const containsOpen = id === buildId;
+    const children = [
+      ...(containsOpen ? (node.contains || []).map(c => ({ id: c, kind: "contains" })) : []),
+      ...(node.requires || []).map(c => ({ id: c, kind: "requires" })),
+    ];
+    for (const { id: childId, kind } of children) {
+      edges.push({ from: id, to: childId, kind });
+      if (!visited.has(childId)) {
+        visited.add(childId);
+        depth[childId] = depth[id] + 1;
+        queue.push(childId);
+      }
+    }
+  }
+
+  const byDepth = {};
+  for (const id of Object.keys(depth)) {
+    (byDepth[depth[id]] = byDepth[depth[id]] || []).push(id);
+  }
+
+  const colWidth = 150, rowHeight = 100, marginX = 80, marginY = 50;
+  const positions = {};
+  const depths = Object.keys(byDepth).map(Number).sort((a, b) => a - b);
+  let maxCols = 1;
+  for (const d of depths) {
+    const ids = byDepth[d];
+    maxCols = Math.max(maxCols, ids.length);
+    ids.forEach((id, i) => {
+      positions[id] = { x: marginX + i * colWidth, y: marginY + d * rowHeight };
+    });
+  }
+
+  return {
+    positions,
+    edges,
+    width: marginX * 2 + maxCols * colWidth,
+    height: marginY * 2 + depths.length * rowHeight,
+  };
+}
+
+// containsの子孫（再帰・requiresは含めない）の完了率を数える。
+// nodeId自身のsatisfiedはcontains内の子の状態に一切連動しない設計なので
+// （最初の壁打ちで決めたflat DAG原則: containsは表示グループ化のみ）、
+// 「本体はsatisfiedだが中身は未達」という見た目の誤解を防ぐための補助指標。
+function containsCompletion(report, nodeId, seen = new Set()) {
+  if (seen.has(nodeId)) return { done: 0, total: 0 };
+  seen.add(nodeId);
+  const node = report.nodes[nodeId];
+  if (!node) return { done: 0, total: 0 };
+  let done = 0, total = 0;
+  for (const childId of (node.contains || [])) {
+    const child = report.nodes[childId];
+    if (!child) continue;
+    total += 1;
+    if (child.satisfied) done += 1;
+    const sub = containsCompletion(report, childId, seen);
+    done += sub.done;
+    total += sub.total;
+  }
+  return { done, total };
+}
+
+function nodeColor(id) {
+  if (id === state.report.buildId) return STATE_COLOR.ROOT;
+  const view = state.report.nodes[id];
+  return STATE_COLOR[view?.state] || "#666";
+}
+
+function renderGraph() {
+  const layout = computeLayout(state.report);
+  const svg = document.getElementById("graph-svg");
+  svg.setAttribute("width", layout.width);
+  svg.setAttribute("height", layout.height);
+  svg.innerHTML = "";
+
+  const ns = "http://www.w3.org/2000/svg";
+  for (const e of layout.edges) {
+    const p1 = layout.positions[e.from], p2 = layout.positions[e.to];
+    if (!p1 || !p2) continue;
+    const line = document.createElementNS(ns, "line");
+    line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+    line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+    line.setAttribute("class", e.kind === "requires" ? "edge-requires" : "edge-contains");
+    svg.appendChild(line);
+  }
+
+  for (const [id, pos] of Object.entries(layout.positions)) {
+    const node = state.report.nodes[id];
+    if (!node) continue;
+
+    const isRoot = id === state.report.buildId;
+    const drillable = !isRoot && (node.contains?.length ?? 0) > 0;
+    const r = isRoot ? 22 : 18;
+    const circle = document.createElementNS(ns, "circle");
+    circle.setAttribute("cx", pos.x); circle.setAttribute("cy", pos.y);
+    circle.setAttribute("r", r);
+    circle.setAttribute("fill", "#1b1e27");
+    circle.setAttribute("stroke", nodeColor(id));
+    circle.setAttribute("stroke-width", "3");
+    circle.setAttribute("class", "node" + (state.selected === id ? " selected" : "") + (drillable ? " drillable" : ""));
+    circle.dataset.id = id;
+    // 子(contains)を持つノードはクリックでその場で1段フォーカスを移し、葉ノードは選択してInspectorに詳細を出す。
+    circle.addEventListener("click", () => {
+      if (drillable) {
+        focusOn(id);
+      } else {
+        state.selected = id;
+        renderGraph();
+        renderPanel();
+      }
+    });
+    // ホバーすると中にある全ノード（レイヤーパネルの一覧）を表示し、クリックで一気にそこまで飛べる
+    // （通常クリックは1段ずつ、というルールはそのまま。これは複数段を飛ぶショートカット）。
+    if (drillable) {
+      circle.addEventListener("mouseenter", () => {
+        const items = collectDescendants(id);
+        showFlyout(circle, "中身（クリックで直接ジャンプ）", items, (it) => focusOn(it.id));
+      });
+      circle.addEventListener("mouseleave", scheduleHideFlyout);
+    }
+    svg.appendChild(circle);
+
+    // 入れ子（containsを持ち、ドリルダウンできる）ノードは同心円の細いリングで判別する。
+    // 塗り潰しは状態色の意味を薄めて濁るので避け、「thin marks」の方針で線1本だけ足す。
+    // リングは満円ではなく、中身（containsの子孫）の完了率を円弧の長さで表す進捗リングにする。
+    // ノード本体の状態色（外側の線）とは独立した情報 — 本体がsatisfiedでも中身が未達なら弧は途中で切れる。
+    if (drillable) {
+      const { done, total } = containsCompletion(state.report, id);
+      const ringR = r * 0.6;
+      const circumference = 2 * Math.PI * ringR;
+      const frac = total ? done / total : 0;
+
+      // 下地のトラック（未達成分）は常にフルの円として描き、「入れ子である」こと自体を保証する。
+      // --borderだと薄すぎて入れ子判別そのものが見えなくなるため、状態色を半透明にして使う
+      // （色の系統は保ちつつ、進捗弧の「濃い部分」との対比で完了率を示す）。
+      const track = document.createElementNS(ns, "circle");
+      track.setAttribute("cx", pos.x); track.setAttribute("cy", pos.y);
+      track.setAttribute("r", ringR);
+      track.setAttribute("fill", "none");
+      track.setAttribute("stroke", nodeColor(id));
+      track.setAttribute("stroke-opacity", "0.3");
+      track.setAttribute("stroke-width", "1.5");
+      track.setAttribute("pointer-events", "none");
+      svg.appendChild(track);
+
+      // 進捗分の弧。frac===0だとstroke-linecap:roundが長さ0のダッシュにも丸い点を
+      // 描いてしまうSVGの仕様があるため、0%のときは弧そのものを描かずトラックだけにする。
+      if (frac > 0) {
+        const arc = document.createElementNS(ns, "circle");
+        arc.setAttribute("cx", pos.x); arc.setAttribute("cy", pos.y);
+        arc.setAttribute("r", ringR);
+        arc.setAttribute("fill", "none");
+        arc.setAttribute("stroke", nodeColor(id));
+        arc.setAttribute("stroke-width", "1.5");
+        arc.setAttribute("stroke-dasharray", `${circumference * frac} ${circumference}`);
+        arc.setAttribute("stroke-linecap", "round");
+        arc.setAttribute("transform", `rotate(-90 ${pos.x} ${pos.y})`);
+        arc.setAttribute("pointer-events", "none");
+        svg.appendChild(arc);
+      }
+
+      const title = document.createElementNS(ns, "title");
+      title.textContent = `中身の完了: ${done} / ${total}`;
+      track.appendChild(title);
+    }
+
+    // 選択中は状態色と紛れないアクセントカラーの内側ドットで明示する（入れ子リングとは別の視覚言語）
+    if (state.selected === id) {
+      const dot = document.createElementNS(ns, "circle");
+      dot.setAttribute("cx", pos.x); dot.setAttribute("cy", pos.y);
+      dot.setAttribute("r", r * 0.4);
+      dot.setAttribute("fill", "var(--accent)");
+      dot.setAttribute("pointer-events", "none");
+      svg.appendChild(dot);
+    }
+
+    const label = document.createElementNS(ns, "text");
+    label.setAttribute("x", pos.x); label.setAttribute("y", pos.y + 34);
+    label.setAttribute("class", "node-label");
+    label.textContent = node.name.length > 14 ? node.name.slice(0, 13) + "…" : node.name;
+    svg.appendChild(label);
+  }
+}
+
+function renderPanel() {
+  const panel = document.getElementById("panel-body");
+  if (!state.selected) {
+    panel.innerHTML = `<div class="empty">ノードを選択してください</div>`;
+    return;
+  }
+  const node = state.report.nodes[state.selected];
+  const isRoot = state.selected === state.report.buildId;
+  const stateLabel = isRoot ? "Build" : (STATE_LABEL_JA[node.state] || node.state);
+  const badgeColor = isRoot ? STATE_COLOR.ROOT : STATE_COLOR[node.state];
+
+  panel.innerHTML = `
+    <div class="ph-name">${node.name} <span id="i18n-name" style="color:var(--muted);font-weight:400;font-size:.85em;"></span></div>
+    <div class="ph-row">種別: ${node.type}${node.type === "Relic" ? `<span id="vault-badge"></span>` : ""}</div>
+    ${node.evaluation ? `<div class="ph-row">評価: ${node.evaluation}</div>` : ""}
+    ${node.note ? `<div class="ph-row">${node.note}</div>` : ""}
+    <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+      ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${node.satisfied ? "取り消す" : "達成にする"}</button>`}
+      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "Gild済み ✓" : "Gildする"}</button>` : ""}
+      <button class="toggle" id="edit-btn">編集</button>
+    </div>
+  `;
+
+  const btn = document.getElementById("toggle-btn");
+  if (btn) {
+    btn.onclick = async () => {
+      btn.disabled = true;
+      await fetch(`/api/nodes/${encodeURIComponent(state.selected)}/toggle`, { method: "POST" });
+      await refreshGraph();
+      await loadReport();
+    };
+  }
+
+  const gildBtn = document.getElementById("gild-btn");
+  if (gildBtn) {
+    gildBtn.onclick = async () => {
+      gildBtn.disabled = true;
+      await fetch(`/api/nodes/${encodeURIComponent(state.selected)}/gild-toggle`, { method: "POST" });
+      await refreshGraph();
+      await loadReport();
+    };
+  }
+
+  document.getElementById("edit-btn").onclick = () => openNodeModal("edit", { ...node, id: state.selected });
+
+  // Relicノード: Vault済みかどうかをバッジで表示。
+  if (node.type === "Relic") {
+    fetch(`/api/wfcd/relic-status?name=${encodeURIComponent(node.name)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(res => {
+        const badge = document.getElementById("vault-badge");
+        if (badge && res && res.vaulted) badge.innerHTML = `<span class="badge-vaulted">Vault済み</span>`;
+      }).catch(() => {});
+  }
+
+  // WFCD自動生成由来ノード(uniqueName持ち): 日本語名 + Prime Resurgence在庫の突き合わせ。
+  if (node.uniqueName) {
+    fetch(`/api/wfcd/i18n?uniqueName=${encodeURIComponent(node.uniqueName)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(res => {
+        const el = document.getElementById("i18n-name");
+        if (el && res && res.name) el.textContent = `(${res.name})`;
+      }).catch(() => {});
+
+    fetch("/api/wfcd/resurgence")
+      .then(r => r.ok ? r.json() : null)
+      .then(vt => {
+        if (!vt || !vt.inventory) return;
+        const hit = vt.inventory.find(e => e.item && e.item.toLowerCase().includes(node.name.toLowerCase()));
+        if (!hit) return;
+        const row = panel.querySelector(".ph-row");
+        if (row) row.insertAdjacentHTML("beforeend", `<span class="badge-resurgence">Resurgence在庫あり(〜${(vt.expiry || "").slice(0, 10)})</span>`);
+      }).catch(() => {});
+  }
+}
+
+// ===== ノード新規作成・編集（data/graph.json直接編集だった状態の解消） =====
+const NODE_TYPES = ["Goal", "Build", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic"];
+let nodeModalMode = "create";
+
+function splitIds(text) {
+  return text.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+function openNodeModal(mode, node) {
+  nodeModalMode = mode;
+  document.getElementById("node-modal-title").textContent = mode === "edit" ? "ノード編集" : "ノード追加";
+  const typeSel = document.getElementById("node-type");
+  typeSel.innerHTML = NODE_TYPES.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  document.getElementById("node-id").value = node?.id || "";
+  document.getElementById("node-id").disabled = mode === "edit";
+  document.getElementById("node-name").value = node?.name || "";
+  typeSel.value = node?.type || "Weapon";
+  document.getElementById("node-requires").value = (node?.requires || []).join(", ");
+  document.getElementById("node-contains").value = (node?.contains || []).join(", ");
+  document.getElementById("node-evaluation").value = node?.evaluation || "";
+  document.getElementById("node-note").value = node?.note || "";
+  document.getElementById("node-mastery-track").checked = !!node?.masteryTrack;
+  document.getElementById("node-modal-delete").style.display = mode === "edit" ? "" : "none";
+  document.getElementById("node-modal-backdrop").classList.remove("hidden");
+}
+function closeNodeModal() { document.getElementById("node-modal-backdrop").classList.add("hidden"); }
+
+document.getElementById("new-node-btn").addEventListener("click", () => openNodeModal("create", null));
+document.getElementById("node-modal-cancel").addEventListener("click", closeNodeModal);
+
+document.getElementById("node-modal-save").addEventListener("click", async () => {
+  const id = document.getElementById("node-id").value.trim();
+  const name = document.getElementById("node-name").value.trim();
+  if (!id || !name) { alert("IDと名前は必須"); return; }
+  const node = {
+    id, name,
+    type: document.getElementById("node-type").value,
+    requires: splitIds(document.getElementById("node-requires").value),
+    contains: splitIds(document.getElementById("node-contains").value),
+    evaluation: document.getElementById("node-evaluation").value.trim(),
+    note: document.getElementById("node-note").value.trim(),
+    masteryTrack: document.getElementById("node-mastery-track").checked,
+  };
+  // 編集時は既存のsatisfied/gilded/uniqueName（フォームに出していない状態）を引き継ぐ。
+  const existing = state.graph.nodes[id];
+  if (nodeModalMode === "edit" && existing) {
+    node.satisfied = existing.satisfied;
+    node.gilded = existing.gilded;
+    node.uniqueName = existing.uniqueName;
+  }
+  await fetch("/api/nodes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(node) });
+  closeNodeModal();
+  await loadGraph();
+  if (state.focus) await loadReport();
+});
+
+document.getElementById("node-modal-delete").addEventListener("click", async () => {
+  const id = document.getElementById("node-id").value.trim();
+  if (!confirm(`「${id}」を削除する？（他ノードからの参照も外れます）`)) return;
+  await fetch(`/api/nodes/${encodeURIComponent(id)}`, { method: "DELETE" });
+  closeNodeModal();
+  state.selected = null;
+  await loadGraph();
+  if (state.focus) await loadReport();
+});
+
+// ===== WFCD自動生成インポートウィザード =====
+let wfcdSuggestion = null;
+
+document.getElementById("wfcd-import-btn").addEventListener("click", () => {
+  document.getElementById("wfcd-preview").innerHTML = "";
+  document.getElementById("wfcd-modal-import").style.display = "none";
+  wfcdSuggestion = null;
+  document.getElementById("wfcd-modal-backdrop").classList.remove("hidden");
+});
+document.getElementById("wfcd-modal-cancel").addEventListener("click", () => {
+  document.getElementById("wfcd-modal-backdrop").classList.add("hidden");
+});
+
+document.getElementById("wfcd-fetch-btn").addEventListener("click", async () => {
+  const nodeType = document.getElementById("wfcd-node-type").value;
+  const name = document.getElementById("wfcd-name").value.trim();
+  const preview = document.getElementById("wfcd-preview");
+  document.getElementById("wfcd-modal-import").style.display = "none";
+  if (!name) { alert("名前を入力して"); return; }
+  preview.innerHTML = `<div class="empty">取得中…</div>`;
+  const res = await fetch(`/api/wfcd/generate?nodeType=${encodeURIComponent(nodeType)}&name=${encodeURIComponent(name)}`);
+  if (!res.ok) {
+    preview.innerHTML = `<div class="empty">見つかりませんでした（WFCD側の名前と完全一致している必要があります）</div>`;
+    return;
+  }
+  wfcdSuggestion = await res.json();
+  renderWfcdPreview();
+  document.getElementById("wfcd-modal-import").style.display = "";
+});
+
+function renderWfcdPreview() {
+  const s = wfcdSuggestion;
+  const preview = document.getElementById("wfcd-preview");
+  const parts = (s.parts || []).map((p, i) => {
+    const options = (p.relicCandidates || []).map((c, ci) =>
+      `<option value="${ci}">${c.name}（${c.chance}%${c.vaulted ? "・Vault済み" : ""}）</option>`
+    ).join("");
+    return `
+      <div class="wfcd-part">
+        <div class="part-name">${p.node.name}</div>
+        ${(p.relicCandidates || []).length
+          ? `<label style="margin:0 0 2px;">入手先レリック（1つ選択、OR関係なのでどれか1つでよい）</label><select data-part-idx="${i}"><option value="">（未選択）</option>${options}</select>`
+          : `<div class="empty">入手先候補なし</div>`}
+      </div>`;
+  }).join("");
+
+  preview.innerHTML = `
+    <div class="ph-row" style="margin-top:10px;"><b>パラダイム:</b> ${s.paradigm}</div>
+    ${s.richLich ? `<div class="ph-row"><b>リッチ系:</b> ${s.richLich}</div>` : ""}
+    ${s.archetype ? `<div class="ph-row"><b>アーキタイプ:</b> ${s.archetype}</div>` : ""}
+    <div class="ph-row"><b>本体ノード:</b> ${s.root.name}（${s.root.id}）</div>
+    ${parts}
+  `;
+}
+
+document.getElementById("wfcd-modal-import").addEventListener("click", async () => {
+  if (!wfcdSuggestion) return;
+  const nodes = [];
+  const root = { ...wfcdSuggestion.root };
+  nodes.push(root);
+
+  (wfcdSuggestion.parts || []).forEach((p, i) => {
+    const partNode = { ...p.node, requires: [] };
+    const sel = document.querySelector(`[data-part-idx="${i}"]`);
+    const chosenIdx = sel ? sel.value : "";
+    if (chosenIdx !== "") {
+      const candidate = p.relicCandidates[Number(chosenIdx)];
+      const relicId = "relic-" + candidate.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      if (!nodes.find(n => n.id === relicId)) {
+        nodes.push({ id: relicId, name: candidate.name, type: "Relic", requires: [], contains: [] });
+      }
+      partNode.requires = [relicId];
+    }
+    nodes.push(partNode);
+  });
+
+  await fetch("/api/wfcd/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nodes }) });
+  document.getElementById("wfcd-modal-backdrop").classList.add("hidden");
+  await loadGraph();
+  if (state.focus) await loadReport();
+  alert(`「${root.name}」を追加しました。既存のBuildのcontainsに含めたい場合は、そのBuildノードを編集して手動で追加してください。`);
+});
+
+const PANEL_WIDTH_KEY = "warframe-state-graph:panelWidths";
+
+// リロードしても比率が消えないよう localStorage に保存する。
+// サーバーに送る必要がない単なるUI好みの記憶なので、Cookieより素直なlocalStorageを使う。
+function savePanelWidths(graphWidth, panelWidth) {
+  try {
+    localStorage.setItem(PANEL_WIDTH_KEY, JSON.stringify({ graphWidth, panelWidth }));
+  } catch (e) { /* localStorage不可でも致命的ではないので無視 */ }
+}
+
+function restorePanelWidths() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PANEL_WIDTH_KEY));
+    if (!saved) return;
+    document.getElementById("graph-panel").style.flex = `0 0 ${saved.graphWidth}px`;
+    document.getElementById("panel").style.flex = `0 0 ${saved.panelWidth}px`;
+  } catch (e) { /* 壊れた保存値は無視してデフォルトのまま */ }
+}
+
+function initResizer() {
+  const layout = document.querySelector(".layout");
+  const graphPanel = document.getElementById("graph-panel");
+  const panel = document.getElementById("panel");
+  const resizer = document.getElementById("resizer");
+
+  restorePanelWidths();
+
+  resizer.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    resizer.classList.add("dragging");
+    const layoutRect = layout.getBoundingClientRect();
+    const resizerWidth = resizer.getBoundingClientRect().width;
+    let lastGraphWidth, lastPanelWidth;
+
+    function onMove(moveEvt) {
+      const minGraph = 300, minPanel = 220;
+      const available = layoutRect.width - resizerWidth;
+      let graphWidth = moveEvt.clientX - layoutRect.left;
+      graphWidth = Math.max(minGraph, Math.min(graphWidth, available - minPanel));
+      const panelWidth = available - graphWidth;
+
+      graphPanel.style.flex = `0 0 ${graphWidth}px`;
+      panel.style.flex = `0 0 ${panelWidth}px`;
+      lastGraphWidth = graphWidth;
+      lastPanelWidth = panelWidth;
+    }
+    function onUp() {
+      resizer.classList.remove("dragging");
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      if (lastGraphWidth !== undefined) savePanelWidths(lastGraphWidth, lastPanelWidth);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+}
+
+initResizer();
+loadGraph().then(loadReport);
+</script>
+<script src="/booster.js"></script>
+</body>
+</html>

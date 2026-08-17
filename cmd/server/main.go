@@ -1,0 +1,336 @@
+package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	"warframe-state-graph/pkg/engine"
+	"warframe-state-graph/pkg/loadout"
+	"warframe-state-graph/pkg/model"
+	"warframe-state-graph/pkg/store"
+	"warframe-state-graph/pkg/wfcd"
+	"warframe-state-graph/pkg/wfcdgen"
+)
+
+// weaponCategories は nodeType=Weapon の自動生成候補を探す際に順に試すWFCDカテゴリ。
+// フレーム側は Warframes 一択なので迷わない。
+var weaponCategories = []string{wfcd.CategoryPrimary, wfcd.CategorySecondary, wfcd.CategoryMelee}
+
+func main() {
+	root, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dataPath := filepath.Join(root, "data", "graph.json")
+	loadoutPath := filepath.Join(root, "data", "loadouts.json")
+	webDir := filepath.Join(root, "web")
+
+	st := store.NewFileStore(dataPath)
+	ls := loadout.NewFileStore(loadoutPath)
+	wfcdCacheDir := filepath.Join(root, "data", "wfcd-cache")
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /api/graph", func(w http.ResponseWriter, r *http.Request) {
+		g, err := st.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, g)
+	})
+
+	mux.HandleFunc("GET /api/next-actions", func(w http.ResponseWriter, r *http.Request) {
+		buildID := r.URL.Query().Get("build")
+		if buildID == "" {
+			http.Error(w, "missing ?build=<nodeId>", http.StatusBadRequest)
+			return
+		}
+		g, err := st.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, ok := g.Nodes[buildID]; !ok {
+			http.Error(w, "build not found: "+buildID, http.StatusNotFound)
+			return
+		}
+		report := engine.DeriveNextActions(g, buildID)
+		writeJSON(w, report)
+	})
+
+	mux.HandleFunc("POST /api/nodes/{id}/toggle", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		node, err := st.ToggleSatisfied(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, node)
+	})
+
+	mux.HandleFunc("GET /api/loadouts", func(w http.ResponseWriter, r *http.Request) {
+		d, err := ls.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/loadout-items", func(w http.ResponseWriter, r *http.Request) {
+		var item loadout.Item
+		if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if item.ID == "" || item.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := ls.UpsertItem(&item); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, item)
+	})
+
+	mux.HandleFunc("DELETE /api/loadout-items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := ls.DeleteItem(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/loadout-items/{id}/configs/{slot}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Mods []string `json:"mods"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		slot := loadout.ConfigSlot(r.PathValue("slot"))
+		item, err := ls.SetConfig(r.PathValue("id"), slot, body.Mods)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, item)
+	})
+
+	mux.HandleFunc("POST /api/build-sets", func(w http.ResponseWriter, r *http.Request) {
+		var set loadout.BuildSet
+		if err := json.NewDecoder(r.Body).Decode(&set); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if set.ID == "" || set.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := ls.UpsertBuildSet(&set); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, set)
+	})
+
+	mux.HandleFunc("DELETE /api/build-sets/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := ls.DeleteBuildSet(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// フレーム/武器名をWFCDの公開データから取得（初回のみfetch、以後はローカルキャッシュ）。
+	// loadouts.htmlの「アイテム追加」で自由入力の代わりに実データから選べるようにするため。
+	mux.HandleFunc("GET /api/reference/frames", func(w http.ResponseWriter, r *http.Request) {
+		names, err := wfcd.CachedNames(wfcdCacheDir, "frames.json", wfcd.FetchFrameNames)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+
+	mux.HandleFunc("GET /api/reference/weapons", func(w http.ResponseWriter, r *http.Request) {
+		names, err := wfcd.CachedNames(wfcdCacheDir, "weapons.json", wfcd.FetchWeaponNames)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+
+	// ノード新規作成・編集（現状data/graph.json直接編集だったマイルストーンの解消）。
+	mux.HandleFunc("POST /api/nodes", func(w http.ResponseWriter, r *http.Request) {
+		var n model.Node
+		if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if n.ID == "" || n.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := st.UpsertNode(&n); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, n)
+	})
+
+	mux.HandleFunc("DELETE /api/nodes/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := st.DeleteNode(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Gild状態のトグル（Zaw/Kitgun/Amp等のマスタリー担当パーツ専用、satisfiedとは独立）。
+	mux.HandleFunc("POST /api/nodes/{id}/gild-toggle", func(w http.ResponseWriter, r *http.Request) {
+		n, err := st.ToggleGilded(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, n)
+	})
+
+	// WFCDデータから該当アイテムのノード生成候補（パラダイム/リッチ系判定/アーキタイプ/
+	// パーツ→レリック候補）を返す。実際にグラフへ入れるかはユーザー確認後 /api/wfcd/import で。
+	mux.HandleFunc("GET /api/wfcd/generate", func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+		nodeType := model.NodeType(r.URL.Query().Get("nodeType"))
+		if name == "" || (nodeType != model.TypeFrame && nodeType != model.TypeWeapon) {
+			http.Error(w, "name and nodeType (Frame|Weapon) are required", http.StatusBadRequest)
+			return
+		}
+
+		categories := []string{wfcd.CategoryWarframes}
+		if nodeType == model.TypeWeapon {
+			categories = weaponCategories
+		}
+
+		var found wfcd.Item
+		ok := false
+		for _, cat := range categories {
+			items, err := wfcd.CachedItemsFull(wfcdCacheDir, cat)
+			if err != nil {
+				continue
+			}
+			if it, hit := wfcd.FindItemByName(items, name); hit {
+				found = it
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			http.Error(w, "item not found in WFCD data: "+name, http.StatusNotFound)
+			return
+		}
+
+		// レリックVault判定は取得できなくても提案自体は成立させる（ベストエフォート）。
+		activeRelics, err := wfcd.CachedActiveRelicNames(wfcdCacheDir)
+		if err != nil {
+			log.Printf("active relics unavailable, vault status will be omitted: %v", err)
+			activeRelics = nil
+		}
+
+		writeJSON(w, wfcdgen.BuildSuggestion(found, nodeType, activeRelics))
+	})
+
+	// 自動生成候補（ユーザーがレリック候補を選び終えた状態）を一括でグラフに取り込む。
+	mux.HandleFunc("POST /api/wfcd/import", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Nodes []*model.Node `json:"nodes"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if len(body.Nodes) == 0 {
+			http.Error(w, "nodes must not be empty", http.StatusBadRequest)
+			return
+		}
+		if err := st.UpsertNodes(body.Nodes); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, body.Nodes)
+	})
+
+	// レリックがVault済み（現行ドロップテーブル外）かどうか。
+	mux.HandleFunc("GET /api/wfcd/relic-status", func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "missing ?name=", http.StatusBadRequest)
+			return
+		}
+		activeRelics, err := wfcd.CachedActiveRelicNames(wfcdCacheDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, map[string]bool{"vaulted": wfcd.IsRelicVaulted(activeRelics, name)})
+	})
+
+	// Prime Resurgence（Varzia）の現行ローテーション在庫。Vault済みフレーム/武器でも
+	// 期限つきで代替入手できる場合があるため、Inspector側で該当ノード名と突き合わせて表示する。
+	mux.HandleFunc("GET /api/wfcd/resurgence", func(w http.ResponseWriter, r *http.Request) {
+		vt, err := wfcd.CachedVaultTrader(wfcdCacheDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, vt)
+	})
+
+	// アイテムの日本語名（i18n.json、52MBのためストリーム走査で該当キーだけ取得）。
+	mux.HandleFunc("GET /api/wfcd/i18n", func(w http.ResponseWriter, r *http.Request) {
+		uniqueName := r.URL.Query().Get("uniqueName")
+		lang := r.URL.Query().Get("lang")
+		if lang == "" {
+			lang = "ja"
+		}
+		if uniqueName == "" {
+			http.Error(w, "missing ?uniqueName=", http.StatusBadRequest)
+			return
+		}
+		name, err := wfcd.LookupI18nName(wfcdCacheDir, uniqueName, lang)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, map[string]string{"name": name})
+	})
+
+	// WFCDキャッシュを丸ごと消して次回アクセス時に再取得させる（項目16の手動更新ボタン用）。
+	mux.HandleFunc("POST /api/wfcd/refresh", func(w http.ResponseWriter, r *http.Request) {
+		if err := wfcd.RefreshCache(wfcdCacheDir); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.Handle("/", http.FileServer(http.Dir(webDir)))
+
+	addr := "127.0.0.1:8787"
+	log.Printf("warframe-state-graph server listening on http://%s (data=%s)", addr, dataPath)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("write json response: %v", err)
+	}
+}
