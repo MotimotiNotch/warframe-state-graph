@@ -118,15 +118,34 @@ var rivenStatArchetype = map[string]Archetype{
 	"Damage":          ArchetypeHybrid,
 }
 
-// ArchetypeMatchesRivenStats は Riven のポジ値ステータス群のうち、武器のアーキタイプと
-// 噛み合っているものがあるかを判定する（「一致マーク」表示用）。
-func ArchetypeMatchesRivenStats(weapon Archetype, positiveStats []string) bool {
+// RivenStatChoices はRiven専用入力UIでポジ値として選択できるステータス名一覧。
+// アーキタイプ判定に関与するもの（rivenStatArchetypeのキー）に加え、実際のRivenで
+// よく出る代表的なステータスも選択肢として含める（後者は一致判定には影響しない中立枠）。
+var RivenStatChoices = []string{
+	"Critical Chance", "Critical Damage", "Status Chance", "Status Duration",
+	"Multishot", "Damage",
+	"Fire Rate", "Reload Speed", "Punch Through", "Range", "Magazine Capacity", "Recoil",
+}
+
+// RivenCheck は武器アーキタイプとRivenのポジ値ステータス群を照合した結果。
+type RivenCheck struct {
+	Archetype    Archetype `json:"archetype"`
+	Matches      bool      `json:"matches"`
+	MatchedStats []string  `json:"matchedStats,omitempty"`
+}
+
+// CheckRiven は「そのRivenのポジ値が武器のアーキタイプと噛み合っているか」を判定する。
+// 02_Requirements_and_Roadmap.md item2で確定したスコープ通り、理論値レンジの精密計算は行わず
+// あくまで一致マーク表示のためのショーケース判定。
+func CheckRiven(item wfcd.Item, positiveStats []string) RivenCheck {
+	archetype := DetectArchetype(item)
+	var matched []string
 	for _, stat := range positiveStats {
-		if a, ok := rivenStatArchetype[stat]; ok && (a == weapon || a == ArchetypeHybrid) {
-			return true
+		if a, ok := rivenStatArchetype[stat]; ok && (a == archetype || a == ArchetypeHybrid) {
+			matched = append(matched, stat)
 		}
 	}
-	return false
+	return RivenCheck{Archetype: archetype, Matches: len(matched) > 0, MatchedStats: matched}
 }
 
 // slugPattern はノードID生成時に許可する文字（英数字とハイフン）以外を除去するためのもの。

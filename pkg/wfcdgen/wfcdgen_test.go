@@ -92,6 +92,36 @@ func TestDetectArchetype(t *testing.T) {
 	}
 }
 
+func TestCheckRiven(t *testing.T) {
+	statusWeapon := wfcd.Item{CriticalChance: 0.1, ProcChance: 0.3} // Status archetype
+
+	cases := []struct {
+		name          string
+		positiveStats []string
+		wantMatches   bool
+		wantMatched   []string
+	}{
+		{"status stat matches status weapon", []string{"Status Chance"}, true, []string{"Status Chance"}},
+		{"hybrid stat always matches", []string{"Multishot"}, true, []string{"Multishot"}},
+		{"crit-only stat does not match status weapon", []string{"Critical Chance"}, false, nil},
+		{"unrelated stat does not match", []string{"Reload Speed"}, false, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := CheckRiven(statusWeapon, tc.positiveStats)
+			if got.Archetype != ArchetypeStatus {
+				t.Fatalf("archetype = %s, want Status", got.Archetype)
+			}
+			if got.Matches != tc.wantMatches {
+				t.Errorf("matches = %v, want %v", got.Matches, tc.wantMatches)
+			}
+			if len(got.MatchedStats) != len(tc.wantMatched) {
+				t.Errorf("matchedStats = %v, want %v", got.MatchedStats, tc.wantMatched)
+			}
+		})
+	}
+}
+
 func TestSlug(t *testing.T) {
 	if got := Slug("Ash Prime Neuroptics"); got != "ash-prime-neuroptics" {
 		t.Errorf("got %q", got)

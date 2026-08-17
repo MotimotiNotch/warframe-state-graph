@@ -242,6 +242,12 @@
   .wfcd-part select { margin-top: 2px; }
   .badge-vaulted { display: inline-block; background: #e0616b22; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
   .badge-resurgence { display: inline-block; background: #f0c67422; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
+
+  .riven-stats-grid { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8rem; margin-top: 2px; }
+  .riven-stats-grid label { display: inline-flex; align-items: center; gap: 4px; color: var(--text); margin: 0; font-weight: 400; }
+  .riven-check-box { margin-top: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; }
+  .badge-match { display: inline-block; background: #4fd88a22; color: var(--actionable); border: 1px solid var(--actionable); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 4px; }
+  .badge-nomatch { display: inline-block; background: #8a8f9c22; color: var(--muted); border: 1px solid var(--muted); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -308,6 +314,18 @@
       <label>Note</label>
       <textarea id="node-note"></textarea>
       <div class="checkbox-row"><input type="checkbox" id="node-mastery-track"><label style="margin:0" for="node-mastery-track">マスタリー担当パーツ（Zaw Strike/Kitgun Chamber/Amp Prism等、Gild必須）</label></div>
+
+      <!-- Riven専用: 種別がRivenの時だけ表示。理論値レンジ計算はスコープ外、アーキタイプ一致判定まで。 -->
+      <div id="riven-fields" style="display:none;">
+        <label>対象武器名（WFCD実データ名と完全一致、アーキタイプ判定に使用）</label>
+        <input type="text" id="node-riven-weapon" placeholder="例: Braton Prime">
+        <label>ポジ値ステータス（複数選択可）</label>
+        <div id="riven-positive-stats" class="riven-stats-grid"></div>
+        <label>ネガ値ステータス（任意、記録のみ）</label>
+        <select id="node-riven-negative"></select>
+        <div id="riven-check-result"></div>
+      </div>
+
       <div class="actions">
         <button class="toggle" id="node-modal-delete" style="display:none;border-color:var(--blocked);color:var(--blocked);">削除</button>
         <button class="toggle" id="node-modal-cancel">キャンセル</button>
@@ -770,6 +788,12 @@ function renderPanel() {
     <div class="ph-row">種別: ${node.type}${node.type === "Relic" ? `<span id="vault-badge"></span>` : ""}</div>
     ${node.evaluation ? `<div class="ph-row">評価: ${node.evaluation}</div>` : ""}
     ${node.note ? `<div class="ph-row">${node.note}</div>` : ""}
+    ${node.type === "Riven" && node.rivenWeapon ? `
+      <div class="ph-row"><b>対象武器:</b> ${node.rivenWeapon}</div>
+      ${(node.rivenPositiveStats || []).length ? `<div class="ph-row"><b>ポジ値:</b> ${node.rivenPositiveStats.join(", ")}</div>` : ""}
+      ${node.rivenNegativeStat ? `<div class="ph-row"><b>ネガ値:</b> ${node.rivenNegativeStat}</div>` : ""}
+      <div id="riven-inspector-result"></div>
+    ` : ""}
     <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
       ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${node.satisfied ? "取り消す" : "達成にする"}</button>`}
@@ -829,14 +853,90 @@ function renderPanel() {
         if (row) row.insertAdjacentHTML("beforeend", `<span class="badge-resurgence">Resurgence在庫あり(〜${(vt.expiry || "").slice(0, 10)})</span>`);
       }).catch(() => {});
   }
+
+  // Rivenノード: 対象武器のアーキタイプとポジ値ステータスの一致判定（理論値計算は対象外）。
+  if (node.type === "Riven" && node.rivenWeapon) {
+    const params = new URLSearchParams({ weapon: node.rivenWeapon });
+    if ((node.rivenPositiveStats || []).length) params.set("positive", node.rivenPositiveStats.join(","));
+    fetch(`/api/wfcd/riven-check?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(check => {
+        const el = document.getElementById("riven-inspector-result");
+        if (!el) return;
+        if (!check) { el.innerHTML = `<div class="riven-check-box empty">武器「${node.rivenWeapon}」がWFCDデータに見つかりません</div>`; return; }
+        el.innerHTML = `
+          <div class="riven-check-box">
+            <b>武器アーキタイプ:</b> ${check.archetype}
+            ${check.matches
+              ? `<span class="badge-match">ポジ値と一致（${(check.matchedStats || []).join(", ")}）</span>`
+              : `<span class="badge-nomatch">一致ステータスなし</span>`}
+          </div>`;
+      }).catch(() => {});
+  }
 }
 
 // ===== ノード新規作成・編集（data/graph.json直接編集だった状態の解消） =====
 const NODE_TYPES = ["Goal", "Build", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic"];
 let nodeModalMode = "create";
+let rivenStatChoices = [];
 
 function splitIds(text) {
   return text.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+async function loadRivenStatChoices() {
+  try {
+    const res = await fetch("/api/wfcd/riven-stats");
+    rivenStatChoices = res.ok ? await res.json() : [];
+  } catch (e) {
+    rivenStatChoices = [];
+  }
+}
+
+function renderRivenFields(node) {
+  document.getElementById("node-riven-weapon").value = node?.rivenWeapon || "";
+  const positiveWrap = document.getElementById("riven-positive-stats");
+  const checked = new Set(node?.rivenPositiveStats || []);
+  positiveWrap.innerHTML = rivenStatChoices.map((s, i) => `
+    <label><input type="checkbox" data-riven-positive value="${s}" ${checked.has(s) ? "checked" : ""}>${s}</label>
+  `).join("");
+  positiveWrap.querySelectorAll("[data-riven-positive]").forEach(cb => cb.addEventListener("change", updateRivenCheck));
+
+  const negSel = document.getElementById("node-riven-negative");
+  negSel.innerHTML = `<option value="">（なし）</option>` + rivenStatChoices.map(s =>
+    `<option value="${s}" ${s === node?.rivenNegativeStat ? "selected" : ""}>${s}</option>`
+  ).join("");
+}
+
+function selectedRivenPositiveStats() {
+  return Array.from(document.querySelectorAll("[data-riven-positive]:checked")).map(cb => cb.value);
+}
+
+let rivenCheckDebounce = null;
+function updateRivenCheck() {
+  clearTimeout(rivenCheckDebounce);
+  const resultEl = document.getElementById("riven-check-result");
+  const weapon = document.getElementById("node-riven-weapon").value.trim();
+  if (!weapon) { resultEl.innerHTML = ""; return; }
+  rivenCheckDebounce = setTimeout(async () => {
+    const positive = selectedRivenPositiveStats();
+    resultEl.innerHTML = `<div class="riven-check-box empty">判定中…</div>`;
+    const params = new URLSearchParams({ weapon });
+    if (positive.length) params.set("positive", positive.join(","));
+    const res = await fetch(`/api/wfcd/riven-check?${params}`);
+    if (!res.ok) {
+      resultEl.innerHTML = `<div class="riven-check-box empty">「${weapon}」がWFCDデータに見つかりません（完全一致が必要）</div>`;
+      return;
+    }
+    const check = await res.json();
+    resultEl.innerHTML = `
+      <div class="riven-check-box">
+        <b>武器アーキタイプ:</b> ${check.archetype}
+        ${check.matches
+          ? `<span class="badge-match">ポジ値と一致（${(check.matchedStats || []).join(", ")}）</span>`
+          : `<span class="badge-nomatch">一致ステータスなし</span>`}
+      </div>`;
+  }, 300);
 }
 
 function openNodeModal(mode, node) {
@@ -855,12 +955,22 @@ function openNodeModal(mode, node) {
   document.getElementById("node-note").value = node?.note || "";
   document.getElementById("node-mastery-track").checked = !!node?.masteryTrack;
   document.getElementById("node-modal-delete").style.display = mode === "edit" ? "" : "none";
+
+  renderRivenFields(node);
+  document.getElementById("riven-fields").style.display = typeSel.value === "Riven" ? "" : "none";
+  document.getElementById("riven-check-result").innerHTML = "";
+  if (typeSel.value === "Riven" && node?.rivenWeapon) updateRivenCheck();
+
   document.getElementById("node-modal-backdrop").classList.remove("hidden");
 }
 function closeNodeModal() { document.getElementById("node-modal-backdrop").classList.add("hidden"); }
 
 document.getElementById("new-node-btn").addEventListener("click", () => openNodeModal("create", null));
 document.getElementById("node-modal-cancel").addEventListener("click", closeNodeModal);
+document.getElementById("node-type").addEventListener("change", (e) => {
+  document.getElementById("riven-fields").style.display = e.target.value === "Riven" ? "" : "none";
+});
+document.getElementById("node-riven-weapon").addEventListener("input", updateRivenCheck);
 
 document.getElementById("node-modal-save").addEventListener("click", async () => {
   const id = document.getElementById("node-id").value.trim();
@@ -874,6 +984,9 @@ document.getElementById("node-modal-save").addEventListener("click", async () =>
     evaluation: document.getElementById("node-evaluation").value.trim(),
     note: document.getElementById("node-note").value.trim(),
     masteryTrack: document.getElementById("node-mastery-track").checked,
+    rivenWeapon: document.getElementById("node-riven-weapon").value.trim(),
+    rivenPositiveStats: selectedRivenPositiveStats(),
+    rivenNegativeStat: document.getElementById("node-riven-negative").value,
   };
   // 編集時は既存のsatisfied/gilded/uniqueName（フォームに出していない状態）を引き継ぐ。
   const existing = state.graph.nodes[id];
@@ -1039,6 +1152,7 @@ function initResizer() {
 }
 
 initResizer();
+loadRivenStatChoices();
 loadGraph().then(loadReport);
 </script>
 <script src="/booster.js"></script>

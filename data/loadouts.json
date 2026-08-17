@@ -1,15 +1,4 @@
 {
-  "items": {
-    "item-msvxiho6oyai": {
-      "id": "item-msvxiho6oyai",
-      "name": "Ash",
-      "type": "Frame",
-      "configs": {
-        "A": [],
-        "B": [],
-        "C": []
-      }
-    }
-  },
+  "items": {},
   "buildSets": {}
 }

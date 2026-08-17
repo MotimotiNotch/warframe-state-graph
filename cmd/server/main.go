@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"warframe-state-graph/pkg/engine"
 	"warframe-state-graph/pkg/loadout"
@@ -15,9 +16,24 @@ import (
 	"warframe-state-graph/pkg/wfcdgen"
 )
 
-// weaponCategories は nodeType=Weapon の自動生成候補を探す際に順に試すWFCDカテゴリ。
-// フレーム側は Warframes 一択なので迷わない。
+// weaponCategories は nodeType=Weapon の自動生成候補（WFCD generate/Riven check共通）を
+// 探す際に順に試すカテゴリ。フレーム側は Warframes 一択なので迷わない。
 var weaponCategories = []string{wfcd.CategoryPrimary, wfcd.CategorySecondary, wfcd.CategoryMelee}
+
+// findItemInCategories は複数カテゴリを順に試して名前一致するWFCDアイテムを探す共通ヘルパー
+// （WFCD自動生成とRiven一致判定の両方で武器を名前引きする必要があるため切り出した）。
+func findItemInCategories(wfcdCacheDir string, categories []string, name string) (wfcd.Item, bool) {
+	for _, cat := range categories {
+		items, err := wfcd.CachedItemsFull(wfcdCacheDir, cat)
+		if err != nil {
+			continue
+		}
+		if it, hit := wfcd.FindItemByName(items, name); hit {
+			return it, true
+		}
+	}
+	return wfcd.Item{}, false
+}
 
 func main() {
 	root, err := os.Getwd()
@@ -218,20 +234,7 @@ func main() {
 		if nodeType == model.TypeWeapon {
 			categories = weaponCategories
 		}
-
-		var found wfcd.Item
-		ok := false
-		for _, cat := range categories {
-			items, err := wfcd.CachedItemsFull(wfcdCacheDir, cat)
-			if err != nil {
-				continue
-			}
-			if it, hit := wfcd.FindItemByName(items, name); hit {
-				found = it
-				ok = true
-				break
-			}
-		}
+		found, ok := findItemInCategories(wfcdCacheDir, categories, name)
 		if !ok {
 			http.Error(w, "item not found in WFCD data: "+name, http.StatusNotFound)
 			return
@@ -265,6 +268,36 @@ func main() {
 			return
 		}
 		writeJSON(w, body.Nodes)
+	})
+
+	// Riven専用入力UIの選択肢一覧（ポジ値として意味のあるステータス名）。
+	mux.HandleFunc("GET /api/wfcd/riven-stats", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, wfcdgen.RivenStatChoices)
+	})
+
+	// 対象武器のアーキタイプとRivenのポジ値ステータス群が噛み合っているかを判定する
+	// （02_Requirements_and_Roadmap.md item2のスコープ通り、理論値レンジ計算は行わない）。
+	mux.HandleFunc("GET /api/wfcd/riven-check", func(w http.ResponseWriter, r *http.Request) {
+		weaponName := r.URL.Query().Get("weapon")
+		if weaponName == "" {
+			http.Error(w, "missing ?weapon=", http.StatusBadRequest)
+			return
+		}
+		var positive []string
+		if raw := r.URL.Query().Get("positive"); raw != "" {
+			for _, s := range strings.Split(raw, ",") {
+				if s = strings.TrimSpace(s); s != "" {
+					positive = append(positive, s)
+				}
+			}
+		}
+
+		item, ok := findItemInCategories(wfcdCacheDir, weaponCategories, weaponName)
+		if !ok {
+			http.Error(w, "weapon not found in WFCD data: "+weaponName, http.StatusNotFound)
+			return
+		}
+		writeJSON(w, wfcdgen.CheckRiven(item, positive))
 	})
 
 	// レリックがVault済み（現行ドロップテーブル外）かどうか。
