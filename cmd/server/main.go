@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"warframe-state-graph/pkg/collection"
 	"warframe-state-graph/pkg/engine"
 	"warframe-state-graph/pkg/loadout"
 	"warframe-state-graph/pkg/model"
@@ -42,10 +43,12 @@ func main() {
 	}
 	dataPath := filepath.Join(root, "data", "graph.json")
 	loadoutPath := filepath.Join(root, "data", "loadouts.json")
+	collectionsPath := filepath.Join(root, "data", "collections.json")
 	webDir := filepath.Join(root, "web")
 
 	st := store.NewFileStore(dataPath)
 	ls := loadout.NewFileStore(loadoutPath)
+	cs := collection.NewFileStore(collectionsPath)
 	wfcdCacheDir := filepath.Join(root, "data", "wfcd-cache")
 
 	mux := http.NewServeMux()
@@ -158,6 +161,66 @@ func main() {
 
 	mux.HandleFunc("DELETE /api/build-sets/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if err := ls.DeleteBuildSet(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Collections（Chain View/Loadoutsとは独立したRiven/Kuva入手ログ）。
+	mux.HandleFunc("GET /api/collections", func(w http.ResponseWriter, r *http.Request) {
+		d, err := cs.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/collections/rivens", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.RivenEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.WeaponName == "" {
+			http.Error(w, "id and weaponName are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertRiven(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/rivens/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteRiven(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/collections/kuva", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.KuvaEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.WeaponName == "" {
+			http.Error(w, "id and weaponName are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertKuva(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/kuva/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteKuva(r.PathValue("id")); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

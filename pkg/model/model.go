@@ -32,7 +32,7 @@ type Node struct {
 	Satisfied  bool     `json:"satisfied"`
 	Requires   []string `json:"requires"`             // 前提条件ノードID: 全てSATISFIEDでないとACTIONABLEにならない
 	Contains   []string `json:"contains"`             // 構成要素ノードID: 表示グループ化のみ、状態判定には影響しない
-	Evaluation string   `json:"evaluation,omitempty"` // Riven要リロール/完成の主観判定、またはKuva/Tenet/Coda武器のボーナス属性ロールの手入力欄（03_Data_Source_Research.md 2.6/14節、同じ発想の自由記述として共用）
+	Evaluation string   `json:"evaluation,omitempty"` // 主観評価・状態メモの自由記述欄
 	Priority   int      `json:"priority,omitempty"`
 	Note       string   `json:"note,omitempty"`
 
@@ -50,13 +50,6 @@ type Node struct {
 	// Prime Resurgence在庫照合をあいまいな名前一致ではなく確実なキーで行うために使う。
 	// 手動作成ノードでは空のままでよい。
 	UniqueName string `json:"uniqueName,omitempty"`
-
-	// 以下はType==Riven専用フィールド（それ以外の種別では未使用のまま無視してよい）。
-	// 「どの組み合わせが理論上最強か」ではなく「アーキタイプ判定まで」に意図的にスコープを絞った
-	// 設計（02_Requirements_and_Roadmap.md item2）に沿い、理論値レンジ等の精密計算は持たない。
-	RivenWeapon        string   `json:"rivenWeapon,omitempty"`        // 対象武器名（WFCD名と一致させる想定）
-	RivenPositiveStats []string `json:"rivenPositiveStats,omitempty"` // ポジ値ステータス名（Critical Chance等）
-	RivenNegativeStat  string   `json:"rivenNegativeStat,omitempty"`  // ネガ値ステータス名（任意）
 }
 
 type Graph struct {
