@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log"
 	"net"
@@ -315,7 +316,7 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		writeJSON(w, map[string]any{"data": d, "syndicates": standing.MajorSyndicates})
+		writeJSON(w, map[string]any{"data": d, "syndicates": standing.AllSyndicates})
 	})
 
 	mux.HandleFunc("POST /api/standing/{syndicate}", func(w http.ResponseWriter, r *http.Request) {
@@ -326,8 +327,13 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if body.Rank < standing.MinRank || body.Rank > standing.MaxRank {
-			http.Error(w, "rank must be between -2 and 5", http.StatusBadRequest)
+		syn, ok := standing.FindSyndicate(r.PathValue("syndicate"))
+		if !ok {
+			http.Error(w, "unknown syndicate", http.StatusNotFound)
+			return
+		}
+		if body.Rank < syn.MinRank() || body.Rank > syn.MaxRank() {
+			http.Error(w, fmt.Sprintf("rank must be between %d and %d for this syndicate", syn.MinRank(), syn.MaxRank()), http.StatusBadRequest)
 			return
 		}
 		d, err := ss.SetRank(r.PathValue("syndicate"), body.Rank)
@@ -348,8 +354,13 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if body.Rank < 0 || body.Rank > standing.MaxRank {
-			http.Error(w, "rank must be between 0 and 5", http.StatusBadRequest)
+		syn, ok := standing.FindSyndicate(r.PathValue("syndicate"))
+		if !ok {
+			http.Error(w, "unknown syndicate", http.StatusNotFound)
+			return
+		}
+		if body.Rank < 0 || body.Rank > syn.MaxRank() {
+			http.Error(w, fmt.Sprintf("rank must be between 0 and %d for this syndicate", syn.MaxRank()), http.StatusBadRequest)
 			return
 		}
 		d, err := ss.SetHighestRankReached(r.PathValue("syndicate"), body.Rank)

@@ -25,14 +25,40 @@ func TestRankLabel(t *testing.T) {
 	}
 }
 
-func TestNewData_InitializesAllMajorSyndicatesToNeutral(t *testing.T) {
+func TestNewData_InitializesAllSyndicatesToNeutral(t *testing.T) {
 	d := NewData()
-	if len(d.Ranks) != len(MajorSyndicates) {
-		t.Fatalf("Ranks has %d entries, want %d", len(d.Ranks), len(MajorSyndicates))
+	if len(d.Ranks) != len(AllSyndicates) {
+		t.Fatalf("Ranks has %d entries, want %d", len(d.Ranks), len(AllSyndicates))
 	}
-	for _, s := range MajorSyndicates {
+	for _, s := range AllSyndicates {
 		if d.Ranks[s.Name] != 0 {
 			t.Errorf("Ranks[%q] = %d, want 0", s.Name, d.Ranks[s.Name])
+		}
+	}
+}
+
+func TestSyndicateInfo_MinMaxRank(t *testing.T) {
+	cases := []struct {
+		name        string
+		wantMin     int
+		wantMaxRank int
+	}{
+		{"Red Veil", -2, 5},          // hostile-pair major syndicate
+		{"Necraloid", 0, 3},          // extended, 3 ranks only, no hostility
+		{"The Quills", 0, 5},         // extended, 5 ranks, no hostility
+		{"Kahl's Garrison", 0, 5},    // extended, 5 ranks, no Standing mechanic but still no hostility
+		{"Operational Supply", 0, 3}, // extended, 3 ranks, event-exclusive
+	}
+	for _, c := range cases {
+		s, ok := FindSyndicate(c.name)
+		if !ok {
+			t.Fatalf("FindSyndicate(%q) not found", c.name)
+		}
+		if s.MinRank() != c.wantMin {
+			t.Errorf("%s.MinRank() = %d, want %d", c.name, s.MinRank(), c.wantMin)
+		}
+		if s.MaxRank() != c.wantMaxRank {
+			t.Errorf("%s.MaxRank() = %d, want %d", c.name, s.MaxRank(), c.wantMaxRank)
 		}
 	}
 }
@@ -166,8 +192,18 @@ func TestRecoverySacrifice(t *testing.T) {
 		{"The Perrin Sequence", "Orokin Reactor×1"},
 	}
 	for _, c := range cases {
-		if got := RecoverySacrifice(c.syndicate); got != c.want {
-			t.Errorf("RecoverySacrifice(%q) = %q, want %q", c.syndicate, got, c.want)
+		got := RecoverySacrifice(c.syndicate)
+		if len(got.Items) != 1 || got.Items[0] != c.want {
+			t.Errorf("RecoverySacrifice(%q) = %+v, want Items=[%q]", c.syndicate, got, c.want)
 		}
+	}
+}
+
+func TestRecoverySacrifice_EmptyForNonHostileSyndicate(t *testing.T) {
+	// The Quillsのように敵対relationshipを持たないシンジケートにはマイナスランクが
+	// 存在しないため、回復貢献という概念自体が意味を持たない。
+	got := RecoverySacrifice("The Quills")
+	if len(got.Items) != 0 || got.None || got.Unconfirmed {
+		t.Errorf("RecoverySacrifice(The Quills) = %+v, want empty RankSacrifice", got)
 	}
 }

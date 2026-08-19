@@ -42,12 +42,12 @@ func (s *FileStore) loadLocked() (*Data, error) {
 	if d.HighestRankReached == nil {
 		d.HighestRankReached = make(map[string]int)
 	}
-	// MajorSyndicatesに含まれるがファイルにまだ無いシンジケート（新規追加時）は
-	// Neutral(0)で補完する。HighestRankReachedがまだ無い場合（このフィールド追加前の
-	// 既存ファイルからの移行、または新規シンジケート）は、既存の現在ランク（正の値のみ、
-	// 負のランクは「未到達」扱い）をそのまま最高到達ランクの初期値として引き継ぐ——
-	// 実績を失わせないための一度きりの移行ロジック。
-	for _, syn := range MajorSyndicates {
+	// AllSyndicatesに含まれるがファイルにまだ無いシンジケート（新規追加時、16シンジケート
+	// 拡張で10件増えた場合も含む）はNeutral(0)で補完する。HighestRankReachedがまだ無い場合
+	// （このフィールド追加前の既存ファイルからの移行、または新規シンジケート）は、既存の
+	// 現在ランク（正の値のみ、負のランクは「未到達」扱い）をそのまま最高到達ランクの初期値
+	// として引き継ぐ——実績を失わせないための一度きりの移行ロジック。
+	for _, syn := range AllSyndicates {
 		if _, ok := d.Ranks[syn.Name]; !ok {
 			d.Ranks[syn.Name] = 0
 		}

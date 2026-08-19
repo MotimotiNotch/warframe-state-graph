@@ -147,6 +147,7 @@
   .syn-sacrifice-pop tr.paid .sac-item { text-decoration: line-through; }
   .syn-sacrifice-pop .sac-status { color: var(--actionable); white-space: nowrap; }
   .syn-recovery { margin-top: 8px; color: var(--danger); }
+  .syn-note { margin-top: 8px; color: var(--muted); font-style: italic; }
 
   .empty { color: var(--muted); font-size: 0.85rem; }
 </style>
@@ -163,7 +164,7 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）の現在ランクを記録する場所。2陣営（前者3つ/後者3つ）が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）ため、Chain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新する。武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使う。<br>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>
+        <div class="empty">全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所。6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）だけは2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）ため、Chain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新する。他の10シンジケートは敵対relationshipを持たずランクは0以上のみ。貢献アイテムの中身は一部（Solaris United等）実データからの解釈が確定できず「不明」表示のままにしている。武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使う。<br>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>
       </div>
     </div>
   </nav>
@@ -226,44 +227,64 @@ function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// 6大シンジケート（敵対relationshipあり）だけがマイナスランクまで下がりうる。それ以外の
+// 10シンジケート（pkg/standing.FactionNone）は常に0〜最高ランクの範囲に収まる
+// （pkg/standing.SyndicateInfo.MinRank/MaxRankと同じロジックをフロント側でも複製）。
+function minRank(s) { return (s.faction === "left" || s.faction === "right") ? -2 : 0; }
+function maxRank(s) { return (s.ranks || []).length; }
+
 // pkg/standing.RankLabel（Go側）とロジックを揃えた表示ラベル生成。保存前のプレビュー用に
 // フロント側で複製している（選択の度にサーバー往復して確認する必要をなくすため）。
 function rankLabel(syndicateName, rank) {
   if (rank === 0) return "Neutral (Rank 0)";
   if (rank < 0) return `敵対 (Rank ${rank})`;
   const syn = state.syndicates.find(s => s.name === syndicateName);
-  if (syn && rank >= 1 && rank <= 5) return `${syn.ranks[rank - 1]} (Rank ${rank})`;
+  if (syn && rank >= 1 && rank <= maxRank(syn)) return `${syn.ranks[rank - 1]} (Rank ${rank})`;
   return `Rank ${rank}`;
 }
 
 function rankOptions(syndicateName, current) {
+  const syn = state.syndicates.find(s => s.name === syndicateName);
+  if (!syn) return "";
   let opts = "";
-  for (let r = -2; r <= 5; r++) {
+  for (let r = minRank(syn); r <= maxRank(syn); r++) {
     opts += `<option value="${r}" ${r === current ? "selected" : ""}>${escapeHtml(rankLabel(syndicateName, r))}</option>`;
   }
   return opts;
 }
 
-// ランクアップ捧げ物はそのランクへ初めて到達した時のみ必要（降格→再昇格では不要、
-// マイナス圏からの回復を除く）。pkg/standing.RecoverySacrifice（Go側）と同じ「Rank3到達捧げ物と
-// 同一」という法則をフロント側でも複製している（2026-08-19、03_Data_Source_Research.md 2.17節）。
+// 1ランク分の貢献アイテム表示。pkg/standing.RankSacrificeと同じ3状態
+// （items=具体的なアイテム名リスト／none=貢献アイテムを消費しない仕組みと判明済み／
+// unconfirmed=正確な中身がまだ実データで確認できていない）を文字列化する。
+function sacrificeLabel(rs) {
+  if (!rs) return "";
+  if (rs.unconfirmed) return "不明（未確認）";
+  if (rs.none) return "なし";
+  return (rs.items || []).map(itemJa).join("、");
+}
+
+// ランクアップ貢献はそのランクへ初めて到達した時のみ必要（降格→再昇格では不要、
+// マイナス圏からの回復を除く）。pkg/standing.RecoverySacrifice（Go側）と同じ「Rank3到達貢献と
+// 同一」という法則をフロント側でも複製している（2026-08-19、03_Data_Source_Research.md 2.17節。
+// 敵対relationshipを持たないシンジケートにはマイナスランクが無いためこの関数は呼ばれない）。
 function recoverySacrifice(s) {
-  return s.sacrifices ? s.sacrifices[2] : "";
+  return s.sacrifices && s.sacrifices.length >= 3 ? sacrificeLabel(s.sacrifices[2]) : "";
 }
 
 function sacrificeTable(s, highest, current) {
-  const rows = (s.sacrifices || []).map((item, i) => {
+  const rows = (s.sacrifices || []).map((rs, i) => {
     const rank = i + 1;
     const paid = rank <= highest;
     return `
       <tr class="${paid ? "paid" : ""}">
         <td>Rank ${rank}</td>
-        <td class="sac-item">${escapeHtml(itemJa(item))}</td>
+        <td class="sac-item">${escapeHtml(sacrificeLabel(rs))}</td>
         <td class="sac-status">${paid ? "支払済" : ""}</td>
       </tr>`;
   }).join("");
-  const recovery = current < 0 ? `<div class="syn-recovery">マイナス圏からNeutralへの回復捧げ物: ${escapeHtml(itemJa(recoverySacrifice(s)))}</div>` : "";
-  return `<table>${rows}</table>${recovery}`;
+  const note = s.note ? `<div class="syn-note">${escapeHtml(s.note)}</div>` : "";
+  const recovery = current < 0 ? `<div class="syn-recovery">マイナス圏からNeutralへの回復捧げ物: ${escapeHtml(recoverySacrifice(s))}</div>` : "";
+  return `<table>${rows}</table>${note}${recovery}`;
 }
 
 function renderSyndicates() {
@@ -302,14 +323,16 @@ function renderSyndicates() {
   el.querySelectorAll("[data-highest-reset]").forEach(btn => btn.addEventListener("click", async (e) => {
     e.stopPropagation();
     const name = btn.dataset.highestReset;
+    const syn = state.syndicates.find(s => s.name === name);
+    const max = syn ? maxRank(syn) : 5;
     const current = state.highest[name] ?? 0;
     const input = window.prompt(
-      `「${synJa(name)}」の最高到達実績を訂正（0〜5、間違って高いランクを選んでしまった時用）`,
+      `「${synJa(name)}」の最高到達実績を訂正（0〜${max}、間違って高いランクを選んでしまった時用）`,
       String(current)
     );
     if (input === null) return;
     const rank = Number(input);
-    if (!Number.isInteger(rank) || rank < 0 || rank > 5) { alert("0〜5の整数を入力して"); return; }
+    if (!Number.isInteger(rank) || rank < 0 || rank > max) { alert(`0〜${max}の整数を入力して`); return; }
     const res = await fetch(`/api/standing/${encodeURIComponent(name)}/highest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
