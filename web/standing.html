@@ -99,7 +99,14 @@
     border-radius: 18px;
     padding: 14px;
     margin-bottom: 14px;
+    /* backdrop-filterは新しい重なりコンテキストを作るため、.panel同士はそれぞれ独立した
+       重なりの世界になる——中の.popover(z-index:40)は自分のパネルの外（次のパネルの上）には
+       出られず、後から描画される次の.panelにそのまま隠れてしまう。position+z-indexを明示し、
+       ポップオーバーが開いている間だけ.raisedでそのパネルごと前面に出す（下のJS参照）。 */
+    position: relative;
+    z-index: 1;
   }
+  .panel.raised { z-index: 50; }
   .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
   select {
@@ -263,6 +270,7 @@ document.getElementById("help-popover").addEventListener("click", (e) => e.stopP
 document.addEventListener("click", () => {
   document.getElementById("help-popover").classList.add("hidden");
   document.querySelectorAll(".syn-sacrifice-pop").forEach(p => p.classList.add("hidden"));
+  document.querySelectorAll(".panel.raised").forEach(p => p.classList.remove("raised"));
 });
 
 function escapeHtml(s) {
@@ -363,7 +371,16 @@ function renderSyndicateList(containerId, list, showAchievement) {
     const pop = el.querySelector(`[data-sacrifice-pop="${CSS.escape(btn.dataset.sacrificeToggle)}"]`);
     const willShow = pop.classList.contains("hidden");
     el.querySelectorAll(".syn-sacrifice-pop").forEach(p => p.classList.add("hidden"));
-    if (willShow) pop.classList.remove("hidden");
+    // .panel同士はbackdrop-filterでそれぞれ独立した重なりコンテキストを作るため、
+    // ポップオーバー自身のz-indexだけでは次のパネルの下に隠れてしまう。開いている間だけ
+    // 親.panelごと前面へ持ち上げる（CSSの.panel.raisedコメント参照）。
+    const panel = el.closest(".panel");
+    if (willShow) {
+      pop.classList.remove("hidden");
+      if (panel) panel.classList.add("raised");
+    } else if (panel) {
+      panel.classList.remove("raised");
+    }
   }));
   el.querySelectorAll(".syn-sacrifice-pop").forEach(pop => pop.addEventListener("click", (e) => e.stopPropagation()));
   el.querySelectorAll("[data-highest-reset]").forEach(btn => btn.addEventListener("click", async (e) => {
