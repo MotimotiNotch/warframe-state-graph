@@ -19,6 +19,7 @@
     --panel-blur: 5px;
     --bg: #12141a;
     --panel: rgba(27, 30, 39, 0.35);
+    --popover-bg: rgba(20, 22, 28, 0.94);
     --border: #2a2e3a;
     --text: #e4e6ec;
     --muted: #8a8f9c;
@@ -31,6 +32,7 @@
     :root:not([data-theme="dark"]) {
       --bg: #f5f6f8;
       --panel: rgba(255, 255, 255, 0.4);
+      --popover-bg: rgba(255, 255, 255, 0.96);
       --border: #d8dbe2;
       --text: #1c1e24;
       --muted: #6b7080;
@@ -43,6 +45,7 @@
   :root[data-theme="light"] {
     --bg: #f5f6f8;
     --panel: rgba(255, 255, 255, 0.4);
+    --popover-bg: rgba(255, 255, 255, 0.96);
     --border: #d8dbe2;
     --text: #1c1e24;
     --muted: #6b7080;
@@ -85,7 +88,9 @@
   .popover-wrap { position: relative; display: inline-block; }
   .popover {
     position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
-    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    /* パネル本体(--panel)は壁紙を透かす狙いでかなり薄いが、ポップオーバーは他の要素の上に
+       浮かぶ読み物なので専用の濃いめの背景(--popover-bg)を使う（2026-08-20、視認性向上）。 */
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 12px; padding: 10px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
   }
