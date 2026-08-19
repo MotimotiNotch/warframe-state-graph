@@ -3,11 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Warframe State Graph — Collections</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
 <style>
   :root {
+    --panel-blur: 5px;
     --bg: #12141a;
-    --panel: #1b1e27;
+    --panel: rgba(27, 30, 39, 0.35);
     --border: #2a2e3a;
     --text: #e4e6ec;
     --muted: #8a8f9c;
@@ -15,6 +26,30 @@
     --danger: #e0616b;
     --actionable: #4fd88a;
     --satisfied: #5a95e0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --border: #d8dbe2;
+      --text: #1c1e24;
+      --muted: #6b7080;
+      --accent: #a8760a;
+      --danger: #c23a46;
+      --actionable: #1f9d5c;
+      --satisfied: #2f6fc4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --border: #d8dbe2;
+    --text: #1c1e24;
+    --muted: #6b7080;
+    --accent: #a8760a;
+    --danger: #c23a46;
+    --actionable: #1f9d5c;
+    --satisfied: #2f6fc4;
   }
   * { box-sizing: border-box; }
   body {
@@ -24,52 +59,105 @@
     font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
     padding: 14px;
   }
-  h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 4px; }
-  h2 { font-size: 0.95rem; margin: 20px 0 10px; }
-  nav { font-size: 0.85rem; margin-bottom: 14px; }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。詳細はindex.htmlの同名ブロックのコメント参照。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; }
+    .btn-label { display: none; }
+  }
+  h2 { font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px; }
+  nav { font-size: 0.85rem; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
   nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
   nav a.current { color: var(--accent); }
   nav a:hover { color: var(--accent); }
 
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .icon-btn.on { border-color: var(--accent); color: var(--accent); }
+
+  .star-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 0; color: var(--muted); }
+  .star-btn.favorite { color: var(--accent); }
+  .star-btn svg { display: block; }
+  .star-btn.favorite svg { fill: var(--accent); }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 300px;
+  }
+  .popover.hidden { display: none; }
+  .popover.left { right: auto; left: 0; }
+
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .panel-head-btn { display: inline-flex; align-items: center; gap: 4px; }
 
   input[type=text], select, textarea {
     background: var(--bg); color: var(--text); border: 1px solid var(--border);
     border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; font-family: inherit;
   }
   textarea { width: 100%; min-height: 40px; resize: vertical; }
-  button { background: transparent; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; }
+  button { background: transparent; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
   button:hover { border-color: var(--accent); color: var(--accent); }
   button.danger:hover { border-color: var(--danger); color: var(--danger); }
   button.on { border-color: var(--actionable); color: var(--actionable); }
+  button.primary { border-color: var(--accent); color: var(--accent); }
 
-  .inline-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-bottom: 8px; }
   .form-grid label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 3px; }
   .form-grid > div { min-width: 0; }
   .form-grid select, .form-grid input[type=text] { width: 100%; }
-
-  .stats-grid { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8rem; }
-  .stats-grid label { display: inline-flex; align-items: center; gap: 4px; color: var(--text); margin: 0; font-weight: 400; }
+  .field-label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 3px; }
 
   .combobox { position: relative; }
   .suggest-list {
     position: absolute; top: calc(100% + 4px); left: 0; background: var(--panel);
-    border: 1px solid var(--border); border-radius: 8px; max-height: 220px; overflow-y: auto;
-    z-index: 30; min-width: 220px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 14px; max-height: 220px; overflow-y: auto;
+    z-index: 60; min-width: 220px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
   }
   .suggest-list.hidden { display: none; }
   .suggest-item { padding: 5px 10px; cursor: pointer; font-size: 0.85rem; }
   .suggest-item:hover { background: var(--border); color: var(--accent); }
   .suggest-empty { padding: 5px 10px; color: var(--muted); font-size: 0.8rem; }
 
-  .entry-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
-  .entry-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .entry-name { font-weight: 600; }
-  .entry-row { font-size: 0.82rem; color: var(--muted); margin: 3px 0; }
-  .entry-row b { color: var(--text); font-weight: 500; }
+  /* 複数選択ドロップダウン（ポジ値ステータス用）。素のcheckboxリストを常時表示するとラジオ/チェックボックスの
+     縦長羅列になり圧迫感が強いため、ボタン+ポップオーバーに畳む（Collectionsページ詳細設計 項目1）。 */
+  .multiselect-btn { width: 100%; justify-content: space-between; text-align: left; }
+  .multiselect-popover { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+  .multiselect-popover label { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 400; }
 
-  .badge { display: inline-block; border-radius: 8px; padding: 1px 8px; font-size: 0.72rem; margin-left: 6px; border: 1px solid; }
+  .card-v2 { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+  .card-v2:hover { border-color: var(--accent); }
+  .card-head { display: flex; align-items: flex-start; gap: 8px; }
+  .card-title { font-weight: 600; flex: 1; min-width: 0; }
+  .card-badges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .card-row { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }
+  .card-row b { color: var(--text); font-weight: 500; }
+  .card-memo { font-size: 0.78rem; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  .badge { display: inline-flex; align-items: center; gap: 3px; border-radius: 8px; padding: 1px 8px; font-size: 0.72rem; border: 1px solid; white-space: nowrap; }
   .badge-fix { background: #4fd88a22; color: var(--actionable); border-color: var(--actionable); }
   .badge-unfixed { background: #8a8f9c22; color: var(--muted); border-color: var(--muted); }
   .badge-owned { background: #4fd88a22; color: var(--actionable); border-color: var(--actionable); }
@@ -77,93 +165,191 @@
   .badge-match { background: #4fd88a22; color: var(--actionable); border-color: var(--actionable); }
   .badge-nomatch { background: #8a8f9c22; color: var(--muted); border-color: var(--muted); }
   .badge-linked { background: #5a95e022; color: var(--satisfied); border-color: var(--satisfied); }
+  .badge-count { background: var(--bg); color: var(--muted); border-color: var(--border); }
+  .badge-kind { background: var(--bg); color: var(--muted); border-color: var(--border); }
 
   .empty { color: var(--muted); font-size: 0.85rem; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 200;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 16px; width: 100%; max-width: 520px;
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .modal .sub-actions { display: flex; justify-content: flex-start; gap: 8px; margin: 10px 0; }
+  .modal hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .inline-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .group-entry { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+  .group-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 </style>
 </head>
 <body>
-  <h1>⚔️ Warframe State Graph — Collections</h1>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Collections</span></h1>
   <nav>
     <a href="/">Chain View</a>
     <a href="/loadouts.html">Loadouts</a>
     <a href="/collections.html" class="current">Collections</a>
+    <span style="flex:1"></span>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <div class="popover hidden" id="help-popover">
+        <div class="empty">Chain View / Loadoutsとは独立した、Riven/Kuva系武器の入手状況ログ。星マークは「今のビルドで使ってる/優先度高い」という主観マーカーで、RivenのFIX（ロール完成度）とは独立して立てられる。</div>
+      </div>
+    </div>
   </nav>
-  <div class="empty" style="margin-bottom:10px;">Chain View / Loadoutsとは独立した、Riven/Kuva系武器の入手状況ログ。</div>
 
-  <div class="panel">
-    <h2>🎲 Riven Mods</h2>
-    <div class="form-grid">
-      <div>
-        <label>対象武器名（WFCD実データ名と完全一致）</label>
-        <div class="combobox">
-          <input type="text" id="riven-weapon-input" placeholder="例: Braton Prime" autocomplete="off">
-          <div id="riven-weapon-suggest" class="suggest-list hidden"></div>
-        </div>
-      </div>
-      <div>
-        <label>ネガ値ステータス（任意）</label>
-        <select id="riven-negative-select"></select>
-      </div>
-    </div>
-    <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:3px;">ポジ値ステータス（複数選択可）</label>
-    <div id="riven-positive-stats" class="stats-grid" style="margin-bottom:8px;"></div>
-    <div class="form-grid">
-      <div>
-        <label>Chain View連携（任意）</label>
-        <select id="riven-chainview-select"></select>
-      </div>
-      <div>
-        <label>メモ</label>
-        <input type="text" id="riven-note-input" placeholder="任意">
-      </div>
-    </div>
-    <div id="riven-live-check" style="margin-bottom:8px;"></div>
-    <div class="inline-form">
-      <button id="riven-add-btn">登録</button>
-    </div>
-    <div id="riven-list" style="margin-top:14px;"></div>
+  <div class="panel" id="favorites-panel">
+    <div class="panel-head"><h2 id="favorites-title"></h2></div>
+    <div id="favorites-list"></div>
   </div>
 
-  <div class="panel">
-    <h2>⚔️ Kuva / Tenet / Coda 武器</h2>
-    <div class="form-grid">
-      <div>
-        <label>武器名（WFCD実データ名と完全一致）</label>
-        <div class="combobox">
-          <input type="text" id="kuva-weapon-input" placeholder="例: Kuva Bramma" autocomplete="off">
-          <div id="kuva-weapon-suggest" class="suggest-list hidden"></div>
-        </div>
-      </div>
-      <div>
-        <label>系統</label>
-        <select id="kuva-kind-select">
-          <option value="Kuva">Kuva</option>
-          <option value="Tenet">Tenet</option>
-          <option value="Coda">Coda</option>
-        </select>
-      </div>
+  <div class="panel" id="riven-panel">
+    <div class="panel-head">
+      <h2>Riven Mods</h2>
+      <button class="primary" id="riven-new-btn"></button>
     </div>
-    <div class="form-grid">
-      <div>
-        <label>ボーナス属性（Lich撃破時のランダムロール、任意）</label>
-        <input type="text" id="kuva-bonus-input" placeholder="例: +58% Cold Damage">
-      </div>
-      <div>
-        <label>Chain View連携（任意）</label>
-        <select id="kuva-chainview-select"></select>
-      </div>
-    </div>
-    <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:3px;">メモ</label>
-    <input type="text" id="kuva-note-input" placeholder="任意" style="width:100%;margin-bottom:8px;">
-    <div class="inline-form">
-      <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;"><input type="checkbox" id="kuva-owned-check">所持済み</label>
-      <button id="kuva-add-btn">登録</button>
-    </div>
-    <div id="kuva-list" style="margin-top:14px;"></div>
+    <div id="riven-list"></div>
   </div>
 
+  <div class="panel" id="kuva-panel">
+    <div class="panel-head">
+      <h2>Kuva / Tenet / Coda 武器</h2>
+      <button class="primary" id="kuva-new-btn"></button>
+    </div>
+    <div id="kuva-list"></div>
+  </div>
+
+  <!-- Riven登録/編集モーダル -->
+  <div id="riven-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="riven-modal-title">Riven 新規登録</h3>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
+          <div class="combobox">
+            <input type="text" id="riven-weapon-input" placeholder="例: Braton Prime" autocomplete="off">
+            <div id="riven-weapon-suggest" class="suggest-list hidden"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">ネガ値ステータス（任意）</label>
+          <select id="riven-negative-select"></select>
+        </div>
+      </div>
+      <label class="field-label">ポジ値ステータス（複数選択可）</label>
+      <div class="popover-wrap" style="display:block;margin-bottom:8px;">
+        <button class="multiselect-btn" id="riven-positive-btn" type="button"></button>
+        <div class="popover hidden multiselect-popover" id="riven-positive-popover"></div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">Chain View連携（任意）</label>
+          <select id="riven-chainview-select"></select>
+        </div>
+        <div>
+          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="riven-favorite-check" style="width:auto;">お気に入り
+          </label>
+        </div>
+      </div>
+      <label class="field-label">メモ</label>
+      <textarea id="riven-note-input" placeholder="任意"></textarea>
+      <div id="riven-live-check" style="margin-top:8px;"></div>
+      <div class="actions">
+        <button id="riven-modal-cancel">キャンセル</button>
+        <button class="primary" id="riven-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kuva/Tenet/Coda: 武器名でグループ化した一覧＋登録モーダル -->
+  <div id="kuva-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="kuva-modal-title">Kuva / Tenet / Coda</h3>
+      <div id="kuva-modal-name-field"></div>
+      <div id="kuva-modal-entries"></div>
+      <div class="sub-actions">
+        <button class="primary" id="kuva-modal-add-toggle"></button>
+      </div>
+      <div id="kuva-modal-form" class="hidden">
+        <hr>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">系統</label>
+            <select id="kuva-kind-select">
+              <option value="Kuva">Kuva</option>
+              <option value="Tenet">Tenet</option>
+              <option value="Coda">Coda</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;margin-top:20px;">
+              <input type="checkbox" id="kuva-owned-check" style="width:auto;">所持済み
+            </label>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">ボーナス属性（Lich撃破時のランダムロール、任意）</label>
+            <input type="text" id="kuva-bonus-input" placeholder="例: +58% Cold Damage" style="width:100%;">
+          </div>
+          <div>
+            <label class="field-label">Chain View連携（任意）</label>
+            <select id="kuva-chainview-select"></select>
+          </div>
+        </div>
+        <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="kuva-favorite-check" style="width:auto;">お気に入り（本命の1丁）
+        </label>
+        <label class="field-label" style="margin-top:8px;">メモ</label>
+        <textarea id="kuva-note-input" placeholder="任意"></textarea>
+        <div class="actions">
+          <button id="kuva-form-cancel">やめる</button>
+          <button class="primary" id="kuva-form-save">保存</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="kuva-modal-close">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+<script src="/icons.js"></script>
+<script src="/minigraph.js"></script>
 <script>
-const state = { data: { rivens: {}, kuva: {} }, chainViewNodes: [], weaponNames: [], rivenStatChoices: [] };
+const state = { data: { rivens: {}, kuva: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], rivenStatChoices: [] };
+
+// wfcdgen.RivenStatChoices（pkg/wfcdgen/wfcdgen.go）と1:1対応する固定の英→日マッピング。
+// Rivenステータス用語はi18n.jsonの対象外（アプリ固定リスト）と判明したため、フルi18nパイプライン
+// ではなくこの軽量な静的テーブルで足りる（2026-08-18 Collectionsページ詳細設計 項目2）。
+const RIVEN_STAT_JA = {
+  "Critical Chance": "会心率",
+  "Critical Damage": "会心ダメージ",
+  "Status Chance": "状態異常率",
+  "Status Duration": "状態異常持続時間",
+  "Multishot": "マルチショット",
+  "Damage": "ダメージ",
+  "Fire Rate": "連射速度",
+  "Reload Speed": "リロード速度",
+  "Punch Through": "貫通",
+  "Range": "射程",
+  "Magazine Capacity": "弾倉容量",
+  "Recoil": "反動",
+};
+function ja(stat) { return RIVEN_STAT_JA[stat] || stat; }
+
+document.getElementById("riven-new-btn").innerHTML = iconLabel("plus", "新規登録");
+document.getElementById("riven-new-btn").title = "新規登録";
+document.getElementById("kuva-new-btn").innerHTML = iconLabel("plus", "新規登録");
+document.getElementById("kuva-new-btn").title = "新規登録";
+document.getElementById("help-toggle").innerHTML = icon("info");
 
 async function loadAll() {
   const res = await fetch("/api/collections");
@@ -177,8 +363,9 @@ async function loadChainViewNodes() {
   try {
     const res = await fetch("/api/graph");
     const graph = await res.json();
-    state.chainViewNodes = Object.values(graph.nodes).sort((a, b) => a.name.localeCompare(b.name));
-  } catch (e) { state.chainViewNodes = []; }
+    state.nodesById = graph.nodes || {};
+    state.chainViewNodes = Object.values(state.nodesById).sort((a, b) => a.name.localeCompare(b.name));
+  } catch (e) { state.chainViewNodes = []; state.nodesById = {}; }
 }
 
 async function loadWeaponNames() {
@@ -198,46 +385,106 @@ async function loadRivenStatChoices() {
 function uid(prefix) {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 function chainViewOptions(selectedId) {
   return `<option value="">（連携なし）</option>` + state.chainViewNodes.map(n =>
-    `<option value="${n.id}" ${n.id === selectedId ? "selected" : ""}>${n.name}（${n.type}）</option>`
+    `<option value="${n.id}" ${n.id === selectedId ? "selected" : ""}>${escapeHtml(n.name)}（${n.type}）</option>`
   ).join("");
 }
-
-function chainViewLinkLabel(nodeId) {
-  const node = state.chainViewNodes.find(n => n.id === nodeId);
+function chainViewLinkBadge(nodeId) {
+  const node = state.nodesById[nodeId];
   if (!node) return "";
-  return `<span class="badge badge-linked">${node.name}: ${node.satisfied ? "達成済み" : "未達成"}</span>`;
+  return `<span class="badge badge-linked">${icon("link-2")}${escapeHtml(node.name)}: ${node.satisfied ? "達成済み" : "未達成"}</span>`;
+}
+function starBtn(favorite, dataAttrs) {
+  return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? "お気に入り解除" : "お気に入りにする"}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
 }
 
 function render() {
-  renderRivenPositiveStats();
-  renderRivenNegativeSelect();
-  renderChainViewSelects();
+  renderFavorites();
   renderRivenList();
-  renderKuvaList();
+  renderKuvaGroupedList();
 }
 
-function renderRivenPositiveStats() {
-  document.getElementById("riven-positive-stats").innerHTML = state.rivenStatChoices.map(s =>
-    `<label><input type="checkbox" data-riven-positive value="${s}">${s}</label>`
-  ).join("");
-  document.querySelectorAll("[data-riven-positive]").forEach(cb => cb.addEventListener("change", updateRivenLiveCheck));
+// ---------- popovers (help / multiselect) ----------
+function setupPopoverToggle(btnId, popId, opts) {
+  const btn = document.getElementById(btnId);
+  const pop = document.getElementById(popId);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    pop.classList.toggle("hidden");
+  });
+  pop.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", () => pop.classList.add("hidden"));
 }
+setupPopoverToggle("help-toggle", "help-popover");
+
+// ---------- 星付き横断一覧 ----------
+function renderFavorites() {
+  const rivenFavs = Object.values(state.data.rivens).filter(r => r.favorite);
+  const kuvaFavs = Object.values(state.data.kuva).filter(k => k.favorite);
+  document.getElementById("favorites-title").innerHTML = `${icon("star", { size: 16 })}お気に入り <span class="empty" style="font-weight:400;">(${rivenFavs.length + kuvaFavs.length})</span>`;
+  const el = document.getElementById("favorites-list");
+  const all = [
+    ...rivenFavs.map(r => ({ kind: "riven", entry: r })),
+    ...kuvaFavs.map(k => ({ kind: "kuva", entry: k })),
+  ];
+  if (!all.length) { el.innerHTML = `<div class="empty">まだお気に入りがありません</div>`; return; }
+  el.innerHTML = all.map(({ kind, entry }) => `
+    <div class="card-v2" data-fav-open="${kind}:${entry.id}" style="display:flex;align-items:center;gap:8px;">
+      ${starBtn(true, `data-fav-toggle="${kind}:${entry.id}"`)}
+      <span class="card-title">${escapeHtml(entry.weaponName)}</span>
+      <span class="badge badge-kind">${kind === "riven" ? "Riven" : (entry.kind || "Kuva")}</span>
+    </div>
+  `).join("");
+  el.querySelectorAll("[data-fav-toggle]").forEach(b => b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const [kind, id] = b.dataset.favToggle.split(":");
+    toggleFavorite(kind, id);
+  }));
+  el.querySelectorAll("[data-fav-open]").forEach(card => card.addEventListener("click", () => {
+    const [kind, id] = card.dataset.favOpen.split(":");
+    if (kind === "riven") openRivenModal(id);
+    else openKuvaModal(state.data.kuva[id].weaponName);
+  }));
+}
+function toggleFavorite(kind, id) {
+  if (kind === "riven") {
+    const entry = { ...state.data.rivens[id], favorite: !state.data.rivens[id].favorite };
+    upsertRiven(entry);
+  } else {
+    const entry = { ...state.data.kuva[id], favorite: !state.data.kuva[id].favorite };
+    upsertKuva(entry);
+  }
+}
+
+// ---------- Riven: 複数選択ポップオーバー ----------
+function renderRivenPositivePopover() {
+  const pop = document.getElementById("riven-positive-popover");
+  pop.innerHTML = state.rivenStatChoices.map(s =>
+    `<label><input type="checkbox" data-riven-positive value="${escapeHtml(s)}">${ja(s)}</label>`
+  ).join("");
+  pop.querySelectorAll("[data-riven-positive]").forEach(cb => cb.addEventListener("change", () => {
+    updateRivenPositiveBtnLabel();
+    updateRivenLiveCheck();
+  }));
+}
+function selectedRivenPositiveStats() {
+  return Array.from(document.querySelectorAll("[data-riven-positive]:checked")).map(cb => cb.value);
+}
+function updateRivenPositiveBtnLabel() {
+  const n = selectedRivenPositiveStats().length;
+  document.getElementById("riven-positive-btn").innerHTML =
+    `<span>ポジ値: ${n ? `${n}件選択` : "未選択"}</span>${icon("chevron-down")}`;
+}
+setupPopoverToggle("riven-positive-btn", "riven-positive-popover");
 
 function renderRivenNegativeSelect() {
   document.getElementById("riven-negative-select").innerHTML =
-    `<option value="">（なし）</option>` + state.rivenStatChoices.map(s => `<option value="${s}">${s}</option>`).join("");
-}
-
-function renderChainViewSelects() {
-  document.getElementById("riven-chainview-select").innerHTML = chainViewOptions("");
-  document.getElementById("kuva-chainview-select").innerHTML = chainViewOptions("");
-}
-
-function selectedRivenPositiveStats() {
-  return Array.from(document.querySelectorAll("[data-riven-positive]:checked")).map(cb => cb.value);
+    `<option value="">（なし）</option>` + state.rivenStatChoices.map(s => `<option value="${escapeHtml(s)}">${ja(s)}</option>`).join("");
 }
 
 let rivenCheckDebounce = null;
@@ -251,16 +498,55 @@ function updateRivenLiveCheck() {
     const params = new URLSearchParams({ weapon });
     if (positive.length) params.set("positive", positive.join(","));
     const res = await fetch(`/api/wfcd/riven-check?${params}`);
-    if (!res.ok) { resultEl.innerHTML = `<span class="empty">「${weapon}」がWFCDデータに見つかりません（完全一致が必要）</span>`; return; }
+    if (!res.ok) { resultEl.innerHTML = `<span class="empty">「${escapeHtml(weapon)}」がWFCDデータに見つかりません（完全一致が必要）</span>`; return; }
     const check = await res.json();
     resultEl.innerHTML = `
       <b>武器アーキタイプ:</b> ${check.archetype}
       ${check.matches
-        ? `<span class="badge badge-match">ポジ値と一致（${(check.matchedStats || []).join(", ")}）</span>`
+        ? `<span class="badge badge-match">${icon("check")}ポジ値と一致（${(check.matchedStats || []).map(ja).join(", ")}）</span>`
         : `<span class="badge badge-nomatch">一致ステータスなし</span>`}`;
   }, 300);
 }
 document.getElementById("riven-weapon-input").addEventListener("input", updateRivenLiveCheck);
+
+// ---------- Riven: モーダル ----------
+let rivenEditingId = null;
+function openRivenModal(editId) {
+  rivenEditingId = editId || null;
+  const entry = editId ? state.data.rivens[editId] : null;
+  document.getElementById("riven-modal-title").textContent = entry ? "Riven 編集" : "Riven 新規登録";
+  document.getElementById("riven-weapon-input").value = entry ? entry.weaponName : "";
+  document.getElementById("riven-negative-select").value = entry ? (entry.negativeStat || "") : "";
+  document.getElementById("riven-favorite-check").checked = entry ? !!entry.favorite : false;
+  document.getElementById("riven-note-input").value = entry ? (entry.note || "") : "";
+  document.getElementById("riven-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : "");
+  document.querySelectorAll("[data-riven-positive]").forEach(cb => {
+    cb.checked = entry ? (entry.positiveStats || []).includes(cb.value) : false;
+  });
+  updateRivenPositiveBtnLabel();
+  document.getElementById("riven-live-check").innerHTML = "";
+  if (entry) updateRivenLiveCheck();
+  document.getElementById("riven-modal-backdrop").classList.remove("hidden");
+}
+function closeRivenModal() { document.getElementById("riven-modal-backdrop").classList.add("hidden"); }
+document.getElementById("riven-new-btn").addEventListener("click", () => openRivenModal(null));
+document.getElementById("riven-modal-cancel").addEventListener("click", closeRivenModal);
+document.getElementById("riven-modal-save").addEventListener("click", () => {
+  const weaponName = document.getElementById("riven-weapon-input").value.trim();
+  if (!weaponName) { alert("対象武器名を入力して"); return; }
+  const entry = {
+    id: rivenEditingId || uid("riven"),
+    weaponName,
+    positiveStats: selectedRivenPositiveStats(),
+    negativeStat: document.getElementById("riven-negative-select").value,
+    fixed: rivenEditingId ? state.data.rivens[rivenEditingId].fixed : false,
+    favorite: document.getElementById("riven-favorite-check").checked,
+    note: document.getElementById("riven-note-input").value.trim(),
+    chainViewNodeId: document.getElementById("riven-chainview-select").value || undefined,
+  };
+  upsertRiven(entry);
+  closeRivenModal();
+});
 
 async function upsertRiven(entry) {
   await fetch("/api/collections/rivens", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
@@ -271,69 +557,51 @@ async function deleteRiven(id) {
   await loadAll();
 }
 
-document.getElementById("riven-add-btn").addEventListener("click", () => {
-  const weaponName = document.getElementById("riven-weapon-input").value.trim();
-  if (!weaponName) { alert("対象武器名を入力して"); return; }
-  const entry = {
-    id: uid("riven"),
-    weaponName,
-    positiveStats: selectedRivenPositiveStats(),
-    negativeStat: document.getElementById("riven-negative-select").value,
-    fixed: false,
-    note: document.getElementById("riven-note-input").value.trim(),
-    chainViewNodeId: document.getElementById("riven-chainview-select").value || undefined,
-  };
-  upsertRiven(entry);
-  document.getElementById("riven-weapon-input").value = "";
-  document.getElementById("riven-note-input").value = "";
-  document.getElementById("riven-live-check").innerHTML = "";
-});
-
 function renderRivenList() {
   const el = document.getElementById("riven-list");
   const entries = Object.values(state.data.rivens).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
   if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
 
   el.innerHTML = entries.map(entry => `
-    <div class="entry-card">
-      <div class="entry-head">
-        <div class="entry-name">${entry.weaponName}
-          <span class="badge ${entry.fixed ? "badge-fix" : "badge-unfixed"}">${entry.fixed ? "FIX" : "要リロール"}</span>
+    <div class="card-v2" data-open-riven="${entry.id}">
+      <div class="card-head">
+        ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
+        <div class="card-title">${escapeHtml(entry.weaponName)}</div>
+        <div class="card-badges">
+          <span class="badge ${entry.fixed ? "badge-fix" : "badge-unfixed"}">${entry.fixed ? icon("check") + "FIX" : "要リロール"}</span>
         </div>
-        <div class="inline-form">
-          <button data-toggle-fix="${entry.id}" class="${entry.fixed ? "on" : ""}">${entry.fixed ? "FIX解除" : "FIXにする"}</button>
-          <button class="danger" data-del-riven="${entry.id}">削除</button>
+        <div class="card-actions">
+          <button class="icon-btn danger" data-del-riven="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
       </div>
-      ${(entry.positiveStats || []).length ? `<div class="entry-row"><b>ポジ値:</b> ${entry.positiveStats.join(", ")}</div>` : ""}
-      ${entry.negativeStat ? `<div class="entry-row"><b>ネガ値:</b> ${entry.negativeStat}</div>` : ""}
-      ${entry.note ? `<div class="entry-row">${entry.note}</div>` : ""}
-      ${entry.chainViewNodeId ? `<div class="entry-row">${chainViewLinkLabel(entry.chainViewNodeId)}</div>` : ""}
-      <div class="entry-row" data-archetype-for="${entry.id}"></div>
+      ${entry.chainViewNodeId ? `<div id="minigraph-riven-${entry.id}"></div>` : ""}
+      ${(entry.positiveStats || []).length ? `<div class="card-row"><b>ポジ値:</b> ${entry.positiveStats.map(ja).join(", ")}</div>` : ""}
+      ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${ja(entry.negativeStat)}</div>` : ""}
+      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo">${escapeHtml(entry.note)}</div>` : ""}
     </div>
   `).join("");
 
-  el.querySelectorAll("[data-del-riven]").forEach(btn => btn.addEventListener("click", () => {
+  el.querySelectorAll("[data-open-riven]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("[data-toggle-fav]") || e.target.closest("[data-del-riven]")) return;
+    openRivenModal(card.dataset.openRiven);
+  }));
+  el.querySelectorAll("[data-del-riven]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
     if (confirm(`「${state.data.rivens[btn.dataset.delRiven].weaponName}」を削除する？`)) deleteRiven(btn.dataset.delRiven);
   }));
-  el.querySelectorAll("[data-toggle-fix]").forEach(btn => btn.addEventListener("click", () => {
-    const entry = { ...state.data.rivens[btn.dataset.toggleFix], fixed: !state.data.rivens[btn.dataset.toggleFix].fixed };
-    upsertRiven(entry);
+  el.querySelectorAll("[data-toggle-fav]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleFavorite("riven", btn.dataset.toggleFav);
   }));
-
-  el.querySelectorAll("[data-archetype-for]").forEach(row => {
-    const entry = state.data.rivens[row.dataset.archetypeFor];
-    const params = new URLSearchParams({ weapon: entry.weaponName });
-    if ((entry.positiveStats || []).length) params.set("positive", entry.positiveStats.join(","));
-    fetch(`/api/wfcd/riven-check?${params}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(check => {
-        if (!check) return;
-        row.innerHTML = `<b>武器アーキタイプ:</b> ${check.archetype} ${check.matches ? `<span class="badge badge-match">一致</span>` : `<span class="badge badge-nomatch">不一致</span>`}`;
-      }).catch(() => {});
+  entries.forEach(entry => {
+    if (!entry.chainViewNodeId) return;
+    const holder = document.getElementById(`minigraph-riven-${entry.id}`);
+    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
   });
 }
 
+// ---------- Kuva/Tenet/Coda: 武器名グループ化 ----------
 async function upsertKuva(entry) {
   await fetch("/api/collections/kuva", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
   await loadAll();
@@ -343,65 +611,166 @@ async function deleteKuva(id) {
   await loadAll();
 }
 
-// 名前プレフィックスから系統を自動判定（03_Data_Source_Research.md 2.6節と同じロジック、UI側の簡易版）。
-document.getElementById("kuva-weapon-input").addEventListener("blur", (e) => {
-  const name = e.target.value.trim();
-  const kindSel = document.getElementById("kuva-kind-select");
-  for (const kind of ["Kuva", "Tenet", "Coda"]) {
-    if (name.startsWith(kind + " ")) { kindSel.value = kind; break; }
-  }
+function groupedKuva() {
+  const groups = {};
+  Object.values(state.data.kuva).forEach(entry => {
+    (groups[entry.weaponName] = groups[entry.weaponName] || []).push(entry);
+  });
+  return groups;
+}
+
+function renderKuvaGroupedList() {
+  const el = document.getElementById("kuva-list");
+  const groups = groupedKuva();
+  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  if (!names.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
+
+  el.innerHTML = names.map(name => {
+    const entries = groups[name];
+    const anyFav = entries.some(e => e.favorite);
+    const anyOwned = entries.some(e => e.owned);
+    const kind = entries[0].kind || "";
+    return `
+    <div class="card-v2" data-open-kuva-group="${escapeHtml(name)}">
+      <div class="card-head">
+        ${starBtn(anyFav, `data-open-kuva-group-nav="${escapeHtml(name)}"`)}
+        <div class="card-title">${escapeHtml(name)}</div>
+        <div class="card-badges">
+          ${kind ? `<span class="badge badge-kind">${kind}</span>` : ""}
+          <span class="badge badge-count">${entries.length}丁</span>
+          <span class="badge ${anyOwned ? "badge-owned" : "badge-notowned"}">${anyOwned ? "所持済み" : "未所持"}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll("[data-open-kuva-group]").forEach(card => card.addEventListener("click", () => {
+    openKuvaModal(card.dataset.openKuvaGroup);
+  }));
+}
+
+let kuvaModalState = { weaponName: "", formOpen: false, editingId: null };
+
+function openKuvaModal(weaponName) {
+  kuvaModalState = { weaponName: weaponName || "", formOpen: !weaponName, editingId: null };
+  renderKuvaModal();
+  document.getElementById("kuva-modal-backdrop").classList.remove("hidden");
+}
+function closeKuvaModal() { document.getElementById("kuva-modal-backdrop").classList.add("hidden"); }
+document.getElementById("kuva-new-btn").addEventListener("click", () => openKuvaModal(""));
+document.getElementById("kuva-modal-close").addEventListener("click", closeKuvaModal);
+document.getElementById("kuva-form-cancel").addEventListener("click", () => {
+  kuvaModalState.formOpen = false;
+  kuvaModalState.editingId = null;
+  renderKuvaModal();
 });
 
-document.getElementById("kuva-add-btn").addEventListener("click", () => {
-  const weaponName = document.getElementById("kuva-weapon-input").value.trim();
+function renderKuvaModal() {
+  const { weaponName, formOpen, editingId } = kuvaModalState;
+  const isNewWeapon = !weaponName;
+  document.getElementById("kuva-modal-title").innerHTML = isNewWeapon ? "Kuva / Tenet / Coda — 新規登録" : escapeHtml(weaponName);
+
+  const nameFieldEl = document.getElementById("kuva-modal-name-field");
+  if (isNewWeapon) {
+    nameFieldEl.innerHTML = `
+      <label class="field-label">武器名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="kuva-weapon-input" placeholder="例: Kuva Bramma" autocomplete="off">
+        <div id="kuva-weapon-suggest" class="suggest-list hidden"></div>
+      </div>`;
+    setupWeaponCombobox("kuva-weapon-input", "kuva-weapon-suggest");
+    document.getElementById("kuva-weapon-input").addEventListener("blur", (e) => {
+      const name = e.target.value.trim();
+      const kindSel = document.getElementById("kuva-kind-select");
+      for (const kind of ["Kuva", "Tenet", "Coda"]) {
+        if (name.startsWith(kind + " ")) { kindSel.value = kind; break; }
+      }
+    });
+  } else {
+    nameFieldEl.innerHTML = "";
+  }
+
+  const entries = isNewWeapon ? [] : (groupedKuva()[weaponName] || []);
+  const entriesEl = document.getElementById("kuva-modal-entries");
+  entriesEl.innerHTML = entries.map(entry => `
+    <div class="group-entry" data-kuva-entry="${entry.id}">
+      <div class="group-entry-head">
+        ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
+        <span class="badge ${entry.owned ? "badge-owned" : "badge-notowned"}">${entry.owned ? "所持済み" : "未所持"}</span>
+        <span style="flex:1"></span>
+        <button class="icon-btn" data-edit-kuva="${entry.id}" title="編集">${icon("pencil")}</button>
+        <button class="icon-btn danger" data-del-kuva="${entry.id}" title="削除">${icon("trash-2")}</button>
+      </div>
+      ${entry.chainViewNodeId ? `<div id="minigraph-kuva-${entry.id}"></div>` : ""}
+      ${entry.bonusStat ? `<div class="card-row"><b>ボーナス属性:</b> ${escapeHtml(entry.bonusStat)}</div>` : ""}
+      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo">${escapeHtml(entry.note)}</div>` : ""}
+    </div>
+  `).join("") || (isNewWeapon ? "" : `<div class="empty" style="margin-bottom:8px;">まだこの武器は登録されていません</div>`);
+
+  entriesEl.querySelectorAll("[data-toggle-fav]").forEach(b => b.addEventListener("click", () => toggleFavorite("kuva", b.dataset.toggleFav)));
+  entriesEl.querySelectorAll("[data-del-kuva]").forEach(b => b.addEventListener("click", async () => {
+    if (confirm("この個体を削除する？")) {
+      await deleteKuva(b.dataset.delKuva);
+      const stillExists = groupedKuva()[weaponName];
+      if (stillExists && stillExists.length) renderKuvaModal(); else closeKuvaModal();
+    }
+  }));
+  entriesEl.querySelectorAll("[data-edit-kuva]").forEach(b => b.addEventListener("click", () => {
+    kuvaModalState.editingId = b.dataset.editKuva;
+    kuvaModalState.formOpen = true;
+    renderKuvaModal();
+  }));
+  entries.forEach(entry => {
+    if (!entry.chainViewNodeId) return;
+    const holder = document.getElementById(`minigraph-kuva-${entry.id}`);
+    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
+  });
+
+  document.getElementById("kuva-chainview-select").innerHTML = chainViewOptions(editingId && state.data.kuva[editingId] ? state.data.kuva[editingId].chainViewNodeId : "");
+
+  const addToggleBtn = document.getElementById("kuva-modal-add-toggle");
+  const addToggleLabel = entries.length ? "この武器をもう1丁追加" : "登録する";
+  addToggleBtn.innerHTML = iconLabel("plus", addToggleLabel);
+  addToggleBtn.title = addToggleLabel;
+  addToggleBtn.classList.toggle("hidden", isNewWeapon || formOpen);
+
+  const formEl = document.getElementById("kuva-modal-form");
+  formEl.classList.toggle("hidden", !formOpen);
+  if (formOpen) {
+    const editingEntry = editingId ? state.data.kuva[editingId] : null;
+    document.getElementById("kuva-kind-select").value = editingEntry ? (editingEntry.kind || "Kuva") : "Kuva";
+    document.getElementById("kuva-owned-check").checked = editingEntry ? !!editingEntry.owned : false;
+    document.getElementById("kuva-bonus-input").value = editingEntry ? (editingEntry.bonusStat || "") : "";
+    document.getElementById("kuva-favorite-check").checked = editingEntry ? !!editingEntry.favorite : false;
+    document.getElementById("kuva-note-input").value = editingEntry ? (editingEntry.note || "") : "";
+  }
+}
+
+document.getElementById("kuva-modal-add-toggle").addEventListener("click", () => {
+  kuvaModalState.formOpen = true;
+  kuvaModalState.editingId = null;
+  renderKuvaModal();
+});
+
+document.getElementById("kuva-form-save").addEventListener("click", () => {
+  const weaponName = kuvaModalState.weaponName || document.getElementById("kuva-weapon-input").value.trim();
   if (!weaponName) { alert("武器名を入力して"); return; }
   const entry = {
-    id: uid("kuva"),
+    id: kuvaModalState.editingId || uid("kuva"),
     weaponName,
     kind: document.getElementById("kuva-kind-select").value,
     owned: document.getElementById("kuva-owned-check").checked,
     bonusStat: document.getElementById("kuva-bonus-input").value.trim(),
+    favorite: document.getElementById("kuva-favorite-check").checked,
     note: document.getElementById("kuva-note-input").value.trim(),
     chainViewNodeId: document.getElementById("kuva-chainview-select").value || undefined,
   };
-  upsertKuva(entry);
-  document.getElementById("kuva-weapon-input").value = "";
-  document.getElementById("kuva-bonus-input").value = "";
-  document.getElementById("kuva-note-input").value = "";
-  document.getElementById("kuva-owned-check").checked = false;
+  upsertKuva(entry).then(() => {
+    kuvaModalState = { weaponName, formOpen: false, editingId: null };
+    renderKuvaModal();
+  });
 });
-
-function renderKuvaList() {
-  const el = document.getElementById("kuva-list");
-  const entries = Object.values(state.data.kuva).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
-  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
-
-  el.innerHTML = entries.map(entry => `
-    <div class="entry-card">
-      <div class="entry-head">
-        <div class="entry-name">${entry.weaponName}
-          ${entry.kind ? `<span class="empty" style="font-size:0.75rem;">${entry.kind}</span>` : ""}
-          <span class="badge ${entry.owned ? "badge-owned" : "badge-notowned"}">${entry.owned ? "所持済み" : "未所持"}</span>
-        </div>
-        <div class="inline-form">
-          <button data-toggle-owned="${entry.id}" class="${entry.owned ? "on" : ""}">${entry.owned ? "未所持に戻す" : "所持済みにする"}</button>
-          <button class="danger" data-del-kuva="${entry.id}">削除</button>
-        </div>
-      </div>
-      ${entry.bonusStat ? `<div class="entry-row"><b>ボーナス属性:</b> ${entry.bonusStat}</div>` : ""}
-      ${entry.note ? `<div class="entry-row">${entry.note}</div>` : ""}
-      ${entry.chainViewNodeId ? `<div class="entry-row">${chainViewLinkLabel(entry.chainViewNodeId)}</div>` : ""}
-    </div>
-  `).join("");
-
-  el.querySelectorAll("[data-del-kuva]").forEach(btn => btn.addEventListener("click", () => {
-    if (confirm(`「${state.data.kuva[btn.dataset.delKuva].weaponName}」を削除する？`)) deleteKuva(btn.dataset.delKuva);
-  }));
-  el.querySelectorAll("[data-toggle-owned]").forEach(btn => btn.addEventListener("click", () => {
-    const entry = { ...state.data.kuva[btn.dataset.toggleOwned], owned: !state.data.kuva[btn.dataset.toggleOwned].owned };
-    upsertKuva(entry);
-  }));
-}
 
 // キーワード絞り込みコンボボックス（Loadoutsと同じ発想の自前実装）。
 function setupWeaponCombobox(inputId, suggestId) {
@@ -413,7 +782,7 @@ function setupWeaponCombobox(inputId, suggestId) {
     if (!q) { hide(); return; }
     const matches = state.weaponNames.filter(n => n.toLowerCase().includes(q)).slice(0, 30);
     suggest.innerHTML = matches.length
-      ? matches.map(n => `<div class="suggest-item">${n}</div>`).join("")
+      ? matches.map(n => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("")
       : `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
     suggest.querySelectorAll(".suggest-item").forEach(el => {
       el.addEventListener("mousedown", (e) => {
@@ -430,12 +799,17 @@ function setupWeaponCombobox(inputId, suggestId) {
   input.addEventListener("focus", update);
   input.addEventListener("blur", () => setTimeout(hide, 150));
 }
-
 setupWeaponCombobox("riven-weapon-input", "riven-weapon-suggest");
-setupWeaponCombobox("kuva-weapon-input", "kuva-weapon-suggest");
 
-Promise.all([loadChainViewNodes(), loadWeaponNames(), loadRivenStatChoices()]).then(loadAll);
+renderRivenPositivePopover();
+updateRivenPositiveBtnLabel();
+Promise.all([loadChainViewNodes(), loadWeaponNames(), loadRivenStatChoices()]).then(() => {
+  renderRivenNegativeSelect();
+  loadAll();
+});
 </script>
 <script src="/booster.js"></script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
 </body>
 </html>

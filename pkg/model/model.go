@@ -52,10 +52,17 @@ type Node struct {
 	UniqueName string `json:"uniqueName,omitempty"`
 }
 
+// CurrentSchemaVersion is the on-disk shape version this build writes.
+// Files saved before this field existed decode SchemaVersion as 0, which
+// pkg/store treats as version 1 (no migration needed yet) — bump this and
+// add a migration step in pkg/store when Graph's shape next changes.
+const CurrentSchemaVersion = 1
+
 type Graph struct {
-	Nodes map[string]*Node `json:"nodes"`
+	SchemaVersion int              `json:"schemaVersion"`
+	Nodes         map[string]*Node `json:"nodes"`
 }
 
 func NewGraph() *Graph {
-	return &Graph{Nodes: make(map[string]*Node)}
+	return &Graph{SchemaVersion: CurrentSchemaVersion, Nodes: make(map[string]*Node)}
 }

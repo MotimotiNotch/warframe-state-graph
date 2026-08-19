@@ -24,6 +24,15 @@ type Item struct {
 	Name    string                  `json:"name"`
 	Type    ItemType                `json:"type"`
 	Configs map[ConfigSlot][]string `json:"configs"`
+
+	// Note はカード上の自由記述メモ欄（2026-08-18 装備カード化設計、Riven/Kuva/BuildSetと
+	// 同じ「メモ欄の追加」対象範囲）。BuildSetは既にNoteを持っていたが、Itemには無かったため追加。
+	Note string `json:"note,omitempty"`
+
+	// ChainViewNodeID はChain View側ノードへの任意の緩い参照。カード上のミニ進捗グラフ表示用
+	// （2026-08-18 装備カード化 & Gitグラフ風ミニ進捗表示設計）。BuildSet.ChainViewBuildIDと同じ
+	// 「緩い参照」パターンだが、Itemは個別の武器/フレーム単位でも紐付けられるようにする。
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
 }
 
 // ItemRef はBuildSetがフレーム/武器のどのコンフィグ（A/B/C）を使うかを指す参照。
@@ -49,11 +58,17 @@ type BuildSet struct {
 	ChainViewBuildID string `json:"chainViewBuildId,omitempty"`
 }
 
+// CurrentSchemaVersion is the on-disk shape version this build writes.
+// Files saved before this field existed decode SchemaVersion as 0, which
+// this package's FileStore treats as version 1 (no migration needed yet).
+const CurrentSchemaVersion = 1
+
 type Data struct {
-	Items     map[string]*Item     `json:"items"`
-	BuildSets map[string]*BuildSet `json:"buildSets"`
+	SchemaVersion int                  `json:"schemaVersion"`
+	Items         map[string]*Item     `json:"items"`
+	BuildSets     map[string]*BuildSet `json:"buildSets"`
 }
 
 func NewData() *Data {
-	return &Data{Items: make(map[string]*Item), BuildSets: make(map[string]*BuildSet)}
+	return &Data{SchemaVersion: CurrentSchemaVersion, Items: make(map[string]*Item), BuildSets: make(map[string]*BuildSet)}
 }

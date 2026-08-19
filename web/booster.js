@@ -1,61 +1,176 @@
-// ブースタータイマー（経験値/クレジット）ウィジェット。02_Requirements_and_Roadmap.md 項目15。
+// ブースタータイマー（経験値/クレジット/リソース等）ウィジェット。02_Requirements_and_Roadmap.md 項目15。
 // アカウント固有のブースター起動状態を取れる公式APIは無いため、アプリ側で手動起動する
-// ローカルタイマーとして実装。Chain View/Loadoutsのどちらでも同じ見た目で使えるよう
-// 共通スクリプトにして、両ページのbody末尾で読み込むだけで動く自己完結ウィジェットにしてある。
+// ローカルタイマーとして実装。Chain View/Loadouts/Collectionsのどのページでも同じ見た目で
+// 使えるよう共通スクリプトにして、各ページのbody末尾で読み込むだけで動く自己完結ウィジェットにしてある。
+//
+// 経緯（2026-08-18）: 画面右上に常時固定表示→nav行への常時インライン埋め込み→
+// 「nav行のボタンを押した時だけ出るドラッグ可能なポップアップ」→（5種類全部を常時表示すると
+// 認知負荷が高いという指摘を受けて）チェックボックスの表示ON/OFF設定画面→さらに「プルダウンで
+// 選んでリストに追加していく」パターンへ最終確定。位置は自由に動かせて、初期位置は左上
+// （top:10px; left:10px）。ドラッグした位置・追加済みリスト・開閉状態はlocalStorageに保存し、
+// リロード後も同じ見た目に復元する。
 (function () {
-  const STORAGE_KEY = "warframe-state-graph:boosters";
+  const STATE_KEY = "warframe-state-graph:boosters";
+  const POS_KEY = "warframe-state-graph:booster-panel-pos";
+  const LIST_KEY = "warframe-state-graph:booster-list";
+  const OPEN_KEY = "warframe-state-graph:booster-panel-open";
+  const DEFAULT_POS = { top: 10, left: 10 };
+  const DEFAULT_LIST = ["xp", "credit"]; // 元々あった2種を初期リストとして引き継ぐ
   const DURATIONS_HOURS = [
     { label: "3日", hours: 72 },
     { label: "7日", hours: 168 },
     { label: "30日", hours: 720 },
     { label: "90日", hours: 2160 },
   ];
+  // 公式Wiki（wiki.warframe.com/w/Booster）で確認した5種の購入可能ブースター全部
+  // （2026-08-18追記、当初は経験値/クレジットの2種のみだった）。パネル自体が「ブースト」の
+  // 文脈なので、各項目の名称に重ねて「ブースト」を含めない（2026-08-18指摘）。
   const BOOSTERS = [
-    { id: "xp", label: "⚡ 経験値ブースト" },
-    { id: "credit", label: "💰 クレジットブースト" },
+    { id: "xp", label: "経験値" }, // Affinity Booster
+    { id: "credit", label: "クレジット" }, // Credit Booster
+    { id: "resource", label: "リソース" }, // Resource Booster（収集量2倍）
+    { id: "resource_drop", label: "リソースドロップ率" }, // Resource Drop Chance Booster
+    { id: "mod_drop", label: "MODドロップ率" }, // Mod Drop Chance Booster
   ];
+  const BOOSTER_BY_ID = Object.fromEntries(BOOSTERS.map((b) => [b.id, b]));
 
   function loadState() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      return JSON.parse(localStorage.getItem(STATE_KEY)) || {};
     } catch (e) {
       return {};
     }
   }
   function saveState(state) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STATE_KEY, JSON.stringify(state));
     } catch (e) {
       /* localStorage不可でも致命的ではない */
+    }
+  }
+
+  function loadPanelPos() {
+    try {
+      const raw = localStorage.getItem(POS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p.top === "number" && typeof p.left === "number") return p;
+      }
+    } catch (e) {
+      /* 無視してデフォルトへ */
+    }
+    return { ...DEFAULT_POS };
+  }
+  function savePanelPos(pos) {
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify(pos));
+    } catch (e) {
+      /* 無視 */
+    }
+  }
+
+  // パネルに追加済みのブースターID一覧（表示順）。
+  function loadList() {
+    try {
+      const raw = localStorage.getItem(LIST_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr.filter((id) => BOOSTER_BY_ID[id]);
+      }
+    } catch (e) {
+      /* 無視してデフォルトへ */
+    }
+    return [...DEFAULT_LIST];
+  }
+  function saveList(list) {
+    try {
+      localStorage.setItem(LIST_KEY, JSON.stringify(list));
+    } catch (e) {
+      /* 無視 */
+    }
+  }
+
+  function loadOpen() {
+    try {
+      return localStorage.getItem(OPEN_KEY) === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+  function saveOpen(open) {
+    try {
+      localStorage.setItem(OPEN_KEY, open ? "1" : "0");
+    } catch (e) {
+      /* 無視 */
     }
   }
 
   function injectStyle() {
     const style = document.createElement("style");
     style.textContent = `
-      #booster-widget {
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        background: #1b1e27;
-        border: 1px solid #2a2e3a;
-        border-radius: 10px;
-        padding: 8px 10px;
-        font-size: 0.72rem;
-        color: #e4e6ec;
+      /* テーマ切替ボタンと同じ共有バー（右上固定）に並ぶため、単独でも見えるガラス調の
+         背景を持たせる（2026-08-18、ナビ埋め込みから右上固定へ移動したのに合わせて調整）。 */
+      #booster-toggle-btn {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: var(--panel, #1b1e27);
+        backdrop-filter: blur(var(--panel-blur));
+        -webkit-backdrop-filter: blur(var(--panel-blur));
+        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #8a8f9c);
+        border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
         font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
-        z-index: 100;
-        min-width: 170px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       }
-      #booster-widget .b-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 0; }
-      #booster-widget .b-label { color: #8a8f9c; white-space: nowrap; }
-      #booster-widget .b-time { color: #4fd88a; font-variant-numeric: tabular-nums; }
-      #booster-widget select, #booster-widget button {
-        background: #12141a; color: #e4e6ec; border: 1px solid #2a2e3a;
+      #booster-toggle-btn:hover, #booster-toggle-btn.active { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
+
+      #booster-panel {
+        position: fixed;
+        z-index: 150;
+        background: var(--panel, #1b1e27);
+        backdrop-filter: blur(var(--panel-blur));
+        -webkit-backdrop-filter: blur(var(--panel-blur));
+        border: 1px solid var(--border, #2a2e3a);
+        border-radius: 14px;
+        font-size: 0.72rem;
+        color: var(--text, #e4e6ec);
+        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        min-width: 250px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      }
+      #booster-panel.hidden { display: none; }
+      #booster-panel .b-head {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 8px; border-bottom: 1px solid var(--border, #2a2e3a);
+        cursor: grab; user-select: none; touch-action: none;
+      }
+      #booster-panel .b-head.dragging { cursor: grabbing; }
+      #booster-panel .b-head .b-title { font-weight: 600; color: var(--text, #e4e6ec); flex: 1; }
+      #booster-panel .b-head button {
+        background: transparent; border: none; color: var(--muted, #8a8f9c); cursor: pointer; line-height: 0; padding: 2px;
+      }
+      #booster-panel .b-head button:hover { color: var(--danger, #e0616b); }
+      #booster-panel .b-body { padding: 6px 8px; }
+      #booster-panel .b-add-row { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border, #2a2e3a); }
+      #booster-panel .b-add-row select { flex: 1; }
+      /* 経験値/リソースドロップ率のようにラベル長がバラバラでも、時間表示・開始ボタン等の
+         列が縦に揃うようグリッドで組む（各.b-rowはdisplay:contentsで自分自身を消し、
+         中身4つを親グリッドの列に直接参加させる）。 */
+      #booster-list-body {
+        display: grid;
+        grid-template-columns: max-content max-content max-content max-content;
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 4px;
+      }
+      #booster-panel .b-row { display: contents; }
+      #booster-panel .b-label { color: var(--muted, #8a8f9c); white-space: nowrap; }
+      #booster-panel .b-time { color: var(--actionable, #4fd88a); font-variant-numeric: tabular-nums; justify-self: start; }
+      #booster-panel select, #booster-panel button.b-action {
+        background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
         border-radius: 4px; font-size: 0.68rem; padding: 2px 4px; cursor: pointer;
       }
-      #booster-widget button:hover { border-color: #f0c674; color: #f0c674; }
+      #booster-panel button.b-action:hover { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
+      #booster-panel button.b-action.b-remove:hover { border-color: var(--danger, #e0616b); color: var(--danger, #e0616b); }
+      #booster-panel .b-empty { grid-column: 1 / -1; color: var(--muted, #8a8f9c); font-size: 0.72rem; padding: 4px 0; }
     `;
     document.head.appendChild(style);
   }
@@ -76,32 +191,69 @@
   }
 
   function render() {
+    const list = loadList();
+    const remaining = BOOSTERS.filter((b) => !list.includes(b.id));
+    renderAddRow(remaining);
+    renderList(list);
+  }
+
+  function renderAddRow(remaining) {
+    const el = document.getElementById("booster-add-row");
+    if (!el) return;
+    if (!remaining.length) {
+      el.innerHTML = `<div class="b-empty">全種類を追加済み</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <select id="booster-add-select">${remaining.map((b) => `<option value="${b.id}">${b.label}</option>`).join("")}</select>
+      <button class="b-action" id="booster-add-btn">追加</button>
+    `;
+    document.getElementById("booster-add-btn").addEventListener("click", () => {
+      const id = document.getElementById("booster-add-select").value;
+      const list = loadList();
+      if (!list.includes(id)) {
+        list.push(id);
+        saveList(list);
+      }
+      render();
+    });
+  }
+
+  function renderList(list) {
     const state = loadState();
-    const el = document.getElementById("booster-widget");
-    el.innerHTML = BOOSTERS.map((b) => {
-      const entry = state[b.id];
+    const body = document.getElementById("booster-list-body");
+    if (!body) return;
+    if (!list.length) {
+      body.innerHTML = `<div class="b-empty">上のプルダウンから追加して</div>`;
+      return;
+    }
+    body.innerHTML = list.map((id) => {
+      const b = BOOSTER_BY_ID[id];
+      const entry = state[id];
       const remaining = entry ? entry.expiry - Date.now() : 0;
       if (entry && remaining > 0) {
         return `
           <div class="b-row">
             <span class="b-label">${b.label}</span>
-            <span class="b-time" data-expiry="${entry.expiry}" data-id="${b.id}">${formatRemaining(remaining)}</span>
-            <button data-stop="${b.id}">停止</button>
+            <span class="b-time" data-expiry="${entry.expiry}" data-id="${id}">${formatRemaining(remaining)}</span>
+            <button class="b-action" data-stop="${id}">停止</button>
+            <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
           </div>`;
       }
       const options = DURATIONS_HOURS.map((d) => `<option value="${d.hours}">${d.label}</option>`).join("");
       return `
         <div class="b-row">
           <span class="b-label">${b.label}</span>
-          <select data-duration="${b.id}">${options}</select>
-          <button data-start="${b.id}">開始</button>
+          <select data-duration="${id}">${options}</select>
+          <button class="b-action" data-start="${id}">開始</button>
+          <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
         </div>`;
     }).join("");
 
-    el.querySelectorAll("[data-start]").forEach((btn) => {
+    body.querySelectorAll("[data-start]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.start;
-        const select = el.querySelector(`[data-duration="${id}"]`);
+        const select = body.querySelector(`[data-duration="${id}"]`);
         const hours = Number(select.value);
         const s = loadState();
         s[id] = { expiry: Date.now() + hours * 3600 * 1000 };
@@ -109,7 +261,7 @@
         render();
       });
     });
-    el.querySelectorAll("[data-stop]").forEach((btn) => {
+    body.querySelectorAll("[data-stop]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const s = loadState();
         delete s[btn.dataset.stop];
@@ -117,16 +269,21 @@
         render();
       });
     });
+    body.querySelectorAll("[data-remove]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.remove;
+        saveList(loadList().filter((x) => x !== id));
+        // リストから外す＝タイマーも無関係になるので一緒に消す
+        const s = loadState();
+        delete s[id];
+        saveState(s);
+        render();
+      });
+    });
   }
 
   function tick() {
-    const state = loadState();
-    let anyActive = false;
-    for (const b of BOOSTERS) {
-      const entry = state[b.id];
-      if (entry && entry.expiry - Date.now() > 0) anyActive = true;
-    }
-    document.querySelectorAll("#booster-widget .b-time").forEach((elm) => {
+    document.querySelectorAll("#booster-panel .b-time").forEach((elm) => {
       const remaining = Number(elm.dataset.expiry) - Date.now();
       if (remaining <= 0) {
         render(); // 期限切れになった行はボタン表示に戻す
@@ -136,11 +293,119 @@
     });
   }
 
+  function applyPanelPos(panel, pos) {
+    panel.style.top = `${pos.top}px`;
+    panel.style.left = `${pos.left}px`;
+  }
+
+  // ブーストボタンのすぐ右横（画面端で入りきらなければ左横）に位置を計算する。
+  // パネルはhidden中は display:none でサイズが取れないため、呼び出し側で先に
+  // hiddenを外してから（＝実寸を測れる状態で）呼ぶこと。
+  function positionNextToButton(panel, btn) {
+    const btnRect = btn.getBoundingClientRect();
+    const w = panel.offsetWidth;
+    const h = panel.offsetHeight;
+    let left = btnRect.right + 8;
+    if (left + w > window.innerWidth) left = btnRect.left - w - 8;
+    left = Math.min(Math.max(0, left), Math.max(0, window.innerWidth - w));
+    let top = btnRect.top;
+    top = Math.min(Math.max(0, top), Math.max(0, window.innerHeight - h));
+    applyPanelPos(panel, { top, left });
+  }
+
+  function setupDrag(panel, handle) {
+    let dragging = false;
+    let start = { x: 0, y: 0 };
+    let origin = { top: 0, left: 0 };
+
+    handle.addEventListener("pointerdown", (e) => {
+      // ハンドル内のボタン（閉じるボタン等）上でのpointerdownはドラッグ扱いにしない。
+      // setPointerCaptureをハンドルに奪わせると、その下のボタンのclickイベントが
+      // 発火しなくなる（pointerup時のヒットテスト対象がハンドル側に切り替わるため）。
+      if (e.target.closest("button")) return;
+      dragging = true;
+      handle.classList.add("dragging");
+      handle.setPointerCapture(e.pointerId);
+      start = { x: e.clientX, y: e.clientY };
+      const rect = panel.getBoundingClientRect();
+      origin = { top: rect.top, left: rect.left };
+    });
+    handle.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      const maxLeft = window.innerWidth - panel.offsetWidth;
+      const maxTop = window.innerHeight - panel.offsetHeight;
+      const pos = {
+        left: Math.min(Math.max(0, origin.left + dx), Math.max(0, maxLeft)),
+        top: Math.min(Math.max(0, origin.top + dy), Math.max(0, maxTop)),
+      };
+      applyPanelPos(panel, pos);
+    });
+    const endDrag = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove("dragging");
+      if (e && handle.hasPointerCapture && handle.hasPointerCapture(e.pointerId)) {
+        handle.releasePointerCapture(e.pointerId);
+      }
+      const rect = panel.getBoundingClientRect();
+      savePanelPos({ top: rect.top, left: rect.left });
+    };
+    handle.addEventListener("pointerup", endDrag);
+    handle.addEventListener("pointercancel", endDrag);
+  }
+
+  function togglePanel(btn, panel) {
+    const opening = panel.classList.contains("hidden");
+    panel.classList.toggle("hidden", !opening);
+    btn.classList.toggle("active", opening);
+    saveOpen(opening);
+    if (opening) {
+      // ボタン操作での開閉は、ドラッグで保存した位置ではなくブーストボタンの横へ毎回スナップする
+      // （2026-08-18指摘）。保存済み位置はページ再読み込み時の復元にのみ使う（init()側）。
+      positionNextToButton(panel, btn);
+      render();
+    }
+  }
+
   function init() {
     injectStyle();
-    const widget = document.createElement("div");
-    widget.id = "booster-widget";
-    document.body.appendChild(widget);
+
+    const btn = document.createElement("button");
+    btn.id = "booster-toggle-btn";
+    btn.innerHTML = (window.icon ? window.icon("zap") : "") + "ブースト";
+    // テーマ切替ボタン（theme.js）と横並びの共通バーへ収める。ブーストボタンを左、
+    // テーマボタンを右にしたいので、スクリプト読み込み順（booster.js→theme.js）どおり
+    // 先に追加する（2026-08-18指摘）。
+    getTopRightBar().appendChild(btn);
+
+    const panel = document.createElement("div");
+    panel.id = "booster-panel";
+    panel.className = "hidden";
+    panel.innerHTML = `
+      <div class="b-head" id="booster-drag-handle">
+        <span class="b-title">${window.icon ? window.icon("zap", { size: 14 }) : ""}ブースト</span>
+        <button id="booster-close" title="閉じる">${window.icon ? window.icon("x", { size: 14 }) : "×"}</button>
+      </div>
+      <div class="b-body">
+        <div class="b-add-row" id="booster-add-row"></div>
+        <div id="booster-list-body"></div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    applyPanelPos(panel, loadPanelPos());
+
+    btn.addEventListener("click", () => togglePanel(btn, panel));
+    panel.querySelector("#booster-close").addEventListener("click", () => togglePanel(btn, panel));
+    setupDrag(panel, panel.querySelector("#booster-drag-handle"));
+
+    // 前回開いたまま（閉じずに）リロードされていたら、開いた状態を引き継ぐ。
+    if (loadOpen()) {
+      panel.classList.remove("hidden");
+      btn.classList.add("active");
+    }
+
     render();
     setInterval(tick, 1000);
   }

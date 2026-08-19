@@ -1,10 +1,11 @@
 package collection
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
+
+	"warframe-state-graph/pkg/persist"
 )
 
 // FileStore は pkg/loadout と同じ設計（単一JSONファイル、ミューテックスで直列化）。
@@ -25,16 +26,12 @@ func (s *FileStore) Load() (*Data, error) {
 }
 
 func (s *FileStore) loadLocked() (*Data, error) {
-	raw, err := os.ReadFile(s.path)
-	if os.IsNotExist(err) {
-		return NewData(), nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("read collections file: %w", err)
-	}
 	d := NewData()
-	if err := json.Unmarshal(raw, d); err != nil {
-		return nil, fmt.Errorf("parse collections file: %w", err)
+	if err := persist.LoadJSON(s.path, d); err != nil {
+		if os.IsNotExist(err) {
+			return NewData(), nil
+		}
+		return nil, fmt.Errorf("read collections file: %w", err)
 	}
 	if d.Rivens == nil {
 		d.Rivens = make(map[string]*RivenEntry)
@@ -42,18 +39,15 @@ func (s *FileStore) loadLocked() (*Data, error) {
 	if d.Kuva == nil {
 		d.Kuva = make(map[string]*KuvaEntry)
 	}
+	if d.SchemaVersion == 0 {
+		d.SchemaVersion = CurrentSchemaVersion
+	}
 	return d, nil
 }
 
 func (s *FileStore) saveLocked(d *Data) error {
-	raw, err := json.MarshalIndent(d, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal collections data: %w", err)
-	}
-	if err := os.WriteFile(s.path, raw, 0644); err != nil {
-		return fmt.Errorf("write collections file: %w", err)
-	}
-	return nil
+	d.SchemaVersion = CurrentSchemaVersion
+	return persist.Save(s.path, d)
 }
 
 func (s *FileStore) UpsertRiven(entry *RivenEntry) error {

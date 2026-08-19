@@ -3,16 +3,53 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Warframe State Graph — Loadouts</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
 <style>
   :root {
+    --panel-blur: 5px;
     --bg: #12141a;
-    --panel: #1b1e27;
+    --panel: rgba(27, 30, 39, 0.35);
     --border: #2a2e3a;
     --text: #e4e6ec;
     --muted: #8a8f9c;
     --accent: #f0c674;
     --danger: #e0616b;
+    --actionable: #4fd88a;
+    --satisfied: #5a95e0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --border: #d8dbe2;
+      --text: #1c1e24;
+      --muted: #6b7080;
+      --accent: #a8760a;
+      --danger: #c23a46;
+      --actionable: #1f9d5c;
+      --satisfied: #2f6fc4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --border: #d8dbe2;
+    --text: #1c1e24;
+    --muted: #6b7080;
+    --accent: #a8760a;
+    --danger: #c23a46;
+    --actionable: #1f9d5c;
+    --satisfied: #2f6fc4;
   }
   * { box-sizing: border-box; }
   body {
@@ -22,30 +59,45 @@
     font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
     padding: 14px;
   }
-  h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 4px; }
-  nav { font-size: 0.85rem; margin-bottom: 14px; }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。詳細はindex.htmlの同名ブロックのコメント参照。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; }
+    .btn-label { display: none; }
+  }
+  nav { font-size: 0.85rem; margin-bottom: 14px; display: flex; align-items: center; gap: 4px; }
   nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
   nav a.current { color: var(--accent); }
   nav a:hover { color: var(--accent); }
 
-  h2 { font-size: 0.95rem; margin: 20px 0 10px; }
+  h2 { font-size: 0.95rem; margin: 0; }
 
   .panel {
     background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 18px;
     padding: 14px;
     margin-bottom: 14px;
   }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
-  input[type=text], select {
+  input[type=text], select, textarea {
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 6px 8px;
     font-size: 0.85rem;
+    font-family: inherit;
   }
+  textarea { width: 100%; min-height: 40px; resize: vertical; }
   button {
     background: transparent;
     border: 1px solid var(--border);
@@ -54,9 +106,19 @@
     padding: 6px 10px;
     font-size: 0.8rem;
     cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
   }
   button:hover { border-color: var(--accent); color: var(--accent); }
   button.danger:hover { border-color: var(--danger); color: var(--danger); }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
 
   /* キーワード入力で絞り込める自前のコンボボックス（Chain Viewのフライアウトと同じ発想）。
      ネイティブdatalistは絞り込みの挙動がブラウザ依存で弱いため自前実装にした。 */
@@ -66,11 +128,13 @@
     top: calc(100% + 4px);
     left: 0;
     background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 14px;
     max-height: 220px;
     overflow-y: auto;
-    z-index: 30;
+    z-index: 60;
     min-width: 220px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
   }
@@ -79,15 +143,16 @@
   .suggest-item:hover { background: var(--border); color: var(--accent); }
   .suggest-empty { padding: 5px 10px; color: var(--muted); font-size: 0.8rem; }
 
-  .item-card {
+  .item-card, .buildset-card {
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 10px 12px;
     margin-bottom: 10px;
   }
-  .item-head { display: flex; align-items: center; justify-content: space-between; }
-  .item-name { font-weight: 600; }
+  .item-head, .buildset-head { display: flex; align-items: center; justify-content: space-between; }
+  .item-name, .buildset-name { font-weight: 600; }
   .item-type { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
+  .card-memo { font-size: 0.78rem; color: var(--muted); margin-top: 6px; font-style: italic; }
 
   .tabs { display: flex; gap: 6px; margin: 8px 0; }
   .tab {
@@ -111,54 +176,103 @@
     align-items: center;
     gap: 4px;
   }
-  .mod-tag .x { cursor: pointer; color: var(--muted); }
+  .mod-tag .x { cursor: pointer; color: var(--muted); line-height: 0; }
   .mod-tag .x:hover { color: var(--danger); }
 
   .inline-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
-  .buildset-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
-  .buildset-name { font-weight: 600; margin-bottom: 4px; }
   .buildset-row { font-size: 0.82rem; color: var(--muted); margin: 2px 0; }
   .buildset-row b { color: var(--text); font-weight: 500; }
 
   .weapon-ref-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
 
   .empty { color: var(--muted); font-size: 0.85rem; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 200;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 16px; width: 100%; max-width: 520px;
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 1rem; }
+  .modal .field-label { font-size: 0.78rem; color: var(--muted); display: block; margin: 8px 0 3px; }
+  .modal input[type=text], .modal select, .modal textarea { width: 100%; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 </style>
 </head>
 <body>
-  <h1>⚔️ Warframe State Graph — Loadouts</h1>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Loadouts</span></h1>
   <nav>
     <a href="/">Chain View</a>
     <a href="/loadouts.html" class="current">Loadouts</a>
     <a href="/collections.html">Collections</a>
+    <span style="flex:1"></span>
   </nav>
 
   <div class="panel">
-    <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理</h2>
-    <div class="inline-form" style="margin-bottom:12px;">
-      <select id="new-item-type">
-        <option value="Frame">Frame</option>
-        <option value="Weapon">Weapon</option>
-      </select>
-      <div class="combobox">
-        <input type="text" id="new-item-name" placeholder="キーワードで絞り込み (例: Ash)" autocomplete="off">
-        <div id="new-item-suggest" class="suggest-list hidden"></div>
+    <div class="panel-head">
+      <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理</h2>
+      <div class="inline-form">
+        <button id="refresh-wfcd-btn" title="WFCDの参照データ（フレーム/武器名）を再取得する"></button>
+        <button class="primary" id="new-item-btn"></button>
       </div>
-      <button id="add-item-btn">追加</button>
-      <button id="refresh-wfcd-btn" title="WFCDの参照データ（フレーム/武器名）を再取得する">🔄 データ更新</button>
     </div>
     <div id="items-list"></div>
   </div>
 
   <div class="panel">
-    <h2>Build Sets（フレーム＋武器の組み合わせ）</h2>
-    <div id="new-buildset-form"></div>
+    <div class="panel-head">
+      <h2>Build Sets（フレーム＋武器の組み合わせ）</h2>
+      <button class="primary" id="new-buildset-btn"></button>
+    </div>
     <div id="buildsets-list"></div>
   </div>
 
+  <!-- Item新規登録モーダル -->
+  <div id="item-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>アイテムを追加</h3>
+      <label class="field-label">種別</label>
+      <select id="new-item-type">
+        <option value="Frame">Frame</option>
+        <option value="Weapon">Weapon</option>
+      </select>
+      <label class="field-label">名前（キーワードで絞り込み）</label>
+      <div class="combobox">
+        <input type="text" id="new-item-name" placeholder="例: Ash" autocomplete="off">
+        <div id="new-item-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div class="actions">
+        <button id="item-modal-cancel">キャンセル</button>
+        <button class="primary" id="add-item-btn">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Build Set新規登録モーダル -->
+  <div id="buildset-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>Build Set を作成</h3>
+      <div id="new-buildset-form"></div>
+    </div>
+  </div>
+
+<script src="/icons.js"></script>
+<script src="/minigraph.js"></script>
 <script>
-const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [] };
+const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
+
+document.getElementById("new-item-btn").innerHTML = iconLabel("plus", "新規登録");
+document.getElementById("new-item-btn").title = "新規登録";
+document.getElementById("new-buildset-btn").innerHTML = iconLabel("plus", "新規登録");
+document.getElementById("new-buildset-btn").title = "新規登録";
+document.getElementById("refresh-wfcd-btn").innerHTML = iconLabel("refresh-cw", "データ更新");
+document.getElementById("refresh-wfcd-btn").title = "データ更新";
 
 async function loadAll() {
   const res = await fetch("/api/loadouts");
@@ -168,13 +282,15 @@ async function loadAll() {
   render();
 }
 
-// Chain View側のBuildノード一覧（BuildSet連携のドロップダウン用、02_Requirements項目9）。
-async function loadChainViewBuilds() {
+// Chain View側の全ノード（Item/BuildSet連携ドロップダウン＆ミニ進捗グラフ用）。
+async function loadChainViewGraph() {
   try {
     const res = await fetch("/api/graph");
     const graph = await res.json();
-    state.chainViewBuilds = Object.values(graph.nodes).filter(n => n.type === "Build" || n.type === "Goal");
+    state.nodesById = graph.nodes || {};
+    state.chainViewBuilds = Object.values(state.nodesById).filter(n => n.type === "Build" || n.type === "Goal");
   } catch (e) {
+    state.nodesById = {};
     state.chainViewBuilds = [];
   }
 }
@@ -182,30 +298,38 @@ async function loadChainViewBuilds() {
 function uid(prefix) {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function chainViewOptions(selectedId) {
+  return `<option value="">（連携なし）</option>` + Object.values(state.nodesById).sort((a, b) => a.name.localeCompare(b.name)).map(n =>
+    `<option value="${n.id}" ${n.id === selectedId ? "selected" : ""}>${escapeHtml(n.name)}（${n.type}）</option>`
+  ).join("");
+}
 
 async function createItem(name, type) {
   const item = { id: uid("item"), name, type, configs: { A: [], B: [], C: [] } };
   await fetch("/api/loadout-items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) });
   await loadAll();
 }
-
+async function updateItem(item) {
+  await fetch("/api/loadout-items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) });
+  await loadAll();
+}
 async function deleteItem(id) {
   await fetch(`/api/loadout-items/${encodeURIComponent(id)}`, { method: "DELETE" });
   await loadAll();
 }
-
 async function setConfig(itemId, slot, mods) {
   await fetch(`/api/loadout-items/${encodeURIComponent(itemId)}/configs/${slot}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mods }),
   });
   await loadAll();
 }
-
 async function saveBuildSet(set) {
   await fetch("/api/build-sets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(set) });
   await loadAll();
 }
-
 async function deleteBuildSet(id) {
   await fetch(`/api/build-sets/${encodeURIComponent(id)}`, { method: "DELETE" });
   await loadAll();
@@ -213,7 +337,6 @@ async function deleteBuildSet(id) {
 
 function render() {
   renderItems();
-  renderBuildSetForm();
   renderBuildSets();
 }
 
@@ -229,20 +352,25 @@ function renderItems() {
       `<div class="tab ${slot === activeSlot ? "active" : ""}" data-item="${item.id}" data-slot="${slot}">Config ${slot}</div>`
     ).join("");
     const tags = mods.map((m, i) =>
-      `<span class="mod-tag">${m}<span class="x" data-item="${item.id}" data-slot="${activeSlot}" data-idx="${i}">×</span></span>`
+      `<span class="mod-tag">${escapeHtml(m)}<span class="x" data-item="${item.id}" data-slot="${activeSlot}" data-idx="${i}">${icon("x", { size: 12 })}</span></span>`
     ).join("") || `<span class="empty">MODなし</span>`;
 
     return `
       <div class="item-card">
         <div class="item-head">
-          <div><span class="item-name">${item.name}</span><span class="item-type">${item.type}</span></div>
-          <button class="danger" data-del-item="${item.id}">削除</button>
+          <div><span class="item-name">${escapeHtml(item.name)}</span><span class="item-type">${item.type}</span></div>
+          <div class="inline-form">
+            <button class="icon-btn" data-edit-item-meta="${item.id}" title="連携・メモを編集">${icon("pencil")}</button>
+            <button class="icon-btn danger" data-del-item="${item.id}" title="削除">${icon("trash-2")}</button>
+          </div>
         </div>
+        ${item.chainViewNodeId ? `<div id="minigraph-item-${item.id}"></div>` : ""}
         <div class="tabs">${tabs}</div>
         <div class="mod-tags">${tags}</div>
         <div class="inline-form">
           <input type="text" placeholder="MOD名を追加してEnter" data-add-mod="${item.id}" data-slot="${activeSlot}">
         </div>
+        ${item.note ? `<div class="card-memo">${escapeHtml(item.note)}</div>` : ""}
       </div>`;
   }).join("");
 
@@ -265,52 +393,105 @@ function renderItems() {
   el.querySelectorAll("[data-del-item]").forEach(btn => btn.addEventListener("click", () => {
     if (confirm(`「${state.data.items[btn.dataset.delItem].name}」を削除する？`)) deleteItem(btn.dataset.delItem);
   }));
+  el.querySelectorAll("[data-edit-item-meta]").forEach(btn => btn.addEventListener("click", () => openItemMetaPrompt(btn.dataset.editItemMeta)));
+
+  items.forEach(item => {
+    if (!item.chainViewNodeId) return;
+    const holder = document.getElementById(`minigraph-item-${item.id}`);
+    if (holder) renderMiniGraph(holder, item.chainViewNodeId, state.nodesById);
+  });
 }
 
-// ビルドセット作成フォームの一時状態（保存前のドラフト）
-let draft = { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "" };
+// Item.chainViewNodeId / note は使用頻度が低い付随フィールドなので、専用モーダルではなく
+// 簡易promptで編集する（登録フォーム自体は名前・種別のみのシンプルさを保つ、という割り切り）。
+function openItemMetaPrompt(itemId) {
+  const item = state.data.items[itemId];
+  const note = window.prompt("メモ（空欄で削除）", item.note || "");
+  if (note === null) return;
+  const chainViewNodeId = window.prompt(
+    "Chain View連携ノードID（空欄で連携なし）\n候補: " + Object.values(state.nodesById).map(n => n.id).slice(0, 20).join(", "),
+    item.chainViewNodeId || ""
+  );
+  if (chainViewNodeId === null) return;
+  updateItem({ ...item, note: note.trim(), chainViewNodeId: chainViewNodeId.trim() || undefined });
+}
+
+// ---------- Item追加モーダル ----------
+function openItemModal() {
+  document.getElementById("new-item-name").value = "";
+  hideSuggest();
+  document.getElementById("item-modal-backdrop").classList.remove("hidden");
+}
+function closeItemModal() { document.getElementById("item-modal-backdrop").classList.add("hidden"); }
+document.getElementById("new-item-btn").addEventListener("click", openItemModal);
+document.getElementById("item-modal-cancel").addEventListener("click", closeItemModal);
+
+document.getElementById("add-item-btn").addEventListener("click", () => {
+  const name = document.getElementById("new-item-name").value.trim();
+  const type = document.getElementById("new-item-type").value;
+  if (!name) { alert("名前を入力して"); return; }
+  createItem(name, type);
+  closeItemModal();
+});
+
+document.getElementById("new-item-type").addEventListener("change", () => {
+  document.getElementById("new-item-name").value = "";
+  hideSuggest();
+});
+
+// ---------- Build Set ----------
+let draft = { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "", note: "" };
 
 function chainViewBuildOptions(selectedId) {
   return `<option value="">（連携なし）</option>` + state.chainViewBuilds.map(b =>
-    `<option value="${b.id}" ${b.id === selectedId ? "selected" : ""}>${b.name}</option>`
+    `<option value="${b.id}" ${b.id === selectedId ? "selected" : ""}>${escapeHtml(b.name)}</option>`
   ).join("");
 }
-
 function frameOptions(selectedId) {
   const frames = Object.values(state.data.items).filter(i => i.type === "Frame");
   return `<option value="">（未選択）</option>` + frames.map(f =>
-    `<option value="${f.id}" ${f.id === selectedId ? "selected" : ""}>${f.name}</option>`
+    `<option value="${f.id}" ${f.id === selectedId ? "selected" : ""}>${escapeHtml(f.name)}</option>`
   ).join("");
 }
 function weaponOptions(selectedId) {
   const weapons = Object.values(state.data.items).filter(i => i.type === "Weapon");
   return `<option value="">（未選択）</option>` + weapons.map(w =>
-    `<option value="${w.id}" ${w.id === selectedId ? "selected" : ""}>${w.name}</option>`
+    `<option value="${w.id}" ${w.id === selectedId ? "selected" : ""}>${escapeHtml(w.name)}</option>`
   ).join("");
 }
 function slotOptions(selected) {
   return ["A", "B", "C"].map(s => `<option value="${s}" ${s === selected ? "selected" : ""}>${s}</option>`).join("");
 }
 
+function openBuildSetModal() {
+  draft = { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "", note: "" };
+  renderBuildSetForm();
+  document.getElementById("buildset-modal-backdrop").classList.remove("hidden");
+}
+function closeBuildSetModal() { document.getElementById("buildset-modal-backdrop").classList.add("hidden"); }
+document.getElementById("new-buildset-btn").addEventListener("click", openBuildSetModal);
+
 function renderBuildSetForm() {
   const el = document.getElementById("new-buildset-form");
   el.innerHTML = `
-    <div class="inline-form" style="margin-bottom:8px;">
-      <input type="text" id="draft-name" placeholder="ビルドセット名 (例: Ash Stealth Set)" value="${draft.name}">
-    </div>
-    <div class="inline-form" style="margin-bottom:8px;">
+    <label class="field-label">ビルドセット名</label>
+    <input type="text" id="draft-name" placeholder="例: Ash Stealth Set" value="${escapeHtml(draft.name)}">
+    <div class="inline-form" style="margin-top:8px;">
       <span class="empty">Frame:</span>
       <select id="draft-frame-id">${frameOptions(draft.frameId)}</select>
       <select id="draft-frame-slot">${slotOptions(draft.frameSlot)}</select>
     </div>
-    <div id="draft-weapons"></div>
-    <div class="inline-form" style="margin-top:6px;margin-bottom:6px;">
-      <span class="empty">Chain View連携（進捗を横断表示、任意）:</span>
-      <select id="draft-chainview-build">${chainViewBuildOptions(draft.chainViewBuildId)}</select>
-    </div>
+    <div id="draft-weapons" style="margin-top:6px;"></div>
     <div class="inline-form" style="margin-top:6px;">
-      <button id="draft-add-weapon">＋ 武器を追加</button>
-      <button id="draft-save">ビルドセットを保存</button>
+      <button type="button" id="draft-add-weapon" title="武器を追加">${iconLabel("plus", "武器を追加")}</button>
+    </div>
+    <label class="field-label">Chain View連携（進捗を横断表示、任意）</label>
+    <select id="draft-chainview-build">${chainViewBuildOptions(draft.chainViewBuildId)}</select>
+    <label class="field-label">メモ</label>
+    <textarea id="draft-note" placeholder="任意">${escapeHtml(draft.note)}</textarea>
+    <div class="actions">
+      <button id="draft-cancel">キャンセル</button>
+      <button class="primary" id="draft-save">保存</button>
     </div>
   `;
 
@@ -320,7 +501,7 @@ function renderBuildSetForm() {
       <span class="empty">Weapon${i + 1}:</span>
       <select data-w-idx="${i}" data-field="itemId">${weaponOptions(w.itemId)}</select>
       <select data-w-idx="${i}" data-field="config">${slotOptions(w.config)}</select>
-      <button class="danger" data-remove-weapon="${i}">×</button>
+      <button class="icon-btn danger" data-remove-weapon="${i}">${icon("x", { size: 14 })}</button>
     </div>
   `).join("");
 
@@ -328,6 +509,7 @@ function renderBuildSetForm() {
   document.getElementById("draft-frame-id").addEventListener("change", (e) => { draft.frameId = e.target.value; });
   document.getElementById("draft-frame-slot").addEventListener("change", (e) => { draft.frameSlot = e.target.value; });
   document.getElementById("draft-chainview-build").addEventListener("change", (e) => { draft.chainViewBuildId = e.target.value; });
+  document.getElementById("draft-note").addEventListener("input", (e) => { draft.note = e.target.value; });
   weaponsEl.querySelectorAll("select").forEach(sel => sel.addEventListener("change", (e) => {
     draft.weapons[Number(sel.dataset.wIdx)][sel.dataset.field] = e.target.value;
   }));
@@ -339,6 +521,7 @@ function renderBuildSetForm() {
     draft.weapons.push({ itemId: "", config: "A" });
     renderBuildSetForm();
   });
+  document.getElementById("draft-cancel").addEventListener("click", closeBuildSetModal);
   document.getElementById("draft-save").addEventListener("click", async () => {
     if (!draft.name.trim()) { alert("ビルドセット名を入力して"); return; }
     const set = {
@@ -347,10 +530,10 @@ function renderBuildSetForm() {
       frame: draft.frameId ? { itemId: draft.frameId, config: draft.frameSlot } : null,
       weapons: draft.weapons.filter(w => w.itemId).map(w => ({ itemId: w.itemId, config: w.config })),
       chainViewBuildId: draft.chainViewBuildId || undefined,
+      note: draft.note.trim(),
     };
     await saveBuildSet(set);
-    draft = { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "" };
-    renderBuildSetForm();
+    closeBuildSetModal();
   });
 }
 
@@ -358,7 +541,7 @@ function itemLabel(itemId, config) {
   const item = state.data.items[itemId];
   if (!item) return `(不明なアイテム: ${itemId})`;
   const mods = item.configs?.[config] || [];
-  return `${item.name}（Config ${config}: ${mods.length ? mods.join(", ") : "MODなし"}）`;
+  return `${escapeHtml(item.name)}（Config ${config}: ${mods.length ? mods.map(escapeHtml).join(", ") : "MODなし"}）`;
 }
 
 function renderBuildSets() {
@@ -370,13 +553,15 @@ function renderBuildSets() {
     const linkedBuild = set.chainViewBuildId ? state.chainViewBuilds.find(b => b.id === set.chainViewBuildId) : null;
     return `
     <div class="buildset-card">
-      <div class="item-head">
-        <div class="buildset-name">${set.name}</div>
-        <button class="danger" data-del-set="${set.id}">削除</button>
+      <div class="buildset-head">
+        <div class="buildset-name">${escapeHtml(set.name)}</div>
+        <button class="icon-btn danger" data-del-set="${set.id}" title="削除">${icon("trash-2")}</button>
       </div>
+      ${set.chainViewBuildId ? `<div id="minigraph-buildset-${set.id}"></div>` : ""}
       <div class="buildset-row"><b>Frame:</b> ${set.frame ? itemLabel(set.frame.itemId, set.frame.config) : "（未設定）"}</div>
       ${(set.weapons || []).map(w => `<div class="buildset-row"><b>Weapon:</b> ${itemLabel(w.itemId, w.config)}</div>`).join("") || `<div class="buildset-row">武器なし</div>`}
-      ${linkedBuild ? `<div class="buildset-row" data-progress-for="${set.chainViewBuildId}"><b>Chain View:</b> ${linkedBuild.name} — <span class="progress-text">読み込み中…</span></div>` : ""}
+      ${linkedBuild ? `<div class="buildset-row" data-progress-for="${set.chainViewBuildId}"><b>Chain View:</b> ${escapeHtml(linkedBuild.name)} — <span class="progress-text">読み込み中…</span></div>` : ""}
+      ${set.note ? `<div class="card-memo">${escapeHtml(set.note)}</div>` : ""}
     </div>
   `;
   }).join("");
@@ -398,22 +583,13 @@ function renderBuildSets() {
         span.textContent = `${done} / ${total} 完了（${pct}%）`;
       }).catch(() => {});
   });
+
+  sets.forEach(set => {
+    if (!set.chainViewBuildId) return;
+    const holder = document.getElementById(`minigraph-buildset-${set.id}`);
+    if (holder) renderMiniGraph(holder, set.chainViewBuildId, state.nodesById);
+  });
 }
-
-document.getElementById("add-item-btn").addEventListener("click", () => {
-  const name = document.getElementById("new-item-name").value.trim();
-  const type = document.getElementById("new-item-type").value;
-  if (!name) { alert("名前を入力して"); return; }
-  createItem(name, type);
-  document.getElementById("new-item-name").value = "";
-  hideSuggest();
-});
-
-// typeを切り替えたら、絞り込み対象がフレーム/武器のどちらか変わるので入力をリセットする。
-document.getElementById("new-item-type").addEventListener("change", () => {
-  document.getElementById("new-item-name").value = "";
-  hideSuggest();
-});
 
 const refData = { frames: [], weapons: [] };
 
@@ -446,7 +622,7 @@ function updateSuggest() {
   if (!matches.length) {
     suggestEl.innerHTML = `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
   } else {
-    suggestEl.innerHTML = matches.map(n => `<div class="suggest-item">${n}</div>`).join("");
+    suggestEl.innerHTML = matches.map(n => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("");
     suggestEl.querySelectorAll(".suggest-item").forEach(el => {
       el.addEventListener("mousedown", (e) => { // blurより先に発火させるためmousedown
         e.preventDefault();
@@ -466,16 +642,20 @@ nameInput.addEventListener("blur", hideSuggest);
 document.getElementById("refresh-wfcd-btn").addEventListener("click", async () => {
   const btn = document.getElementById("refresh-wfcd-btn");
   btn.disabled = true;
-  btn.textContent = "更新中…";
+  btn.innerHTML = iconLabel("refresh-cw", "更新中…");
+  btn.title = "更新中…";
   await fetch("/api/wfcd/refresh", { method: "POST" });
   await loadReferenceData();
   btn.disabled = false;
-  btn.textContent = "🔄 データ更新";
+  btn.innerHTML = iconLabel("refresh-cw", "データ更新");
+  btn.title = "データ更新";
 });
 
 loadReferenceData();
-loadChainViewBuilds().then(loadAll);
+loadChainViewGraph().then(loadAll);
 </script>
 <script src="/booster.js"></script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
 </body>
 </html>

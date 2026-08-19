@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    のっちのラフスケッチ（2026-08-18、Pasted_image 20260818123041.png）を反映した版。
+    PortfolioSite（C:\Users\monof\projects\PortfolioSite\public\icon.svg）の
+    軌道＋惑星ドット＋中心の球、という要素は継承しつつ、
+    Portfolio側のような回転楕円・キャンバス外へのはみ出しはやめ、
+    同一中心の真円3本＋中心の太陽（黒丸）というシンプルな同心円構成に作り直した。
+    各ドットは自分の乗っている軌道円の線上（中心からの距離＝その軌道の半径）に配置している。
+  -->
+  <rect x="24.28" y="23.3" width="463.45" height="465.4" ry="82.19" fill="#e6e6e6" />
+
+  <g stroke="#323232" stroke-width="6" fill="none">
+    <circle cx="256" cy="256" r="195" />
+    <circle cx="256" cy="256" r="145" />
+    <circle cx="256" cy="256" r="90" />
+  </g>
+
+  <!-- 軌道上の惑星ドット（中心からの距離を対応する軌道の半径に一致させている）。
+       3つとも同じ半径に統一。隣接する軌道・太陽に線が触れないよう、
+       どの軌道でも前後との間隔より余裕を持って小さくしてある。 -->
+  <circle cx="415.7" cy="144.2" r="26" fill="#e6e6e6" stroke="#323232" stroke-width="6" />
+  <circle cx="130.4" cy="183.5" r="26" fill="#e6e6e6" stroke="#323232" stroke-width="6" />
+  <circle cx="324.9" cy="313.9" r="26" fill="#e6e6e6" stroke="#323232" stroke-width="6" />
+
+  <!-- 中心の太陽（黒丸）。軌道・ドットと重ならないよう内側の軌道半径より小さく収める。 -->
+  <circle cx="256" cy="256" r="55" fill="#333333" />
+</svg>

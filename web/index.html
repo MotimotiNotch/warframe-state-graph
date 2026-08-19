@@ -3,11 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Warframe State Graph — Chain View</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
 <style>
   :root {
+    --panel-blur: 5px;
     --bg: #12141a;
-    --panel: #1b1e27;
+    --panel: rgba(27, 30, 39, 0.08);
     --border: #2a2e3a;
     --text: #e4e6ec;
     --muted: #8a8f9c;
@@ -17,6 +28,32 @@
     --root: #f0c674;
     --accent: #f0c674;
   }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.12);
+      --border: #d8dbe2;
+      --text: #1c1e24;
+      --muted: #6b7080;
+      --actionable: #1f9d5c;
+      --blocked: #c23a46;
+      --satisfied: #2f6fc4;
+      --root: #a8760a;
+      --accent: #a8760a;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.12);
+    --border: #d8dbe2;
+    --text: #1c1e24;
+    --muted: #6b7080;
+    --actionable: #1f9d5c;
+    --blocked: #c23a46;
+    --satisfied: #2f6fc4;
+    --root: #a8760a;
+    --accent: #a8760a;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -25,8 +62,20 @@
     font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
     padding: 14px;
   }
-  h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 2px; }
-  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 10px; }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 2px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。画面右上固定の#top-right-bar（ブースト/テーマ切替、
+     icons.jsのgetTopRightBar）は position:fixed で常にtop:10px/right:10pxに居座るため、
+     見出しが折り返して縦に伸びると重なる。重なり計算に頼らず、常に見出しをバーの下に
+     逃がす形（body上部を空ける）で解決する。300px幅まで動作確認済み。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; } /* すぐ下のnav行に現在地が出るため冗長 */
+    .btn-label { display: none; } /* icon()+テキストのボタンをアイコンのみに畳む、titleでラベルは保持 */
+  }
 
   select {
     background: var(--panel);
@@ -37,16 +86,33 @@
     font-size: 0.9rem;
   }
 
+  .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 5px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 240px;
+  }
+  .popover.hidden { display: none; }
+
+  /* 凡例はポップオーバーに畳んで常時露出させない（UI/UX設計思想2026-08-18、情報の音量差原則）。 */
   .legend {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin: 8px 0;
+    flex-direction: column;
+    gap: 6px;
     font-size: 0.78rem;
     color: var(--muted);
   }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
   .progress-wrap { margin: 4px 0 10px; }
   .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
@@ -64,8 +130,10 @@
 
   #graph-panel {
     background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 18px;
     padding: 12px;
     flex: 3 1 0;
     min-width: 0;
@@ -77,8 +145,10 @@
   .flyout {
     position: absolute;
     background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 6px;
     font-size: 0.78rem;
     z-index: 20;
@@ -184,8 +254,10 @@
 
   #panel {
     background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 18px;
     padding: 12px;
     flex: 1 1 260px;
     min-width: 220px;
@@ -222,7 +294,8 @@
   }
   .modal-backdrop.hidden { display: none; }
   .modal {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 18px;
     padding: 16px; width: 100%; max-width: 520px;
   }
   .modal h3 { margin: 0 0 10px; font-size: 1rem; }
@@ -237,7 +310,7 @@
   .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .modal .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.82rem; }
   .modal .checkbox-row input { width: auto; }
-  .wfcd-part { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-top: 8px; }
+  .wfcd-part { border: 1px solid var(--border); border-radius: 14px; padding: 8px; margin-top: 8px; }
   .wfcd-part .part-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
   .wfcd-part select { margin-top: 2px; }
   .badge-vaulted { display: inline-block; background: #e0616b22; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
@@ -246,26 +319,31 @@
 </style>
 </head>
 <body>
-  <h1>⚔️ Warframe State Graph <span style="opacity:.55;font-weight:400;font-size:.75em">— Chain View</span></h1>
-  <nav style="font-size:.85rem;margin-bottom:8px;">
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Chain View</span></h1>
+  <nav style="font-size:.85rem;margin-bottom:4px;">
     <a href="/" style="color:var(--accent);text-decoration:none;margin-right:12px;">Chain View</a>
     <a href="/loadouts.html" style="color:var(--muted);text-decoration:none;margin-right:12px;">Loadouts</a>
     <a href="/collections.html" style="color:var(--muted);text-decoration:none;">Collections</a>
   </nav>
-  <div class="sub">依存関係を線で繋いだグラフ表示（Chain View）。ノードをクリックで詳細・トグル。</div>
 
-  <select id="build-select"></select>
-  <button class="toggle" id="new-node-btn" style="margin-left:8px;">＋ ノード追加</button>
-  <button class="toggle" id="wfcd-import-btn" style="margin-left:4px;">🔎 WFCDから自動生成</button>
-
-  <div class="legend">
-    <span><i class="dot" style="background:var(--root)"></i>Build（ビルド）</span>
-    <span><i class="dot" style="background:var(--actionable)"></i>Actionable（実行可能）</span>
-    <span><i class="dot" style="background:var(--blocked)"></i>Blocked（前提待ち）</span>
-    <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
-    <span>― contains（構成）</span>
-    <span>┄ requires（前提）</span>
-    <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i>中身アリ（クリックでドリルダウン）</span>
+  <div class="toolbar">
+    <select id="build-select"></select>
+    <button class="toggle" id="new-node-btn"></button>
+    <button class="toggle" id="wfcd-import-btn"></button>
+    <span style="flex:1"></span>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="legend-toggle" title="凡例"></button>
+      <div class="popover hidden" id="legend-popover">
+        <div class="legend">
+          <span><i class="dot" style="background:var(--root)"></i>Build（ビルド）</span>
+          <span><i class="dot" style="background:var(--actionable)"></i>Actionable（実行可能）</span>
+          <span><i class="dot" style="background:var(--blocked)"></i>Blocked（前提待ち）</span>
+          <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
+          <span>― contains（構成） / ┄ requires（前提）</span>
+          <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i>中身アリ（クリックでドリルダウン）</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="progress-wrap">
@@ -344,6 +422,7 @@
     </div>
   </div>
 
+<script src="/icons.js"></script>
 <script>
 const STATE_COLOR = {
   ROOT: "var(--root)",
@@ -352,6 +431,19 @@ const STATE_COLOR = {
   BLOCKED: "var(--blocked)",
 };
 const STATE_LABEL_JA = { SATISFIED: "達成済み", ACTIONABLE: "実行可能", BLOCKED: "前提待ち" };
+
+document.getElementById("new-node-btn").innerHTML = iconLabel("plus", "ノード追加");
+document.getElementById("new-node-btn").title = "ノード追加";
+document.getElementById("wfcd-import-btn").innerHTML = iconLabel("refresh-cw", "WFCDから自動生成");
+document.getElementById("wfcd-import-btn").title = "WFCDから自動生成";
+document.getElementById("legend-toggle").innerHTML = icon("info");
+(function setupLegendPopover() {
+  const btn = document.getElementById("legend-toggle");
+  const pop = document.getElementById("legend-popover");
+  btn.addEventListener("click", (e) => { e.stopPropagation(); pop.classList.toggle("hidden"); });
+  pop.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", () => pop.classList.add("hidden"));
+})();
 
 // focus: 今Chain Viewが中心に据えているノード（Buildルートとは限らない）。
 // history: focusを移すたびに直前の位置を積む「戻る」履歴（ブラウザ/Obsidianのノート間移動と同じモデル）。
@@ -593,7 +685,11 @@ function computeLayout(report) {
     (byDepth[depth[id]] = byDepth[depth[id]] || []).push(id);
   }
 
-  const colWidth = 150, rowHeight = 100, marginX = 80, marginY = 50;
+  // 縮小ウィンドウ対応（2026-08-19）: 狭い画面ではノード間隔自体を少し詰め、
+  // 「見える範囲＝ほぼ1列」に近い密度にする。#graph-wrap自体はoverflow:autoで
+  // 元から横スクロール可能だが、間隔も詰めた方が同じ画面幅でより多くの段が見える。
+  const compact = window.innerWidth < 480;
+  const colWidth = compact ? 110 : 150, rowHeight = compact ? 78 : 100, marginX = compact ? 40 : 80, marginY = compact ? 30 : 50;
   const positions = {};
   const depths = Object.keys(byDepth).map(Number).sort((a, b) => a - b);
   let maxCols = 1;
@@ -638,7 +734,7 @@ function containsCompletion(report, nodeId, seen = new Set()) {
 function nodeColor(id) {
   if (id === state.report.buildId) return STATE_COLOR.ROOT;
   const view = state.report.nodes[id];
-  return STATE_COLOR[view?.state] || "#666";
+  return STATE_COLOR[view?.state] || "var(--muted)";
 }
 
 function renderGraph() {
@@ -648,13 +744,25 @@ function renderGraph() {
   svg.setAttribute("height", layout.height);
   svg.innerHTML = "";
 
+  // ルートノードだけ半径22、それ以外は18（下のノード描画ループと同じ値）。
+  // エッジの端点をノード中心ではなく円周で止めるための半径参照に使う。
+  const nodeRadius = (id) => (id === state.report.buildId ? 22 : 18);
+
   const ns = "http://www.w3.org/2000/svg";
   for (const e of layout.edges) {
     const p1 = layout.positions[e.from], p2 = layout.positions[e.to];
     if (!p1 || !p2) continue;
+    // 中心同士を結ぶと線がノード内部（中央）まで伸びてしまうため、始点・終点を
+    // それぞれの半径ぶん外側へオフセットし、円周で止まるようにする（2026-08-18）。
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const ux = dx / dist, uy = dy / dist;
+    const r1 = nodeRadius(e.from), r2 = nodeRadius(e.to);
+    const x1 = p1.x + ux * r1, y1 = p1.y + uy * r1;
+    const x2 = p2.x - ux * r2, y2 = p2.y - uy * r2;
     const line = document.createElementNS(ns, "line");
-    line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
-    line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+    line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2); line.setAttribute("y2", y2);
     line.setAttribute("class", e.kind === "requires" ? "edge-requires" : "edge-contains");
     svg.appendChild(line);
   }
@@ -669,7 +777,10 @@ function renderGraph() {
     const circle = document.createElementNS(ns, "circle");
     circle.setAttribute("cx", pos.x); circle.setAttribute("cy", pos.y);
     circle.setAttribute("r", r);
-    circle.setAttribute("fill", "#1b1e27");
+    // エッジを円周で止めるよう修正済み（上のnodeRadius/オフセット計算）のため、
+    // ノード内部へ線が入り込むことはもう無い。不透明var(--bg)は黒塗りで浮いて見えたため、
+    // 元の半透明var(--panel)へ戻した（2026-08-18）。
+    circle.setAttribute("fill", "var(--panel)");
     circle.setAttribute("stroke", nodeColor(id));
     circle.setAttribute("stroke-width", "3");
     circle.setAttribute("class", "node" + (state.selected === id ? " selected" : "") + (drillable ? " drillable" : ""));
@@ -776,7 +887,7 @@ function renderPanel() {
     <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
       ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${node.satisfied ? "取り消す" : "達成にする"}</button>`}
-      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "Gild済み ✓" : "Gildする"}</button>` : ""}
+      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "Gild済み" : "Gildする"}</button>` : ""}
       <button class="toggle" id="edit-btn">編集</button>
     </div>
   `;
@@ -1046,5 +1157,7 @@ initResizer();
 loadGraph().then(loadReport);
 </script>
 <script src="/booster.js"></script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
 </body>
 </html>

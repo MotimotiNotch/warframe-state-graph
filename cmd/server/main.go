@@ -2,12 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
+	webassets "warframe-state-graph"
 	"warframe-state-graph/pkg/collection"
 	"warframe-state-graph/pkg/engine"
 	"warframe-state-graph/pkg/loadout"
@@ -36,15 +41,40 @@ func findItemInCategories(wfcdCacheDir string, categories []string, name string)
 	return wfcd.Item{}, false
 }
 
-func main() {
-	root, err := os.Getwd()
+// resolveRoot picks the directory data/ (and, pre-embed, web/) live under.
+// A distributed build should keep its data next to the exe wherever the
+// user puts it (double-clicked from Desktop, a USB drive, etc.), so the
+// default is os.Executable()'s directory. `go run` compiles to a throwaway
+// binary under the Go build cache first, though — using that path would
+// silently write data/ into a temp folder during local dev — so this falls
+// back to the working directory (the existing `go run ./cmd/server` from
+// the repo root, unchanged) whenever the exe path looks like a build-cache
+// temp file rather than a real installed location.
+func resolveRoot() string {
+	exePath, err := os.Executable()
+	if err == nil {
+		dir := filepath.Dir(exePath)
+		if !strings.Contains(strings.ToLower(dir), "go-build") {
+			return dir
+		}
+	}
+	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
+	return wd
+}
+
+func main() {
+	root := resolveRoot()
 	dataPath := filepath.Join(root, "data", "graph.json")
 	loadoutPath := filepath.Join(root, "data", "loadouts.json")
 	collectionsPath := filepath.Join(root, "data", "collections.json")
-	webDir := filepath.Join(root, "web")
+
+	webRoot, err := fs.Sub(webassets.FS, "web")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	st := store.NewFileStore(dataPath)
 	ls := loadout.NewFileStore(loadoutPath)
@@ -417,11 +447,36 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	mux.Handle("/", http.FileServer(http.Dir(webDir)))
+	mux.Handle("/", http.FileServer(http.FS(webRoot)))
 
 	addr := "127.0.0.1:8787"
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
 	log.Printf("warframe-state-graph server listening on http://%s (data=%s)", addr, dataPath)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	go openBrowser("http://" + addr)
+	log.Fatal(http.Serve(ln, mux))
+}
+
+// openBrowser launches the OS default browser pointed at url. This is what
+// lets a non-technical user just double-click the exe — no terminal, no
+// manually typing localhost:8787 — the app opens itself. Best-effort: if it
+// fails, the server is still up and the console log prints the URL to open
+// by hand.
+func openBrowser(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default:
+		cmd = exec.Command("xdg-open", url)
+	}
+	if err := cmd.Start(); err != nil {
+		log.Printf("could not auto-open browser, open %s manually: %v", url, err)
+	}
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

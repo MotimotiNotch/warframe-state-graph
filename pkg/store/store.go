@@ -1,13 +1,13 @@
 package store
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
 
 	"warframe-state-graph/pkg/engine"
 	"warframe-state-graph/pkg/model"
+	"warframe-state-graph/pkg/persist"
 )
 
 // FileStore は単一ユーザー向けのローカルJSONファイルをグラフの永続化先とする。
@@ -28,16 +28,18 @@ func (s *FileStore) Load() (*model.Graph, error) {
 }
 
 func (s *FileStore) loadLocked() (*model.Graph, error) {
-	data, err := os.ReadFile(s.path)
-	if os.IsNotExist(err) {
-		return model.NewGraph(), nil
-	}
-	if err != nil {
+	g := model.NewGraph()
+	if err := persist.LoadJSON(s.path, g); err != nil {
+		if os.IsNotExist(err) {
+			return model.NewGraph(), nil
+		}
 		return nil, fmt.Errorf("read graph file: %w", err)
 	}
-	g := model.NewGraph()
-	if err := json.Unmarshal(data, g); err != nil {
-		return nil, fmt.Errorf("parse graph file: %w", err)
+	if g.Nodes == nil {
+		g.Nodes = make(map[string]*model.Node)
+	}
+	if g.SchemaVersion == 0 {
+		g.SchemaVersion = model.CurrentSchemaVersion
 	}
 	return g, nil
 }
@@ -130,14 +132,8 @@ func (s *FileStore) ToggleGilded(id string) (*model.Node, error) {
 }
 
 func (s *FileStore) saveLocked(g *model.Graph) error {
-	data, err := json.MarshalIndent(g, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal graph: %w", err)
-	}
-	if err := os.WriteFile(s.path, data, 0644); err != nil {
-		return fmt.Errorf("write graph file: %w", err)
-	}
-	return nil
+	g.SchemaVersion = model.CurrentSchemaVersion
+	return persist.Save(s.path, g)
 }
 
 func (s *FileStore) Save(g *model.Graph) error {
