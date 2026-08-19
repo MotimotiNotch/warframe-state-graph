@@ -329,20 +329,17 @@ function sacrificeTable(s, highest, current) {
   return `<table>${rows}</table>${note}${recovery}`;
 }
 
-function renderSyndicateList(containerId, list) {
+// showAchievement: 敵対relationship持ち（6大シンジケート）だけtrue。降格が無い10シンジケートは
+// 「現在ランク＝最高到達ランク」が常に一致するため、最高到達実績バッジも捧げ物一覧も冗長——
+// プルダウン1つだけに削る（2026-08-19、のっちの指摘を受けて）。
+function renderSyndicateList(containerId, list, showAchievement) {
   const el = document.getElementById(containerId);
   if (!list.length) { el.innerHTML = `<div class="empty">読み込み中…</div>`; return; }
   el.innerHTML = list.map(s => {
     const current = state.ranks[s.name] ?? 0;
     const highest = state.highest[s.name] ?? 0;
     const highestLabel = highest > 0 ? rankLabel(s.name, highest) : "未到達";
-    return `
-      <div class="syn-row">
-        <div class="syn-row-head">
-          <span class="syn-name">${escapeHtml(synJa(s.name))}</span>
-          <span class="syn-saved-flash" data-flash="${escapeHtml(s.name)}">${icon("check", { size: 14 })}保存済み</span>
-        </div>
-        <select data-syndicate="${escapeHtml(s.name)}">${rankOptions(s.name, current)}</select>
+    const achievement = showAchievement ? `
         <div class="syn-highest">
           最高到達実績: <span class="val">${escapeHtml(highestLabel)}</span>（降格しても下がらない）
           <button type="button" class="icon-btn syn-highest-reset" data-highest-reset="${escapeHtml(s.name)}" title="最高到達実績を訂正（誤って高いランクを選んでしまった時用）">${icon("refresh-cw", { size: 11 })}</button>
@@ -350,7 +347,15 @@ function renderSyndicateList(containerId, list) {
         <div class="syn-sacrifice-wrap">
           <button type="button" class="syn-sacrifice-toggle" data-sacrifice-toggle="${escapeHtml(s.name)}">${icon("chevron-down", { size: 12 })}ランクアップ捧げ物アイテムを見る</button>
           <div class="popover hidden syn-sacrifice-pop" data-sacrifice-pop="${escapeHtml(s.name)}">${sacrificeTable(s, highest, current)}</div>
+        </div>` : "";
+    return `
+      <div class="syn-row">
+        <div class="syn-row-head">
+          <span class="syn-name">${escapeHtml(synJa(s.name))}</span>
+          <span class="syn-saved-flash" data-flash="${escapeHtml(s.name)}">${icon("check", { size: 14 })}保存済み</span>
         </div>
+        <select data-syndicate="${escapeHtml(s.name)}">${rankOptions(s.name, current)}</select>
+        ${achievement}
       </div>`;
   }).join("");
   el.querySelectorAll("[data-sacrifice-toggle]").forEach(btn => btn.addEventListener("click", (e) => {
@@ -408,8 +413,8 @@ function renderSyndicateList(containerId, list) {
 
 function render() {
   const isMajor = s => s.faction === "left" || s.faction === "right";
-  renderSyndicateList("major-syndicate-list", state.syndicates.filter(isMajor));
-  renderSyndicateList("other-syndicate-list", state.syndicates.filter(s => !isMajor(s)));
+  renderSyndicateList("major-syndicate-list", state.syndicates.filter(isMajor), true);
+  renderSyndicateList("other-syndicate-list", state.syndicates.filter(s => !isMajor(s)), false);
 }
 
 async function loadStanding() {
