@@ -170,8 +170,13 @@
   </nav>
 
   <div class="panel">
-    <div class="panel-head"><h2>シンジケート</h2></div>
-    <div id="syndicate-list" class="syn-grid"></div>
+    <div class="panel-head"><h2>6大シンジケート</h2></div>
+    <div id="major-syndicate-list" class="syn-grid"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>その他のシンジケート</h2></div>
+    <div id="other-syndicate-list" class="syn-grid"></div>
   </div>
 
 <script src="/icons.js"></script>
@@ -188,6 +193,17 @@ const SYNDICATE_JA = {
   "Red Veil": "レッド・ベール",
   "The Perrin Sequence": "ペリン・シークエンス",
   "New Loka": "ニュー・ロカ",
+  // 拡張10シンジケート分（2026-08-19、wikiwiki.jp/warframe「シンジケート」ページ出典）。
+  // Vox Solarisのみ確立した日本語表記が見当たらず、英語のまま（synJa()のフォールバック）。
+  "Ostron": "オストロン",
+  "Solaris United": "ソラリス連合",
+  "Ventkids": "ベントキッド",
+  "Entrati": "エントラティ",
+  "Necraloid": "ネクラロイド",
+  "Kahl's Garrison": "KAHL守備隊",
+  "Operational Supply": "作戦補給班",
+  "The Holdfasts": "ホールドファスト",
+  "The Quills": "クイル",
 };
 function synJa(name) { return SYNDICATE_JA[name] || name; }
 
@@ -287,9 +303,8 @@ function sacrificeTable(s, highest, current) {
   return `<table>${rows}</table>${note}${recovery}`;
 }
 
-function renderSyndicates() {
-  const list = state.syndicates;
-  const el = document.getElementById("syndicate-list");
+function renderSyndicateList(containerId, list) {
+  const el = document.getElementById(containerId);
   if (!list.length) { el.innerHTML = `<div class="empty">読み込み中…</div>`; return; }
   el.innerHTML = list.map(s => {
     const current = state.ranks[s.name] ?? 0;
@@ -366,7 +381,9 @@ function renderSyndicates() {
 }
 
 function render() {
-  renderSyndicates();
+  const isMajor = s => s.faction === "left" || s.faction === "right";
+  renderSyndicateList("major-syndicate-list", state.syndicates.filter(isMajor));
+  renderSyndicateList("other-syndicate-list", state.syndicates.filter(s => !isMajor(s)));
 }
 
 async function loadStanding() {
