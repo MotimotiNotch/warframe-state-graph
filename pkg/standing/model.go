@@ -32,18 +32,18 @@ const (
 // 抽出済み（2026-08-19、03_Data_Source_Research.md参照）。
 type RankNames [5]string
 
-// SacrificeItems はランクアップ生贄アイテム（Rank1〜5到達に必要な消費アイテム、
+// SacrificeItems はランクアップ捧げ物アイテム（Rank1〜5到達に必要な消費アイテム、
 // インデックス0=Rank1到達分…4=Rank5到達分）。Wiki個別ページで実データ確認済み
-// （2026-08-19、03_Data_Source_Research.md 2.17節）。生贄はそのランクへ**初めて**
+// （2026-08-19、03_Data_Source_Research.md 2.17節）。捧げ物はそのランクへ**初めて**
 // 到達した時のみ必要——降格後の再昇格では不要（マイナス圏からの回復を除く）。
 type SacrificeItems [5]string
 
-// SyndicateInfo は6大シンジケート1件の固定メタデータ（陣営・ランク名・生贄アイテム）。
+// SyndicateInfo は6大シンジケート1件の固定メタデータ（陣営・ランク名・捧げ物アイテム）。
 type SyndicateInfo struct {
 	Name       string         `json:"name"`
 	Faction    Faction        `json:"faction"`
 	Ranks      RankNames      `json:"ranks"`      // インデックス0=Rank1名 … 4=Rank5名
-	Sacrifices SacrificeItems `json:"sacrifices"` // インデックス0=Rank1到達生贄 … 4=Rank5到達生贄
+	Sacrifices SacrificeItems `json:"sacrifices"` // インデックス0=Rank1到達捧げ物 … 4=Rank5到達捧げ物
 }
 
 // MajorSyndicates は6大シンジケートの固定リスト。表示順は陣営ごとにまとめてある。
@@ -56,9 +56,9 @@ var MajorSyndicates = []SyndicateInfo{
 	{Name: "New Loka", Faction: FactionRight, Ranks: RankNames{"Humane", "Bountiful", "Benevolent", "Pure", "Flawless"}, Sacrifices: SacrificeItems{"Fieldron Sample×2", "Forma×1", "Orokin Reactor×1", "Aya×2", "Aya×3"}},
 }
 
-// RecoverySacrifice はマイナスランク(-1)からNeutral(0)へ回復する際の生贄を返す。
+// RecoverySacrifice はマイナスランク(-1)からNeutral(0)へ回復する際の捧げ物を返す。
 // 実データ3件（Red Veil/Cephalon Suda/The Perrin Sequence）から発見した法則により、
-// 常にそのシンジケートのRank3到達生贄と同一（未検証の3シンジケートもこの法則からの推定、
+// 常にそのシンジケートのRank3到達捧げ物と同一（未検証の3シンジケートもこの法則からの推定、
 // 2026-08-19、03_Data_Source_Research.md 2.17節）。
 func RecoverySacrifice(syndicateName string) string {
 	for _, s := range MajorSyndicates {
@@ -97,7 +97,7 @@ func RankLabel(syndicateName string, rank int) string {
 const CurrentSchemaVersion = 1
 
 // Data は永続化される全体データ。Ranks は SyndicateInfo.Name をキーに現在ランクを持つ。
-// HighestRankReached は同じキーで「生贄を払い済みの最高到達ランク」という不可逆な実績値
+// HighestRankReached は同じキーで「捧げ物を払い済みの最高到達ランク」という不可逆な実績値
 // （現在ランクとは独立、降格しても下がらない。2026-08-19設計）。
 // MajorSyndicatesに無いキーが紛れ込んでも読み込み自体は許容する（将来シンジケートが
 // 増えた場合の移行を壊さないため）。

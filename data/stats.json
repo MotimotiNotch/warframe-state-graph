@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "planets": {
+    "1999MapName": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    }
+  },
+  "railjackIntrinsics": {
+    "Command": 10,
+    "Engineering": 0,
+    "Gunnery": 10,
+    "Piloting": 0,
+    "Tactical": 0
+  },
+  "drifterIntrinsics": {
+    "Combat": 0,
+    "Endurance": 0,
+    "Opportunity": 0,
+    "Riding": 0
+  }
+}

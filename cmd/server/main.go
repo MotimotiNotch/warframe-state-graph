@@ -338,6 +338,28 @@ func main() {
 		writeJSON(w, d)
 	})
 
+	// 最高到達実績の手動訂正。現在ランクの誤選択でHighestRankReachedが意図せず繰り上がった
+	// 場合に、SetRankの「大きい方だけ採用」クランプを経由せず直接書き換えるための操作。
+	mux.HandleFunc("POST /api/standing/{syndicate}/highest", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Rank int `json:"rank"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body.Rank < 0 || body.Rank > standing.MaxRank {
+			http.Error(w, "rank must be between 0 and 5", http.StatusBadRequest)
+			return
+		}
+		d, err := ss.SetHighestRankReached(r.PathValue("syndicate"), body.Rank)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
 	mux.HandleFunc("GET /api/glossary", func(w http.ResponseWriter, r *http.Request) {
 		d, err := gs.Load()
 		if err != nil {

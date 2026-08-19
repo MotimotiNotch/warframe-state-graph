@@ -1,11 +1,19 @@
 {
   "schemaVersion": 1,
   "ranks": {
-    "Arbiters of Hexis": 0,
-    "Cephalon Suda": 0,
+    "Arbiters of Hexis": -2,
+    "Cephalon Suda": 5,
     "New Loka": 0,
-    "Red Veil": 0,
+    "Red Veil": 2,
     "Steel Meridian": 0,
-    "The Perrin Sequence": 0
+    "The Perrin Sequence": 1
+  },
+  "highestRankReached": {
+    "Arbiters of Hexis": 5,
+    "Cephalon Suda": 5,
+    "New Loka": 0,
+    "Red Veil": 2,
+    "Steel Meridian": 0,
+    "The Perrin Sequence": 5
   }
 }

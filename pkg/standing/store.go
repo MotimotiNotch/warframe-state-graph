@@ -90,3 +90,20 @@ func (s *FileStore) SetRank(syndicateName string, rank int) (*Data, error) {
 	}
 	return d, nil
 }
+
+// SetHighestRankReached は1シンジケートの最高到達実績を直接上書きする。SetRankとは違い
+// 大きい方だけを採用するクランプはせず、指定値をそのまま入れる——現在ランクの誤選択で
+// 意図せず実績が繰り上がってしまった時に、手動で訂正するための操作（2026-08-19追加）。
+func (s *FileStore) SetHighestRankReached(syndicateName string, rank int) (*Data, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return nil, err
+	}
+	d.HighestRankReached[syndicateName] = rank
+	if err := s.saveLocked(d); err != nil {
+		return nil, err
+	}
+	return d, nil
+}

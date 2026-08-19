@@ -1,4 +1,10 @@
 {
+  "schemaVersion": 1,
   "rivens": {},
-  "kuva": {}
+  "kuva": {},
+  "frames": {},
+  "duviri": {
+    "completed": false,
+    "incarnonCount": 0
+  }
 }

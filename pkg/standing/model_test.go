@@ -102,6 +102,39 @@ func TestFileStore_HighestRankReachedTracksMaxAndIgnoresDemotion(t *testing.T) {
 	}
 }
 
+func TestFileStore_SetHighestRankReachedOverwritesDirectly(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "standing.json")
+	store := NewFileStore(path)
+
+	// 誤操作でRank5まで選んでしまい、実績が繰り上がったシナリオを再現。
+	if _, err := store.SetRank("Cephalon Suda", 5); err != nil {
+		t.Fatalf("SetRank: %v", err)
+	}
+	// 現在ランクは正しい値(2)に選び直した(SetRankはHighestを下げない)。
+	if _, err := store.SetRank("Cephalon Suda", 2); err != nil {
+		t.Fatalf("SetRank: %v", err)
+	}
+	// 実績を手動で2へ訂正する。SetRankと違い、下げる方向でもそのまま反映されるべき。
+	d, err := store.SetHighestRankReached("Cephalon Suda", 2)
+	if err != nil {
+		t.Fatalf("SetHighestRankReached: %v", err)
+	}
+	if d.HighestRankReached["Cephalon Suda"] != 2 {
+		t.Errorf("HighestRankReached[Cephalon Suda] = %d, want 2 (manual correction)", d.HighestRankReached["Cephalon Suda"])
+	}
+	if d.Ranks["Cephalon Suda"] != 2 {
+		t.Errorf("Ranks[Cephalon Suda] = %d, want 2 (unaffected by SetHighestRankReached)", d.Ranks["Cephalon Suda"])
+	}
+
+	reloaded, err := NewFileStore(path).Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if reloaded.HighestRankReached["Cephalon Suda"] != 2 {
+		t.Errorf("reloaded HighestRankReached[Cephalon Suda] = %d, want 2 (persisted)", reloaded.HighestRankReached["Cephalon Suda"])
+	}
+}
+
 func TestFileStore_HighestRankReachedMigratesFromLegacyFileWithoutField(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "standing.json")
