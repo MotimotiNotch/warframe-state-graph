@@ -19,6 +19,8 @@ import (
 	"warframe-state-graph/pkg/loadout"
 	"warframe-state-graph/pkg/model"
 	"warframe-state-graph/pkg/standing"
+	"warframe-state-graph/pkg/starchart"
+	"warframe-state-graph/pkg/stats"
 	"warframe-state-graph/pkg/store"
 	"warframe-state-graph/pkg/wfcd"
 	"warframe-state-graph/pkg/wfcdgen"
@@ -75,6 +77,7 @@ func main() {
 
 	standingPath := filepath.Join(root, "data", "standing.json")
 	glossaryPath := filepath.Join(root, "data", "glossary.json")
+	statsPath := filepath.Join(root, "data", "stats.json")
 
 	webRoot, err := fs.Sub(webassets.FS, "web")
 	if err != nil {
@@ -86,6 +89,7 @@ func main() {
 	cs := collection.NewFileStore(collectionsPath)
 	ss := standing.NewFileStore(standingPath)
 	gs := glossary.NewFileStore(glossaryPath)
+	sts := stats.NewFileStore(statsPath)
 	wfcdCacheDir := filepath.Join(root, "data", "wfcd-cache")
 
 	mux := http.NewServeMux()
@@ -363,6 +367,87 @@ func main() {
 
 	mux.HandleFunc("DELETE /api/glossary/{key}", func(w http.ResponseWriter, r *http.Request) {
 		d, err := gs.Delete(r.PathValue("key"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	// 星図(Star Chart)の惑星別ノード総数（分母）。既存のwfcdキャッシュディレクトリ・
+	// 更新ボタン（/api/wfcd/refresh）にそのまま乗る（2026-08-19、Statsページ用）。
+	mux.HandleFunc("GET /api/starchart/planets", func(w http.ResponseWriter, r *http.Request) {
+		planets, err := wfcd.CachedJSON(wfcdCacheDir, "starchart-planets.json", starchart.FetchPlanets)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, planets)
+	})
+
+	// Stats: 星図/Steel Path進捗（分子）とIntrinsicsランク。4データソース横断集計はここでは
+	// 持たず、フロントエンドが既存の各GET API（graph/loadouts/collections/standing）を
+	// 読み合わせて計算する（2026-08-19設計）。
+	mux.HandleFunc("GET /api/stats", func(w http.ResponseWriter, r *http.Request) {
+		d, err := sts.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/stats/planets/{key}", func(w http.ResponseWriter, r *http.Request) {
+		var progress stats.PlanetProgress
+		if err := json.NewDecoder(r.Body).Decode(&progress); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if progress.Cleared < 0 || progress.SteelPathCleared < 0 {
+			http.Error(w, "cleared and steelPathCleared must be >= 0", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetPlanetProgress(r.PathValue("key"), progress)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/stats/railjack/{category}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Rank int `json:"rank"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body.Rank < stats.IntrinsicMinRank || body.Rank > stats.IntrinsicMaxRank {
+			http.Error(w, "rank must be between 0 and 10", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetRailjackIntrinsic(r.PathValue("category"), body.Rank)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/stats/drifter/{category}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Rank int `json:"rank"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body.Rank < stats.IntrinsicMinRank || body.Rank > stats.IntrinsicMaxRank {
+			http.Error(w, "rank must be between 0 and 10", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetDrifterIntrinsic(r.PathValue("category"), body.Rank)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

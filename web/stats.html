@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Warframe State Graph — Stats</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --panel-blur: 5px;
+    --bg: #12141a;
+    --panel: rgba(27, 30, 39, 0.35);
+    --border: #2a2e3a;
+    --text: #e4e6ec;
+    --muted: #8a8f9c;
+    --accent: #f0c674;
+    --danger: #e0616b;
+    --actionable: #4fd88a;
+    --satisfied: #5a95e0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --border: #d8dbe2;
+      --text: #1c1e24;
+      --muted: #6b7080;
+      --accent: #a8760a;
+      --danger: #c23a46;
+      --actionable: #1f9d5c;
+      --satisfied: #2f6fc4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --border: #d8dbe2;
+    --text: #1c1e24;
+    --muted: #6b7080;
+    --accent: #a8760a;
+    --danger: #c23a46;
+    --actionable: #1f9d5c;
+    --satisfied: #2f6fc4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    padding: 14px;
+  }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。詳細はindex.htmlの同名ブロックのコメント参照。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; }
+  }
+  h2 { font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px; }
+  h3 { font-size: 0.82rem; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+  nav { font-size: 0.85rem; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav a.current { color: var(--accent); }
+  nav a:hover { color: var(--accent); }
+
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+  }
+  .popover.hidden { display: none; }
+
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .panel-hint { font-size: 0.75rem; color: var(--muted); margin: -4px 0 10px; }
+
+  .empty { color: var(--muted); font-size: 0.85rem; }
+
+  /* 読み取り専用の集計tile。数値表示のみ、入力欄は一切持たない
+     （「視覚的な区別」設計原則: 星図/Intrinsicsセクションだけが操作可能領域）。 */
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .tile {
+    border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px;
+  }
+  .tile-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 3px; }
+  .tile-value { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile-value .unit { font-size: 0.72rem; font-weight: 400; color: var(--muted); margin-left: 2px; }
+
+  .build-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .build-row:last-child { border-bottom: none; }
+  .build-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; }
+  .build-row .frac { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .source-block { margin-bottom: 16px; }
+  .source-block:last-child { margin-bottom: 0; }
+
+  /* 星図/Steel Path/Intrinsics: ここだけが唯一の入力可能領域。入力欄に明るいボーダーを与えて
+     読み取り専用tileと視覚的に区別する（機能差の可視化、音量差の原則の延長）。 */
+  .input-table { width: 100%; border-collapse: collapse; }
+  .input-table th { text-align: left; font-size: 0.72rem; color: var(--muted); font-weight: 500; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  .input-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .input-table tr:last-child td { border-bottom: none; }
+  .planet-name { font-size: 0.85rem; }
+  .planet-denom { font-size: 0.72rem; color: var(--muted); }
+  .num-input {
+    width: 56px; background: var(--bg); color: var(--text); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 4px 6px; font-size: 0.82rem; font-family: inherit;
+    font-variant-numeric: tabular-nums; text-align: right;
+  }
+  .num-input:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .steel-path-na { font-size: 0.75rem; color: var(--muted); }
+
+  .intrinsics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .intrinsic-field { border: 1px solid var(--accent); border-radius: 10px; padding: 8px 10px; }
+  .intrinsic-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+  .intrinsic-field input[type=range] { width: 100%; }
+  .intrinsic-field .rank-value { font-size: 0.9rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; display: block; }
+</style>
+</head>
+<body>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Stats</span></h1>
+  <nav>
+    <a href="/">Chain View</a>
+    <a href="/loadouts.html">Loadouts</a>
+    <a href="/collections.html">Collections</a>
+    <a href="/standing.html">Standing</a>
+    <a href="/stats.html" class="current">Stats</a>
+    <span style="flex:1"></span>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <div class="popover hidden" id="help-popover">
+        <div class="empty">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計。下段の星図/Steel Path/Intrinsicsだけが数値を入力できる唯一の領域——惑星単位の粗い進捗（ノード個別トグルは持たない）とRailjack/Drifter Intrinsicsのランクを記録する。<br>⚠️ 惑星名などにネタバレを含むことがあります。</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="panel" id="aggregate-panel">
+    <div class="panel-head"><h2>集計（読み取り専用）</h2></div>
+    <div class="source-block">
+      <h3>Chain View — Build別進捗</h3>
+      <div id="chainview-agg"></div>
+    </div>
+    <div class="source-block">
+      <h3>Loadouts</h3>
+      <div id="loadouts-agg" class="tile-grid"></div>
+    </div>
+    <div class="source-block">
+      <h3>Collections</h3>
+      <div id="collections-agg" class="tile-grid"></div>
+    </div>
+    <div class="source-block">
+      <h3>Standing</h3>
+      <div id="standing-agg" class="tile-grid"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="starchart-panel">
+    <div class="panel-head">
+      <h2>星図 / Steel Path 進捗</h2>
+      <button class="icon-btn" id="starchart-refresh-btn" title="外部データを更新（惑星ごとの総ノード数を再取得）"></button>
+    </div>
+    <div class="panel-hint">分母（総ノード数）は外部データから自動取得。分子（クリア済み数）だけを惑星ごとに入力する。</div>
+    <div id="starchart-list"></div>
+  </div>
+
+  <div class="panel" id="intrinsics-panel">
+    <div class="panel-head"><h2>Intrinsics</h2></div>
+    <h3>Railjack</h3>
+    <div class="intrinsics-grid" id="railjack-intrinsics" style="margin-bottom:14px;"></div>
+    <h3>Drifter</h3>
+    <div class="intrinsics-grid" id="drifter-intrinsics"></div>
+  </div>
+
+<script src="/icons.js"></script>
+<script>
+const state = {
+  nodesById: {},
+  loadouts: { items: {}, buildSets: {} },
+  collections: { rivens: {}, kuva: {}, frames: {}, duviri: {} },
+  standing: { ranks: {}, highestRankReached: {} },
+  planets: [],
+  statsData: { planets: {}, railjackIntrinsics: {}, drifterIntrinsics: {} },
+};
+
+document.getElementById("help-toggle").innerHTML = icon("info");
+document.getElementById("help-toggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.getElementById("help-popover").classList.toggle("hidden");
+});
+document.getElementById("help-popover").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => document.getElementById("help-popover").classList.add("hidden"));
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ---------- Chain View: Build別進捗（requires閉包のsatisfied数/総数） ----------
+// minigraph.jsのcollectRequiresClosureと同じロジックをここでも使う（読み取り専用の
+// 集計だけなので、あちらの描画込みの実装を流用せずロジックだけ複製するのが軽量）。
+function requiresClosureSize(buildId) {
+  const visited = new Set();
+  const stack = [buildId];
+  let satisfied = 0;
+  while (stack.length) {
+    const id = stack.pop();
+    if (visited.has(id) || !state.nodesById[id]) continue;
+    visited.add(id);
+    if (state.nodesById[id].satisfied) satisfied++;
+    (state.nodesById[id].requires || []).forEach((r) => stack.push(r));
+  }
+  return { satisfied, total: visited.size };
+}
+
+function renderChainViewAgg() {
+  const el = document.getElementById("chainview-agg");
+  const builds = Object.values(state.nodesById).filter((n) => n.type === "Build").sort((a, b) => a.name.localeCompare(b.name));
+  if (!builds.length) { el.innerHTML = `<div class="empty">Buildノードがまだありません</div>`; return; }
+  el.innerHTML = builds.map((b) => {
+    const { satisfied, total } = requiresClosureSize(b.id);
+    return `<div class="build-row"><span class="name">${escapeHtml(b.name)}</span><span class="frac">${satisfied} / ${total}</span></div>`;
+  }).join("");
+}
+
+// ---------- Loadouts ----------
+function renderLoadoutsAgg() {
+  const el = document.getElementById("loadouts-agg");
+  const buildSetCount = Object.keys(state.loadouts.buildSets || {}).length;
+  const itemCount = Object.keys(state.loadouts.items || {}).length;
+  el.innerHTML = `
+    <div class="tile"><div class="tile-label">BuildSet数</div><div class="tile-value">${buildSetCount}</div></div>
+    <div class="tile"><div class="tile-label">Item数</div><div class="tile-value">${itemCount}</div></div>
+  `;
+}
+
+// ---------- Collections ----------
+function renderCollectionsAgg() {
+  const el = document.getElementById("collections-agg");
+  const rivens = Object.values(state.collections.rivens || {});
+  const kuva = Object.values(state.collections.kuva || {});
+  const frames = Object.values(state.collections.frames || {});
+  const duviri = state.collections.duviri || {};
+
+  const rivenFixed = rivens.filter((r) => r.fixed).length;
+  const kuvaByKind = { Kuva: 0, Tenet: 0, Coda: 0 };
+  kuva.forEach((k) => { if (kuvaByKind[k.kind] !== undefined) kuvaByKind[k.kind]++; });
+  const favoriteCount = rivens.filter((r) => r.favorite).length + kuva.filter((k) => k.favorite).length;
+  const framesOwned = frames.filter((f) => f.owned).length;
+  const framesRanked30 = frames.filter((f) => f.rankedThirty).length;
+  const framesHelminth = frames.filter((f) => f.helminthFed).length;
+
+  el.innerHTML = `
+    <div class="tile"><div class="tile-label">Riven</div><div class="tile-value">${rivens.length}<span class="unit">件</span></div></div>
+    <div class="tile"><div class="tile-label">Riven FIX済み</div><div class="tile-value">${rivenFixed} / ${rivens.length}</div></div>
+    <div class="tile"><div class="tile-label">Kuva</div><div class="tile-value">${kuvaByKind.Kuva}</div></div>
+    <div class="tile"><div class="tile-label">Tenet</div><div class="tile-value">${kuvaByKind.Tenet}</div></div>
+    <div class="tile"><div class="tile-label">Coda</div><div class="tile-value">${kuvaByKind.Coda}</div></div>
+    <div class="tile"><div class="tile-label">お気に入り総数</div><div class="tile-value">${favoriteCount}</div></div>
+    <div class="tile"><div class="tile-label">フレーム入手</div><div class="tile-value">${framesOwned} / ${frames.length}</div></div>
+    <div class="tile"><div class="tile-label">ランク30済み</div><div class="tile-value">${framesRanked30}</div></div>
+    <div class="tile"><div class="tile-label">ヘルミンス済み</div><div class="tile-value">${framesHelminth}</div></div>
+    <div class="tile"><div class="tile-label">デュビリ達成</div><div class="tile-value">${duviri.completed ? "済み" : "未達成"}</div></div>
+    <div class="tile"><div class="tile-label">インカーノン済み</div><div class="tile-value">${duviri.incarnonCount || 0}</div></div>
+  `;
+}
+
+// ---------- Standing ----------
+function renderStandingAgg() {
+  const el = document.getElementById("standing-agg");
+  const highest = Object.values(state.standing.highestRankReached || {});
+  const ranks = Object.values(state.standing.ranks || {});
+  const maxCount = highest.filter((r) => r >= 5).length;
+  const negativeCount = ranks.filter((r) => r < 0).length;
+  el.innerHTML = `
+    <div class="tile"><div class="tile-label">最高到達Max</div><div class="tile-value">${maxCount} / ${highest.length}</div></div>
+    <div class="tile"><div class="tile-label">現在マイナス圏</div><div class="tile-value">${negativeCount}</div></div>
+  `;
+}
+
+// ---------- 星図 / Steel Path ----------
+function renderStarchart() {
+  const el = document.getElementById("starchart-list");
+  if (!state.planets.length) { el.innerHTML = `<div class="empty">読み込み中…</div>`; return; }
+  el.innerHTML = `
+    <table class="input-table">
+      <thead><tr><th>惑星 / システム</th><th>星図</th><th>Steel Path</th></tr></thead>
+      <tbody>
+        ${state.planets.map((p) => {
+          const progress = state.statsData.planets[p.key] || { cleared: 0, steelPathCleared: 0 };
+          return `
+            <tr>
+              <td><div class="planet-name">${escapeHtml(p.displayName)}</div></td>
+              <td>
+                <input type="text" inputmode="numeric" class="num-input" data-planet="${escapeHtml(p.key)}" data-field="cleared" value="${progress.cleared}">
+                <span class="planet-denom">/ ${p.nodeCount}</span>
+              </td>
+              <td>
+                ${p.steelPathApplicable
+                  ? `<input type="text" inputmode="numeric" class="num-input" data-planet="${escapeHtml(p.key)}" data-field="steelPathCleared" value="${progress.steelPathCleared}"><span class="planet-denom">/ ${p.nodeCount}</span>`
+                  : `<span class="steel-path-na">対象外</span>`}
+              </td>
+            </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+  el.querySelectorAll(".num-input").forEach((inp) => {
+    inp.addEventListener("blur", async () => {
+      const key = inp.dataset.planet;
+      const progress = { ...(state.statsData.planets[key] || { cleared: 0, steelPathCleared: 0 }) };
+      progress[inp.dataset.field] = Math.max(0, Number(inp.value) || 0);
+      const res = await fetch(`/api/stats/planets/${encodeURIComponent(key)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(progress),
+      });
+      state.statsData = await res.json();
+    });
+  });
+}
+
+document.getElementById("starchart-refresh-btn").innerHTML = icon("refresh-cw");
+document.getElementById("starchart-refresh-btn").addEventListener("click", async () => {
+  await fetch("/api/wfcd/refresh", { method: "POST" });
+  await loadPlanets();
+  renderStarchart();
+});
+
+// ---------- Intrinsics ----------
+function renderIntrinsicsGroup(containerId, categories, values, endpoint) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = categories.map((cat) => `
+    <div class="intrinsic-field">
+      <label>${escapeHtml(cat)}</label>
+      <input type="range" min="0" max="10" step="1" value="${values[cat] || 0}" data-intrinsic="${escapeHtml(cat)}">
+      <span class="rank-value" data-intrinsic-value="${escapeHtml(cat)}">${values[cat] || 0}</span>
+    </div>
+  `).join("");
+  el.querySelectorAll("[data-intrinsic]").forEach((slider) => {
+    const valueLabel = el.querySelector(`[data-intrinsic-value="${CSS.escape(slider.dataset.intrinsic)}"]`);
+    slider.addEventListener("input", () => { valueLabel.textContent = slider.value; });
+    slider.addEventListener("change", async () => {
+      const res = await fetch(`${endpoint}/${encodeURIComponent(slider.dataset.intrinsic)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rank: Number(slider.value) }),
+      });
+      state.statsData = await res.json();
+    });
+  });
+}
+function renderIntrinsics() {
+  renderIntrinsicsGroup("railjack-intrinsics", ["Tactical", "Piloting", "Gunnery", "Engineering", "Command"], state.statsData.railjackIntrinsics || {}, "/api/stats/railjack");
+  renderIntrinsicsGroup("drifter-intrinsics", ["Combat", "Riding", "Opportunity", "Endurance"], state.statsData.drifterIntrinsics || {}, "/api/stats/drifter");
+}
+
+// ---------- ロード ----------
+async function loadChainViewNodes() {
+  try {
+    const res = await fetch("/api/graph");
+    const graph = await res.json();
+    state.nodesById = graph.nodes || {};
+  } catch (e) { state.nodesById = {}; }
+}
+async function loadLoadouts() {
+  try {
+    const res = await fetch("/api/loadouts");
+    state.loadouts = await res.json();
+  } catch (e) { /* keep defaults */ }
+}
+async function loadCollections() {
+  try {
+    const res = await fetch("/api/collections");
+    state.collections = await res.json();
+  } catch (e) { /* keep defaults */ }
+}
+async function loadStanding() {
+  try {
+    const res = await fetch("/api/standing");
+    const body = await res.json();
+    state.standing = body.data || {};
+  } catch (e) { /* keep defaults */ }
+}
+async function loadPlanets() {
+  try {
+    const res = await fetch("/api/starchart/planets");
+    state.planets = res.ok ? await res.json() : [];
+  } catch (e) { state.planets = []; }
+}
+async function loadStatsData() {
+  try {
+    const res = await fetch("/api/stats");
+    state.statsData = await res.json();
+  } catch (e) { /* keep defaults */ }
+}
+
+Promise.all([loadChainViewNodes(), loadLoadouts(), loadCollections(), loadStanding(), loadPlanets(), loadStatsData()]).then(() => {
+  renderChainViewAgg();
+  renderLoadoutsAgg();
+  renderCollectionsAgg();
+  renderStandingAgg();
+  renderStarchart();
+  renderIntrinsics();
+});
+</script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/debug-grid.js"></script>
+</body>
+</html>
