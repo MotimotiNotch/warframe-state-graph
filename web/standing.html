@@ -114,6 +114,7 @@
      揃えられる。捧げ物テーブルを開いた1枚だけが伸びるつもりが、同じ行の他カードまで
      つられて伸縮して見える原因だったため、各カードは自分のコンテンツ分だけの高さにする。 */
   .syn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+  .syn-grid.hidden { display: none; }
   @media (max-width: 900px) {
     .syn-grid { grid-template-columns: repeat(2, 1fr); }
   }
@@ -149,6 +150,16 @@
   .syn-recovery { margin-top: 8px; color: var(--danger); }
   .syn-note { margin-top: 8px; color: var(--muted); font-style: italic; }
 
+  #other-syn-toggle { cursor: pointer; user-select: none; }
+  #other-syn-toggle:hover { color: var(--accent); }
+  #other-syn-icon { display: inline-flex; color: var(--accent); }
+  #other-syn-chevron { transition: transform 0.15s ease; }
+  #other-syn-chevron.expanded { transform: rotate(180deg); }
+  .syn-warning {
+    font-size: 0.78rem; color: var(--muted); margin: -4px 0 10px;
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  }
+
   .empty { color: var(--muted); font-size: 0.85rem; }
 </style>
 </head>
@@ -175,8 +186,12 @@
   </div>
 
   <div class="panel">
-    <div class="panel-head"><h2>その他のシンジケート</h2></div>
-    <div id="other-syndicate-list" class="syn-grid"></div>
+    <div class="panel-head">
+      <h2 id="other-syn-toggle"><span id="other-syn-icon"></span>その他のシンジケート</h2>
+      <button class="icon-btn" id="other-syn-chevron" title="開閉"></button>
+    </div>
+    <div class="syn-warning">クエストやイベント進行で解放されるシンジケートです。ネタバレを含むため閲覧に注意してください。</div>
+    <div id="other-syndicate-list" class="syn-grid hidden"></div>
   </div>
 
 <script src="/icons.js"></script>
@@ -233,6 +248,17 @@ document.getElementById("help-toggle").addEventListener("click", (e) => {
   e.stopPropagation();
   document.getElementById("help-popover").classList.toggle("hidden");
 });
+
+// 「その他のシンジケート」は初回は閉じておく（クエスト/イベント進行で解放される
+// ＝未プレイのコンテンツ名を目にする可能性があるため、既定では見せない設計）。
+document.getElementById("other-syn-icon").innerHTML = icon("triangle-alert", { size: 15 });
+document.getElementById("other-syn-chevron").innerHTML = icon("chevron-down");
+function toggleOtherSyndicates() {
+  document.getElementById("other-syndicate-list").classList.toggle("hidden");
+  document.getElementById("other-syn-chevron").classList.toggle("expanded");
+}
+document.getElementById("other-syn-toggle").addEventListener("click", toggleOtherSyndicates);
+document.getElementById("other-syn-chevron").addEventListener("click", toggleOtherSyndicates);
 document.getElementById("help-popover").addEventListener("click", (e) => e.stopPropagation());
 document.addEventListener("click", () => {
   document.getElementById("help-popover").classList.add("hidden");
