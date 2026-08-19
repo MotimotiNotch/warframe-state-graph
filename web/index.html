@@ -323,7 +323,8 @@
   <nav style="font-size:.85rem;margin-bottom:4px;">
     <a href="/" style="color:var(--accent);text-decoration:none;margin-right:12px;">Chain View</a>
     <a href="/loadouts.html" style="color:var(--muted);text-decoration:none;margin-right:12px;">Loadouts</a>
-    <a href="/collections.html" style="color:var(--muted);text-decoration:none;">Collections</a>
+    <a href="/collections.html" style="color:var(--muted);text-decoration:none;margin-right:12px;">Collections</a>
+    <a href="/standing.html" style="color:var(--muted);text-decoration:none;">Standing</a>
   </nav>
 
   <div class="toolbar">
@@ -341,6 +342,7 @@
           <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
           <span>― contains（構成） / ┄ requires（前提）</span>
           <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i>中身アリ（クリックでドリルダウン）</span>
+          <span style="opacity:.7;">⚠️ クエスト名・リッチ系武器名など未プレイのコンテンツ名が表示されることがあります</span>
         </div>
       </div>
     </div>
@@ -404,7 +406,7 @@
       <div class="row">
         <div>
           <label>種別</label>
-          <select id="wfcd-node-type"><option value="Frame">Frame</option><option value="Weapon">Weapon</option></select>
+          <select id="wfcd-node-type"><option value="Frame">Frame</option><option value="Weapon">Weapon</option><option value="Quest">Quest</option></select>
         </div>
         <div>
           <label>名前（WFCD実データと完全一致）</label>
@@ -1059,11 +1061,29 @@ function renderWfcdPreview() {
       </div>`;
   }).join("");
 
+  const syndicateRow = s.syndicateRank ? `
+    <div class="wfcd-part">
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="wfcd-syndicate-check" checked>
+        シンジケートランクを前提条件として追加: <b>${s.syndicateRank.node.name}</b>（購入コスト ${s.syndicateRank.standing.toLocaleString()} standing）
+      </label>
+    </div>` : "";
+
+  const questChain = s.questChain ? `
+    <div class="wfcd-part">
+      <div class="part-name">前提クエストチェーン（Wiki要約ベース、精度は目視要確認）</div>
+      ${s.questChain.length > 1
+        ? `<div class="ph-row">${s.questChain.map(n => n.name).join(" → ")}</div>`
+        : `<div class="empty">本表に前提クエストの登録なし（単体で追加されます）</div>`}
+    </div>` : "";
+
   preview.innerHTML = `
     <div class="ph-row" style="margin-top:10px;"><b>パラダイム:</b> ${s.paradigm}</div>
     ${s.richLich ? `<div class="ph-row"><b>リッチ系:</b> ${s.richLich}</div>` : ""}
     ${s.archetype ? `<div class="ph-row"><b>アーキタイプ:</b> ${s.archetype}</div>` : ""}
     <div class="ph-row"><b>本体ノード:</b> ${s.root.name}（${s.root.id}）</div>
+    ${syndicateRow}
+    ${questChain}
     ${parts}
   `;
 }
@@ -1073,6 +1093,24 @@ document.getElementById("wfcd-modal-import").addEventListener("click", async () 
   const nodes = [];
   const root = { ...wfcdSuggestion.root };
   nodes.push(root);
+
+  // クエストチェーン: root以外の前提クエストノードをそのまま追加（各ノードのrequiresは
+  // BuildQuestSuggestion側で前提クエストへのIDとして設定済み）。
+  (wfcdSuggestion.questChain || []).forEach(n => {
+    if (n.id !== root.id) nodes.push({ ...n });
+  });
+
+  // シンジケートランク: チェックがONならランクノードを追加し、本体ノードのrequiresに繋ぐ。
+  if (wfcdSuggestion.syndicateRank) {
+    const check = document.getElementById("wfcd-syndicate-check");
+    if (check && check.checked) {
+      const rankNode = wfcdSuggestion.syndicateRank.node;
+      if (!nodes.find(n => n.id === rankNode.id)) {
+        nodes.push({ ...rankNode, requires: rankNode.requires || [], contains: rankNode.contains || [] });
+      }
+      root.requires = [...(root.requires || []), rankNode.id];
+    }
+  }
 
   (wfcdSuggestion.parts || []).forEach((p, i) => {
     const partNode = { ...p.node, requires: [] };
@@ -1159,5 +1197,7 @@ loadGraph().then(loadReport);
 <script src="/booster.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/debug-grid.js"></script>
 </body>
 </html>

@@ -196,11 +196,12 @@
     <a href="/">Chain View</a>
     <a href="/loadouts.html">Loadouts</a>
     <a href="/collections.html" class="current">Collections</a>
+    <a href="/standing.html">Standing</a>
     <span style="flex:1"></span>
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">Chain View / Loadoutsとは独立した、Riven/Kuva系武器の入手状況ログ。星マークは「今のビルドで使ってる/優先度高い」という主観マーカーで、RivenのFIX（ロール完成度）とは独立して立てられる。</div>
+        <div class="empty">Chain View / Loadoutsとは独立した、Riven/Kuva系武器の入手状況ログ。星マークは「今のビルドで使ってる/優先度高い」という主観マーカーで、RivenのFIX（ロール完成度）とは独立して立てられる。<br>⚠️ Kuva/Tenet/Coda等のリッチ系武器名は、未プレイのコンテンツ名を含むことがあります。</div>
       </div>
     </div>
   </nav>
@@ -811,5 +812,7 @@ Promise.all([loadChainViewNodes(), loadWeaponNames(), loadRivenStatChoices()]).t
 <script src="/booster.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/debug-grid.js"></script>
 </body>
 </html>

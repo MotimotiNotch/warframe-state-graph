@@ -27,6 +27,44 @@
   const BLUR_MIN = 0;
   const BLUR_MAX = 24;
 
+  // 用語マッピング（pkg/glossary、2026-08-19追加）。壁紙/アイコン/ぼかしと同じ統合モーダルに
+  // タブとして同居させる（既存の統合方針の延長）。サーバー保存のためlocalStorageではなく
+  // fetch経由。モーダルを開くたびに再取得はせず、初回だけ取得してモジュール内にキャッシュする。
+  let modalTab = "display";
+  let glossaryCache = null;
+
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  async function fetchGlossary() {
+    try {
+      const res = await fetch("/api/glossary");
+      glossaryCache = res.ok ? await res.json() : { entries: {} };
+    } catch (e) {
+      glossaryCache = { entries: {} };
+    }
+    refreshHeaderIconModal();
+  }
+
+  async function saveGlossaryEntry(entry) {
+    const res = await fetch("/api/glossary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry),
+    });
+    if (res.ok) glossaryCache = await res.json();
+    refreshHeaderIconModal();
+  }
+
+  async function deleteGlossaryEntry(enKey) {
+    const res = await fetch(`/api/glossary/${encodeURIComponent(enKey)}`, { method: "DELETE" });
+    if (res.ok) glossaryCache = await res.json();
+    refreshHeaderIconModal();
+  }
+
   function loadSettings() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -158,11 +196,49 @@
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);
-        border-radius: 18px; padding: 16px; width: min(340px, 90vw);
+        border-radius: 18px; padding: 16px; width: min(380px, 92vw);
+        max-height: 84vh; overflow-y: auto;
         font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         color: var(--text, #e4e6ec);
       }
       #header-icon-modal h3 { margin: 0 0 10px; font-size: 1rem; }
+      #header-icon-modal .hi-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+      #header-icon-modal .hi-tab {
+        flex: 1; background: transparent; color: var(--muted, #8a8f9c);
+        border: 1px solid var(--border, #2a2e3a); border-radius: 8px;
+        padding: 6px 8px; font-size: 0.78rem; cursor: pointer; font-family: inherit;
+      }
+      #header-icon-modal .hi-tab.active {
+        background: var(--bg, #12141a); color: var(--accent, #f0c674); border-color: var(--accent, #f0c674);
+      }
+      #header-icon-modal .hi-glossary-cat-title {
+        font-size: 0.75rem; color: var(--muted, #8a8f9c); letter-spacing: 0.04em;
+        text-transform: uppercase; margin: 10px 0 4px;
+      }
+      #header-icon-modal .hi-glossary-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+      #header-icon-modal .hi-glossary-table td { padding: 2px 0; vertical-align: middle; }
+      #header-icon-modal .hi-glossary-en {
+        font-size: 0.72rem; color: var(--muted, #8a8f9c); max-width: 120px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px;
+      }
+      #header-icon-modal .hi-glossary-ja-input {
+        width: 100%; background: var(--bg, #12141a); color: var(--text, #e4e6ec);
+        border: 1px solid var(--border, #2a2e3a); border-radius: 6px;
+        padding: 4px 6px; font-size: 0.78rem; font-family: inherit;
+      }
+      #header-icon-modal .hi-glossary-ja-input:focus { border-color: var(--accent, #f0c674); outline: none; }
+      #header-icon-modal .hi-glossary-table .hi-glossary-del {
+        width: auto; margin: 0 0 0 4px; padding: 4px 6px; line-height: 0;
+      }
+      #header-icon-modal .hi-glossary-add {
+        display: flex; flex-direction: column; gap: 6px; margin-top: 10px;
+        padding-top: 10px; border-top: 1px solid var(--border, #2a2e3a);
+      }
+      #header-icon-modal .hi-glossary-add input {
+        background: var(--bg, #12141a); color: var(--text, #e4e6ec);
+        border: 1px solid var(--border, #2a2e3a); border-radius: 6px;
+        padding: 6px 8px; font-size: 0.78rem; font-family: inherit;
+      }
       #header-icon-modal .hi-choice {
         width: 100%; display: flex; align-items: center; gap: 8px;
         background: var(--bg, #12141a); color: var(--text, #e4e6ec);
@@ -277,13 +353,20 @@
     });
   }
 
-  function buildModalContent() {
+  function buildTabBar() {
+    return `
+      <div class="hi-tabs">
+        <button class="hi-tab ${modalTab === "display" ? "active" : ""}" data-hi-tab="display">表示</button>
+        <button class="hi-tab ${modalTab === "glossary" ? "active" : ""}" data-hi-tab="glossary">用語</button>
+      </div>`;
+  }
+
+  function buildDisplayTabContent() {
     const settings = loadSettings();
     const hasWallpaper = !!settings.image;
     const hasCustomIcon = !!loadCustomIcon();
 
     return `
-      <h3>壁紙 / アイコン</h3>
       <button class="hi-choice" id="hi-choice-wallpaper">${window.icon ? window.icon("image") : ""}${hasWallpaper ? "壁紙を変更" : "壁紙を設定"}</button>
       ${
         hasWallpaper
@@ -302,12 +385,91 @@
         <span id="hi-blur-value">${settings.blur}px</span>
       </label>
       <p class="hi-hint">画像サイズの目安: 壁紙は${Math.round(WARN_BYTES / 1024 / 1024)}MBまで、アイコンは${Math.round(ICON_WARN_BYTES / 1024 / 1024)}MBまで（超えると保存に失敗しやすい）</p>
+    `;
+  }
+
+  // 用語マッピング（pkg/glossary）タブ。Rivenステータス名等の英→日対応をカテゴリ別に一覧し、
+  // 日本語欄はその場編集（blurで保存）、新規追加は下部の簡易フォームから行う。
+  function buildGlossaryTabContent() {
+    if (!glossaryCache) {
+      fetchGlossary();
+      return `<p class="hi-hint">読み込み中…</p>`;
+    }
+    const entries = Object.values(glossaryCache.entries || {}).sort((a, b) =>
+      a.category === b.category ? a.enKey.localeCompare(b.enKey) : a.category.localeCompare(b.category)
+    );
+    const byCategory = {};
+    entries.forEach((e) => { (byCategory[e.category] || (byCategory[e.category] = [])).push(e); });
+
+    const sections = Object.keys(byCategory).sort().map((cat) => `
+        <div class="hi-glossary-cat-title">${escapeHtml(cat)}</div>
+        <table class="hi-glossary-table">
+          ${byCategory[cat].map((e) => `
+            <tr>
+              <td class="hi-glossary-en" title="${escapeHtml(e.enKey)}">${escapeHtml(e.enKey)}</td>
+              <td><input type="text" class="hi-glossary-ja-input" data-glossary-key="${escapeHtml(e.enKey)}" data-glossary-cat="${escapeHtml(e.category)}" value="${escapeHtml(e.ja)}"></td>
+              <td><button class="hi-choice hi-reset hi-glossary-del" data-glossary-del="${escapeHtml(e.enKey)}" title="削除">${window.icon ? window.icon("x") : ""}</button></td>
+            </tr>`).join("")}
+        </table>`).join("") || `<p class="hi-hint">用語がまだ登録されていません</p>`;
+
+    return `
+      <p class="hi-hint">ゲーム内用語の英→日対応。日本語欄を編集するとその場で保存される。</p>
+      ${sections}
+      <div class="hi-glossary-add">
+        <input type="text" id="hi-glossary-new-en" placeholder="英語キー">
+        <input type="text" id="hi-glossary-new-ja" placeholder="日本語表記">
+        <input type="text" id="hi-glossary-new-cat" placeholder="カテゴリ" value="Riven">
+        <button class="hi-choice" id="hi-glossary-add-btn">${window.icon ? window.icon("plus") : ""}追加</button>
+      </div>
+    `;
+  }
+
+  function buildModalContent() {
+    const title = modalTab === "glossary" ? "用語マッピング" : "壁紙 / アイコン";
+    const body = modalTab === "glossary" ? buildGlossaryTabContent() : buildDisplayTabContent();
+    return `
+      <h3>${title}</h3>
+      ${buildTabBar()}
+      ${body}
       <div class="hi-cancel-row"><button id="hi-cancel">閉じる</button></div>
     `;
   }
 
+  function wireGlossaryTabContent(box) {
+    box.querySelectorAll(".hi-glossary-ja-input").forEach((input) => {
+      input.addEventListener("blur", () => {
+        const ja = input.value.trim();
+        if (!ja) return; // 空欄での上書きは事故りやすいので無視（削除はボタンで明示的に行う）
+        saveGlossaryEntry({ enKey: input.dataset.glossaryKey, ja, category: input.dataset.glossaryCat });
+      });
+    });
+    box.querySelectorAll(".hi-glossary-del").forEach((btn) => {
+      btn.addEventListener("click", () => deleteGlossaryEntry(btn.dataset.glossaryDel));
+    });
+    const addBtn = box.querySelector("#hi-glossary-add-btn");
+    if (addBtn) {
+      addBtn.addEventListener("click", () => {
+        const enKey = box.querySelector("#hi-glossary-new-en").value.trim();
+        const ja = box.querySelector("#hi-glossary-new-ja").value.trim();
+        const category = box.querySelector("#hi-glossary-new-cat").value.trim() || "General";
+        if (!enKey || !ja) { alert("英語キーと日本語表記を入力して"); return; }
+        saveGlossaryEntry({ enKey, ja, category });
+      });
+    }
+  }
+
   function wireModalContent(box) {
     box.querySelector("#hi-cancel").addEventListener("click", closeHeaderIconModal);
+    box.querySelectorAll("[data-hi-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        modalTab = btn.dataset.hiTab;
+        refreshHeaderIconModal();
+      });
+    });
+    if (modalTab === "glossary") {
+      wireGlossaryTabContent(box);
+      return;
+    }
     box.querySelector("#hi-choice-wallpaper").addEventListener("click", () => {
       document.getElementById("wallpaper-input").click();
     });

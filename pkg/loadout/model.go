@@ -33,6 +33,12 @@ type Item struct {
 	// （2026-08-18 装備カード化 & Gitグラフ風ミニ進捗表示設計）。BuildSet.ChainViewBuildIDと同じ
 	// 「緩い参照」パターンだが、Itemは個別の武器/フレーム単位でも紐付けられるようにする。
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+
+	// HelminthNote はHelminthで移植したアビリティの自由記述メモ（例: "Roar (Rhinoから移植)"）。
+	// 全config共通でフレーム個体そのものに効くためConfig単位ではなくItem本体に持たせる。
+	// TypeFrame限定（TypeWeaponでは未使用/非表示）。Collections側の「ヘルミンス済み」
+	// （捧げる側の記録）とは別に、受け取る側の記録として追加（2026-08-19設計）。
+	HelminthNote string `json:"helminthNote,omitempty"`
 }
 
 // ItemRef はBuildSetがフレーム/武器のどのコンフィグ（A/B/C）を使うかを指す参照。

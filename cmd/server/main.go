@@ -15,8 +15,10 @@ import (
 	webassets "warframe-state-graph"
 	"warframe-state-graph/pkg/collection"
 	"warframe-state-graph/pkg/engine"
+	"warframe-state-graph/pkg/glossary"
 	"warframe-state-graph/pkg/loadout"
 	"warframe-state-graph/pkg/model"
+	"warframe-state-graph/pkg/standing"
 	"warframe-state-graph/pkg/store"
 	"warframe-state-graph/pkg/wfcd"
 	"warframe-state-graph/pkg/wfcdgen"
@@ -71,6 +73,9 @@ func main() {
 	loadoutPath := filepath.Join(root, "data", "loadouts.json")
 	collectionsPath := filepath.Join(root, "data", "collections.json")
 
+	standingPath := filepath.Join(root, "data", "standing.json")
+	glossaryPath := filepath.Join(root, "data", "glossary.json")
+
 	webRoot, err := fs.Sub(webassets.FS, "web")
 	if err != nil {
 		log.Fatal(err)
@@ -79,6 +84,8 @@ func main() {
 	st := store.NewFileStore(dataPath)
 	ls := loadout.NewFileStore(loadoutPath)
 	cs := collection.NewFileStore(collectionsPath)
+	ss := standing.NewFileStore(standingPath)
+	gs := glossary.NewFileStore(glossaryPath)
 	wfcdCacheDir := filepath.Join(root, "data", "wfcd-cache")
 
 	mux := http.NewServeMux()
@@ -257,6 +264,74 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
+	// Standing（6大シンジケートの現在ランク一覧、Chain View/Loadouts/Collectionsとは
+	// 独立した4つ目のページ）。ランクは -2〜5 の値そのものを保持する（下降もありうるため、
+	// requires連鎖トグルではなく直接更新方式。pkg/standingのパッケージコメント参照）。
+	mux.HandleFunc("GET /api/standing", func(w http.ResponseWriter, r *http.Request) {
+		d, err := ss.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, map[string]any{"data": d, "syndicates": standing.MajorSyndicates})
+	})
+
+	mux.HandleFunc("POST /api/standing/{syndicate}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Rank int `json:"rank"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body.Rank < standing.MinRank || body.Rank > standing.MaxRank {
+			http.Error(w, "rank must be between -2 and 5", http.StatusBadRequest)
+			return
+		}
+		d, err := ss.SetRank(r.PathValue("syndicate"), body.Rank)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("GET /api/glossary", func(w http.ResponseWriter, r *http.Request) {
+		d, err := gs.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/glossary", func(w http.ResponseWriter, r *http.Request) {
+		var e glossary.Entry
+		if err := json.NewDecoder(r.Body).Decode(&e); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if e.EnKey == "" || e.Ja == "" {
+			http.Error(w, "enKey and ja are required", http.StatusBadRequest)
+			return
+		}
+		d, err := gs.Upsert(e)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("DELETE /api/glossary/{key}", func(w http.ResponseWriter, r *http.Request) {
+		d, err := gs.Delete(r.PathValue("key"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
 	// フレーム/武器名をWFCDの公開データから取得（初回のみfetch、以後はローカルキャッシュ）。
 	// loadouts.htmlの「アイテム追加」で自由入力の代わりに実データから選べるようにするため。
 	mux.HandleFunc("GET /api/reference/frames", func(w http.ResponseWriter, r *http.Request) {
@@ -318,8 +393,16 @@ func main() {
 	mux.HandleFunc("GET /api/wfcd/generate", func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		nodeType := model.NodeType(r.URL.Query().Get("nodeType"))
-		if name == "" || (nodeType != model.TypeFrame && nodeType != model.TypeWeapon) {
-			http.Error(w, "name and nodeType (Frame|Weapon) are required", http.StatusBadRequest)
+		if name == "" || (nodeType != model.TypeFrame && nodeType != model.TypeWeapon && nodeType != model.TypeQuest) {
+			http.Error(w, "name and nodeType (Frame|Weapon|Quest) are required", http.StatusBadRequest)
+			return
+		}
+
+		// クエストはWFCDアイテムデータを介さず、questchainの静的テーブル（前提クエスト連鎖）
+		// だけで完結する（03_Data_Source_Research.md記載どおり、前提関係はWFCD/Public Export
+		// どちらの静的データにも存在しないため）。
+		if nodeType == model.TypeQuest {
+			writeJSON(w, wfcdgen.BuildQuestSuggestion(name))
 			return
 		}
 
@@ -340,7 +423,14 @@ func main() {
 			activeRelics = nil
 		}
 
-		writeJSON(w, wfcdgen.BuildSuggestion(found, nodeType, activeRelics))
+		// シンジケートランク候補も同様にベストエフォート（取れなくても他の提案は成立させる）。
+		syndicates, err := wfcd.CachedSyndicates(wfcdCacheDir)
+		if err != nil {
+			log.Printf("syndicate data unavailable, rank suggestion will be omitted: %v", err)
+			syndicates = nil
+		}
+
+		writeJSON(w, wfcdgen.BuildSuggestion(found, nodeType, activeRelics, syndicates))
 	})
 
 	// 自動生成候補（ユーザーがレリック候補を選び終えた状態）を一括でグラフに取り込む。

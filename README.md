@@ -6,6 +6,15 @@
 Warframeには個人インベントリを取得できる公式APIが存在しないため、全自動同期は行わず、
 登録したビルドに必要な数個のノードだけを手動でワンタップトグルする設計に割り切っている。
 
+## ⚠️ ネタバレについての注意
+
+このツールはWarframeの公開データ（WFCD）をそのまま扱うため、クエスト名・前提関係
+（Chain ViewのWFCD自動生成によるQuestチェーン）やKuva/Tenet/Coda等のリッチ系武器名など、
+**まだプレイしていないコンテンツの名称が画面に表示されることがある**。自分の進行に合わせて、
+先の情報を見たくないページ（特にChain ViewのWFCD自動生成インポートウィザード）の利用は
+控えることを推奨する。初回起動時（各ページ初回アクセス時）にも同内容の確認モーダルが出る
+（`web/spoiler-warning.js`、`localStorage`で1回だけ表示）。
+
 ## 使い方（開発時）
 
 ```
@@ -17,6 +26,7 @@ go run ./cmd/server
 - **Chain View** (`/`): 依存関係グラフの表示・ドリルダウン・ワンタップトグル
 - **Loadouts** (`/loadouts.html`): MODコンフィグ(A/B/C)・ビルドセットの管理
 - **Collections** (`/collections.html`): Riven / Kuva・Tenet・Coda武器の入手ログ
+- **Standing** (`/standing.html`): 6大シンジケートの現在ランク管理
 
 **注意（2026-08-19〜）**: `web/` はビルド時にバイナリへ埋め込まれる（`webassets.go`）。
 `go run ./cmd/server` はコマンド自体が毎回ソースから再ビルドするため、`html`/`js`を編集して
@@ -45,6 +55,8 @@ go build -o warframe-state-graph.exe ./cmd/server
 - `pkg/store`: `data/graph.json` の永続化
 - `pkg/loadout`: MODコンフィグ・ビルドセットの永続化
 - `pkg/collection`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
+- `pkg/standing`: 6大シンジケートの現在ランク永続化
+- `pkg/questchain`: クエストの前提関係（Wiki由来の静的テーブル）
 - `pkg/wfcd`: WFCD公開データ（フレーム/武器/レリック等）の取得・キャッシュ
 - `pkg/wfcdgen`: WFCDデータからノード候補を自動生成するロジック
 - `cmd/server`: ローカルREST API + 静的ファイル配信（`web/`は常にバイナリへ埋め込み済み、開発時もビルドし直せば最新反映）

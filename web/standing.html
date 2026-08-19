@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Warframe State Graph — Standing</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --panel-blur: 5px;
+    --bg: #12141a;
+    --panel: rgba(27, 30, 39, 0.35);
+    --border: #2a2e3a;
+    --text: #e4e6ec;
+    --muted: #8a8f9c;
+    --accent: #f0c674;
+    --danger: #e0616b;
+    --actionable: #4fd88a;
+    --satisfied: #5a95e0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --border: #d8dbe2;
+      --text: #1c1e24;
+      --muted: #6b7080;
+      --accent: #a8760a;
+      --danger: #c23a46;
+      --actionable: #1f9d5c;
+      --satisfied: #2f6fc4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --border: #d8dbe2;
+    --text: #1c1e24;
+    --muted: #6b7080;
+    --accent: #a8760a;
+    --danger: #c23a46;
+    --actionable: #1f9d5c;
+    --satisfied: #2f6fc4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    padding: 14px;
+  }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。詳細はindex.htmlの同名ブロックのコメント参照。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; }
+  }
+  h2 { font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px; }
+  nav { font-size: 0.85rem; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav a.current { color: var(--accent); }
+  nav a:hover { color: var(--accent); }
+
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+  }
+  .popover.hidden { display: none; }
+
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+  select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; font-family: inherit; width: 100%;
+  }
+
+  .syn-row { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  .syn-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .syn-name { font-weight: 600; }
+  .syn-saved-flash { font-size: 0.75rem; color: var(--actionable); opacity: 0; transition: opacity 0.2s; }
+  .syn-saved-flash.show { opacity: 1; }
+
+  .syn-highest { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+  .syn-highest .val { color: var(--accent); }
+  .syn-sacrifice { margin-top: 6px; font-size: 0.78rem; }
+  .syn-sacrifice summary { cursor: pointer; color: var(--muted); list-style: none; }
+  .syn-sacrifice summary::-webkit-details-marker { display: none; }
+  .syn-sacrifice summary:hover { color: var(--accent); }
+  .syn-sacrifice table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .syn-sacrifice td { padding: 3px 4px; border-bottom: 1px solid var(--border); }
+  .syn-sacrifice tr.paid td { color: var(--muted); }
+  .syn-sacrifice tr.paid .sac-item { text-decoration: line-through; }
+  .syn-sacrifice .sac-status { color: var(--actionable); white-space: nowrap; }
+  .syn-recovery { margin-top: 8px; color: var(--danger); }
+
+  .empty { color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Standing</span></h1>
+  <nav>
+    <a href="/">Chain View</a>
+    <a href="/loadouts.html">Loadouts</a>
+    <a href="/collections.html">Collections</a>
+    <a href="/standing.html" class="current">Standing</a>
+    <span style="flex:1"></span>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <div class="popover hidden" id="help-popover">
+        <div class="empty">6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）の現在ランクを記録する場所。左右は敵対する2陣営で、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）ため、Chain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新する。武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使う。<br>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="panel">
+    <div class="panel-head"><h2>左陣営（Steel Meridian / Arbiters of Hexis / Cephalon Suda）</h2></div>
+    <div id="left-faction-list"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>右陣営（Red Veil / The Perrin Sequence / New Loka）</h2></div>
+    <div id="right-faction-list"></div>
+  </div>
+
+<script src="/icons.js"></script>
+<script>
+const state = { syndicates: [], ranks: {}, highest: {} };
+
+document.getElementById("help-toggle").innerHTML = icon("info");
+document.getElementById("help-toggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.getElementById("help-popover").classList.toggle("hidden");
+});
+document.getElementById("help-popover").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => document.getElementById("help-popover").classList.add("hidden"));
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// pkg/standing.RankLabel（Go側）とロジックを揃えた表示ラベル生成。保存前のプレビュー用に
+// フロント側で複製している（選択の度にサーバー往復して確認する必要をなくすため）。
+function rankLabel(syndicateName, rank) {
+  if (rank === 0) return "Neutral (Rank 0)";
+  if (rank < 0) return `敵対 (Rank ${rank})`;
+  const syn = state.syndicates.find(s => s.name === syndicateName);
+  if (syn && rank >= 1 && rank <= 5) return `${syn.ranks[rank - 1]} (Rank ${rank})`;
+  return `Rank ${rank}`;
+}
+
+function rankOptions(syndicateName, current) {
+  let opts = "";
+  for (let r = -2; r <= 5; r++) {
+    opts += `<option value="${r}" ${r === current ? "selected" : ""}>${escapeHtml(rankLabel(syndicateName, r))}</option>`;
+  }
+  return opts;
+}
+
+// ランクアップ生贄はそのランクへ初めて到達した時のみ必要（降格→再昇格では不要、
+// マイナス圏からの回復を除く）。pkg/standing.RecoverySacrifice（Go側）と同じ「Rank3到達生贄と
+// 同一」という法則をフロント側でも複製している（2026-08-19、03_Data_Source_Research.md 2.17節）。
+function recoverySacrifice(s) {
+  return s.sacrifices ? s.sacrifices[2] : "";
+}
+
+function sacrificeTable(s, highest) {
+  const rows = (s.sacrifices || []).map((item, i) => {
+    const rank = i + 1;
+    const paid = rank <= highest;
+    return `
+      <tr class="${paid ? "paid" : ""}">
+        <td>Rank ${rank}</td>
+        <td class="sac-item">${escapeHtml(item)}</td>
+        <td class="sac-status">${paid ? "支払済" : ""}</td>
+      </tr>`;
+  }).join("");
+  return `<table>${rows}</table>`;
+}
+
+function renderFaction(containerId, faction) {
+  const list = state.syndicates.filter(s => s.faction === faction);
+  const el = document.getElementById(containerId);
+  if (!list.length) { el.innerHTML = `<div class="empty">読み込み中…</div>`; return; }
+  el.innerHTML = list.map(s => {
+    const current = state.ranks[s.name] ?? 0;
+    const highest = state.highest[s.name] ?? 0;
+    const highestLabel = highest > 0 ? rankLabel(s.name, highest) : "未到達";
+    return `
+      <div class="syn-row">
+        <div class="syn-row-head">
+          <span class="syn-name">${escapeHtml(s.name)}</span>
+          <span class="syn-saved-flash" data-flash="${escapeHtml(s.name)}">${icon("check", { size: 14 })}保存済み</span>
+        </div>
+        <select data-syndicate="${escapeHtml(s.name)}">${rankOptions(s.name, current)}</select>
+        <div class="syn-highest">最高到達実績: <span class="val">${escapeHtml(highestLabel)}</span>（降格しても下がらない）</div>
+        <details class="syn-sacrifice">
+          <summary>${icon("chevron-down", { size: 12 })}ランクアップ生贄アイテムを見る</summary>
+          ${sacrificeTable(s, highest)}
+          ${current < 0 ? `<div class="syn-recovery">マイナス圏からNeutralへの回復生贄: ${escapeHtml(recoverySacrifice(s))}</div>` : ""}
+        </details>
+      </div>`;
+  }).join("");
+  el.querySelectorAll("[data-syndicate]").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const name = sel.dataset.syndicate;
+      const rank = Number(sel.value);
+      const res = await fetch(`/api/standing/${encodeURIComponent(name)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rank }),
+      });
+      const data = await res.json();
+      state.ranks = data.ranks || state.ranks;
+      state.highest = data.highestRankReached || state.highest;
+      render();
+      const flash = document.querySelector(`[data-flash="${CSS.escape(name)}"]`);
+      if (flash) {
+        flash.classList.add("show");
+        setTimeout(() => flash.classList.remove("show"), 1200);
+      }
+    });
+  });
+}
+
+function render() {
+  renderFaction("left-faction-list", "left");
+  renderFaction("right-faction-list", "right");
+}
+
+async function loadStanding() {
+  const res = await fetch("/api/standing");
+  const body = await res.json();
+  state.syndicates = body.syndicates || [];
+  state.ranks = (body.data && body.data.ranks) || {};
+  state.highest = (body.data && body.data.highestRankReached) || {};
+  render();
+}
+
+loadStanding();
+</script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/debug-grid.js"></script>
+</body>
+</html>

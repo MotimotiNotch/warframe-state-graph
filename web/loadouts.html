@@ -120,6 +120,15 @@
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
   .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
 
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+  }
+  .popover.hidden { display: none; }
+
   /* キーワード入力で絞り込める自前のコンボボックス（Chain Viewのフライアウトと同じ発想）。
      ネイティブdatalistは絞り込みの挙動がブラウザ依存で弱いため自前実装にした。 */
   .combobox { position: relative; }
@@ -211,7 +220,14 @@
     <a href="/">Chain View</a>
     <a href="/loadouts.html" class="current">Loadouts</a>
     <a href="/collections.html">Collections</a>
+    <a href="/standing.html">Standing</a>
     <span style="flex:1"></span>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <div class="popover hidden" id="help-popover">
+        <div class="empty">フレーム/武器ごとのMODコンフィグ（A/B/C）とビルドセットの管理ページ。⚠️ フレーム/武器名やビルド名など、未プレイのコンテンツ名が表示されることがあります。</div>
+      </div>
+    </div>
   </nav>
 
   <div class="panel">
@@ -266,6 +282,14 @@
 <script src="/minigraph.js"></script>
 <script>
 const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
+
+document.getElementById("help-toggle").innerHTML = icon("info");
+document.getElementById("help-toggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.getElementById("help-popover").classList.toggle("hidden");
+});
+document.getElementById("help-popover").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => document.getElementById("help-popover").classList.add("hidden"));
 
 document.getElementById("new-item-btn").innerHTML = iconLabel("plus", "新規登録");
 document.getElementById("new-item-btn").title = "新規登録";
@@ -371,6 +395,7 @@ function renderItems() {
           <input type="text" placeholder="MOD名を追加してEnter" data-add-mod="${item.id}" data-slot="${activeSlot}">
         </div>
         ${item.note ? `<div class="card-memo">${escapeHtml(item.note)}</div>` : ""}
+        ${item.type === "Frame" && item.helminthNote ? `<div class="card-memo">ヘルミンス移植: ${escapeHtml(item.helminthNote)}</div>` : ""}
       </div>`;
   }).join("");
 
@@ -413,7 +438,16 @@ function openItemMetaPrompt(itemId) {
     item.chainViewNodeId || ""
   );
   if (chainViewNodeId === null) return;
-  updateItem({ ...item, note: note.trim(), chainViewNodeId: chainViewNodeId.trim() || undefined });
+  let helminthNote = item.helminthNote || "";
+  if (item.type === "Frame") {
+    const input = window.prompt(
+      "ヘルミンス移植アビリティ（空欄で削除、例: Roar (Rhinoから移植)）",
+      item.helminthNote || ""
+    );
+    if (input === null) return;
+    helminthNote = input.trim();
+  }
+  updateItem({ ...item, note: note.trim(), chainViewNodeId: chainViewNodeId.trim() || undefined, helminthNote: helminthNote || undefined });
 }
 
 // ---------- Item追加モーダル ----------
@@ -657,5 +691,7 @@ loadChainViewGraph().then(loadAll);
 <script src="/booster.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/debug-grid.js"></script>
 </body>
 </html>

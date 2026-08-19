@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"warframe-state-graph/pkg/model"
+	"warframe-state-graph/pkg/questchain"
 	"warframe-state-graph/pkg/wfcd"
 )
 
@@ -23,6 +24,9 @@ const (
 	ParadigmInstant         Paradigm = "instant"          // ④即時完成品型（componentsが存在しない）
 	ParadigmFrameAssociated Paradigm = "frame-associated" // ⑤フレーム付随型（Exalted Weapon/Venari）
 	ParadigmBreeding        Paradigm = "breeding"         // ⑥DNA/繁殖型（Kubrow/Kavat等）
+	// ParadigmQuestChain はクエストのみで使う7つ目のパラダイム。装備の入手構造分類とは
+	// 別軸（前提クエストの連鎖）だが、既存のSuggestion型を再利用するためここに加えた。
+	ParadigmQuestChain Paradigm = "quest-chain"
 )
 
 // modularTypes は Misc.json の type フィールドがこれらの場合、③モジュール型と分類する。
@@ -179,8 +183,25 @@ type Suggestion struct {
 	RichLich  string    `json:"richLich,omitempty"`
 	Archetype Archetype `json:"archetype,omitempty"`
 
-	Root  *model.Node      `json:"root"`            // Build/Weapon/Frame本体ノード
+	Root  *model.Node      `json:"root"`            // Build/Weapon/Frame本体ノード、クエストの場合は起点クエスト本体
 	Parts []PartSuggestion `json:"parts,omitempty"` // ②パーツ複数型の場合のみ
+
+	// QuestChain はParadigmQuestChainの場合のみ設定される。前提クエスト→…→root の順で
+	// 並んだ全ノード（root自身も含む、重複なし）。各ノードのRequiresには前提クエストの
+	// ノードIDが設定済み（questchainパッケージのSlugと同じ命名規則）。
+	QuestChain []*model.Node `json:"questChain,omitempty"`
+
+	// SyndicateRank はこの武器がシンジケート武器（Vaykor/Secura/Rakta/Synoid/Telos/Sancti等）
+	// の場合のみ設定される、購入に必要なシンジケートランクのノード候補。root.Requiresには
+	// 自動セットせず（他のparts同様、ユーザーがimport時に候補を見て確定する設計、項目10の
+	// 「自動確定ではなく候補をサジェスト」方針を踏襲）、フロント側で提示のみ行う。
+	SyndicateRank *SyndicateRankSuggestion `json:"syndicateRank,omitempty"`
+}
+
+// SyndicateRankSuggestion はシンジケート武器のノード生成候補1件分。
+type SyndicateRankSuggestion struct {
+	Node     *model.Node `json:"node"`     // 例: id="red-veil-exalted", name="Red Veil - Exalted"
+	Standing int         `json:"standing"` // 購入コスト（そのランクへの到達に必要な累計standingではない点に注意）
 }
 
 // relicNamePattern は Drop.Location からレリック名部分だけを拾う（例:
@@ -198,7 +219,8 @@ func extractRelicName(location string) string {
 
 // BuildSuggestion は1アイテムからノード生成候補を組み立てる。activeRelicsが空/nilの場合は
 // Vault判定をfalse固定にする（レリックデータ取得に失敗しても他の提案は成立させるため）。
-func BuildSuggestion(item wfcd.Item, nodeType model.NodeType, activeRelics map[string]bool) *Suggestion {
+// syndicatesが空/nilの場合はシンジケートランク候補の提示をスキップする（同上のベストエフォート方針）。
+func BuildSuggestion(item wfcd.Item, nodeType model.NodeType, activeRelics map[string]bool, syndicates map[string][]wfcd.SyndicateEntry) *Suggestion {
 	paradigm := ClassifyParadigm(item)
 	richLich, _ := DetectRichLich(item.Name)
 
@@ -212,6 +234,16 @@ func BuildSuggestion(item wfcd.Item, nodeType model.NodeType, activeRelics map[s
 	sug := &Suggestion{Paradigm: paradigm, RichLich: richLich, Root: root}
 	if nodeType == model.TypeWeapon {
 		sug.Archetype = DetectArchetype(item)
+		if syndicates != nil {
+			if rank, ok := wfcd.FindSyndicateWeaponRank(syndicates, item.Name); ok {
+				rankNode := &model.Node{
+					ID:   Slug(rank.Syndicate) + "-" + Slug(rank.RankLabel),
+					Name: rank.Syndicate + " - " + rank.RankLabel,
+					Type: model.TypeSyndicate,
+				}
+				sug.SyndicateRank = &SyndicateRankSuggestion{Node: rankNode, Standing: rank.Standing}
+			}
+		}
 	}
 
 	if paradigm != ParadigmMultiPart {
@@ -238,4 +270,22 @@ func BuildSuggestion(item wfcd.Item, nodeType model.NodeType, activeRelics map[s
 		sug.Parts = append(sug.Parts, PartSuggestion{Node: partNode, RelicCandidates: candidates})
 	}
 	return sug
+}
+
+// BuildQuestSuggestion はクエスト名からquestchain.MainStoryChain（Wiki由来の静的テーブル、
+// questchainパッケージのコメント参照）を辿り、前提クエスト→…→questNameの順で並んだ
+// ノード一式を組み立てる。MainStoryChainに登録の無いクエスト名を渡した場合は、
+// そのクエスト単体（前提なし）のSuggestionを返す（サイドクエスト等は本表の対象外のため）。
+func BuildQuestSuggestion(questName string) *Suggestion {
+	chain := questchain.ResolveChain(questName)
+	nodes := make([]*model.Node, 0, len(chain))
+	for _, name := range chain {
+		n := &model.Node{ID: questchain.Slug(name), Name: name, Type: model.TypeQuest}
+		for _, pre := range questchain.Prerequisites(name) {
+			n.Requires = append(n.Requires, questchain.Slug(pre))
+		}
+		nodes = append(nodes, n)
+	}
+	root := nodes[len(nodes)-1] // ResolveChainは前提→本体の順で返すため、最後が起点クエスト。
+	return &Suggestion{Paradigm: ParadigmQuestChain, Root: root, QuestChain: nodes}
 }

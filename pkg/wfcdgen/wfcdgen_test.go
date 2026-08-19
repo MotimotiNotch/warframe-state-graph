@@ -142,7 +142,7 @@ func TestBuildSuggestion_MultiPart(t *testing.T) {
 	}
 	activeRelics := map[string]bool{"Meso B2": true} // Axi B1 は含めずVault済み扱いにする
 
-	sug := BuildSuggestion(item, model.TypeWeapon, activeRelics)
+	sug := BuildSuggestion(item, model.TypeWeapon, activeRelics, nil)
 
 	if sug.Paradigm != ParadigmMultiPart {
 		t.Fatalf("paradigm = %s, want multi-part", sug.Paradigm)
@@ -168,5 +168,39 @@ func TestBuildSuggestion_MultiPart(t *testing.T) {
 	receiver := sug.Parts[1]
 	if len(receiver.RelicCandidates) != 1 || receiver.RelicCandidates[0].Vaulted {
 		t.Errorf("receiver relic candidates = %+v, want Meso B2 vaulted=false", receiver.RelicCandidates)
+	}
+}
+
+func TestBuildSuggestion_SyndicateWeapon(t *testing.T) {
+	item := wfcd.Item{Name: "Vaykor Marelok"}
+	syndicates := map[string][]wfcd.SyndicateEntry{
+		"Steel Meridian": {
+			{Item: "Vaykor Marelok", Place: "Steel Meridian, General", Standing: 100000},
+		},
+	}
+
+	sug := BuildSuggestion(item, model.TypeWeapon, nil, syndicates)
+
+	if sug.SyndicateRank == nil {
+		t.Fatal("SyndicateRank = nil, want a suggestion")
+	}
+	if sug.SyndicateRank.Node.ID != "steel-meridian-general" {
+		t.Errorf("rank node id = %q", sug.SyndicateRank.Node.ID)
+	}
+	if sug.SyndicateRank.Node.Type != model.TypeSyndicate {
+		t.Errorf("rank node type = %q, want Syndicate", sug.SyndicateRank.Node.Type)
+	}
+	if sug.SyndicateRank.Standing != 100000 {
+		t.Errorf("standing = %d, want 100000", sug.SyndicateRank.Standing)
+	}
+}
+
+func TestBuildSuggestion_NonSyndicateWeaponHasNoRank(t *testing.T) {
+	item := wfcd.Item{Name: "Braton"}
+	sug := BuildSuggestion(item, model.TypeWeapon, nil, map[string][]wfcd.SyndicateEntry{
+		"Steel Meridian": {{Item: "Vaykor Marelok", Place: "Steel Meridian, General", Standing: 100000}},
+	})
+	if sug.SyndicateRank != nil {
+		t.Errorf("SyndicateRank = %+v, want nil for a non-syndicate weapon", sug.SyndicateRank)
 	}
 }
