@@ -59,6 +59,46 @@ type KuvaEntry struct {
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
 }
 
+// FrameEntry はフレーム1件の入手状況記録。全フレーム網羅の管理ではなく、気になるフレームだけ
+// 手動登録する（Riven/Kuvaと同じ登録制、2026-08-19設計）。
+type FrameEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"` // WFCD Warframes.jsonから選択
+
+	Owned bool `json:"owned"`
+
+	// RankedThirty は「ランク30済み」（このフレーム個体がランク30へ到達したかの二値）。
+	// アカウント全体のマスタリーランク(MR)とは別物——「マスタリー済み」という呼称は既存の
+	// MasteryTrack（Zaw/Kitgun/Amp等のGild状態、satisfiedとは独立の別概念）と紛らわしいため、
+	// 明示的に「ランク30済み」で統一する（2026-08-19、精査で発見・本人指定）。
+	RankedThirty bool `json:"rankedThirty"`
+
+	// HelminthFed は「このフレームをHelminthへ捧げた（消費した）」側の記録。
+	// 受け取る側（アビリティ移植先）の記録は別物で、Loadouts.Item.HelminthNote
+	// （Frameタイプのconfig非依存メモ）が担う（2026-08-19、Loadouts側の見落とし修正で追加）。
+	HelminthFed bool `json:"helminthFed"`
+
+	Note            string `json:"note,omitempty"`
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+}
+
+// DuviriData はデュビリ（The Duviri Paradox）の進捗。武器単位の登録制ではなく、
+// デュビリという場所そのものが主体——達成済み/インカーノン済みの2軸で持つ
+// （2026-08-19、当初「Kuvaと同じ武器登録制」→「自由記述メモのみ」と縮小したが、
+// 本人の訂正を受けてこの3点構成に確定した）。
+type DuviriData struct {
+	// Completed はデュビリ本編クリア相当の達成済みフラグ（定義は実装時確定の想定どおり、
+	// ここでは「デュビリのメインの目標を一通り終えた」という単一の二値に留める）。
+	Completed bool `json:"completed"`
+
+	// IncarnonCount はCircuit経由でIncarnon adapterを入手した数。
+	IncarnonCount int `json:"incarnonCount"`
+
+	// Note はインカーノン済みの武器名等の自由記述（星図/Steel Path進捗のような構造化はせず、
+	// Loadouts.Item.HelminthNoteと同じ軽量方針）。
+	Note string `json:"note,omitempty"`
+}
+
 // CurrentSchemaVersion is the on-disk shape version this build writes.
 // Files saved before this field existed decode SchemaVersion as 0, which
 // this package's FileStore treats as version 1 (no migration needed yet).
@@ -68,8 +108,15 @@ type Data struct {
 	SchemaVersion int                    `json:"schemaVersion"`
 	Rivens        map[string]*RivenEntry `json:"rivens"`
 	Kuva          map[string]*KuvaEntry  `json:"kuva"`
+	Frames        map[string]*FrameEntry `json:"frames"`
+	Duviri        DuviriData             `json:"duviri"`
 }
 
 func NewData() *Data {
-	return &Data{SchemaVersion: CurrentSchemaVersion, Rivens: make(map[string]*RivenEntry), Kuva: make(map[string]*KuvaEntry)}
+	return &Data{
+		SchemaVersion: CurrentSchemaVersion,
+		Rivens:        make(map[string]*RivenEntry),
+		Kuva:          make(map[string]*KuvaEntry),
+		Frames:        make(map[string]*FrameEntry),
+	}
 }

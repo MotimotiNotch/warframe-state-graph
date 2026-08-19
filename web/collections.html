@@ -227,6 +227,31 @@
     <div id="kuva-list"></div>
   </div>
 
+  <div class="panel" id="frame-panel">
+    <div class="panel-head">
+      <h2>フレーム入手状況</h2>
+      <button class="primary" id="frame-new-btn"></button>
+    </div>
+    <div id="frame-list"></div>
+  </div>
+
+  <div class="panel" id="duviri-panel">
+    <div class="panel-head"><h2>デュビリ</h2></div>
+    <div class="form-grid">
+      <div>
+        <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="duviri-completed-check" style="width:auto;">達成済み
+        </label>
+      </div>
+      <div>
+        <label class="field-label">インカーノン済み数</label>
+        <input type="text" inputmode="numeric" id="duviri-incarnon-input" style="width:100%;">
+      </div>
+    </div>
+    <label class="field-label">メモ（インカーノン済み武器名等）</label>
+    <textarea id="duviri-note-input" placeholder="任意"></textarea>
+  </div>
+
   <!-- Riven登録/編集モーダル -->
   <div id="riven-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
@@ -322,10 +347,51 @@
     </div>
   </div>
 
+  <!-- フレーム入手状況登録/編集モーダル -->
+  <div id="frame-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="frame-modal-title">フレーム 新規登録</h3>
+      <label class="field-label">フレーム名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="frame-name-input" placeholder="例: Ash Prime" autocomplete="off">
+        <div id="frame-name-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div class="form-grid" style="margin-top:8px;">
+        <div>
+          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="frame-owned-check" style="width:auto;">入手済み
+          </label>
+        </div>
+        <div>
+          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="frame-ranked30-check" style="width:auto;">ランク30済み
+          </label>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="frame-helminth-check" style="width:auto;">ヘルミンス済み（捧げた）
+          </label>
+        </div>
+        <div>
+          <label class="field-label">Chain View連携（任意）</label>
+          <select id="frame-chainview-select"></select>
+        </div>
+      </div>
+      <label class="field-label">メモ</label>
+      <textarea id="frame-note-input" placeholder="任意"></textarea>
+      <div class="actions">
+        <button id="frame-modal-cancel">キャンセル</button>
+        <button class="primary" id="frame-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
 <script>
-const state = { data: { rivens: {}, kuva: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], rivenStatChoices: [] };
+const state = { data: { rivens: {}, kuva: {}, frames: {}, duviri: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
 
 // wfcdgen.RivenStatChoices（pkg/wfcdgen/wfcdgen.go）と1:1対応する固定の英→日マッピング。
 // Rivenステータス用語はi18n.jsonの対象外（アプリ固定リスト）と判明したため、フルi18nパイプライン
@@ -357,7 +423,16 @@ async function loadAll() {
   state.data = await res.json();
   if (!state.data.rivens) state.data.rivens = {};
   if (!state.data.kuva) state.data.kuva = {};
+  if (!state.data.frames) state.data.frames = {};
+  if (!state.data.duviri) state.data.duviri = { completed: false, incarnonCount: 0, note: "" };
   render();
+}
+
+async function loadFrameNames() {
+  try {
+    const res = await fetch("/api/reference/frames");
+    state.frameNames = res.ok ? await res.json() : [];
+  } catch (e) { state.frameNames = []; }
 }
 
 async function loadChainViewNodes() {
@@ -408,6 +483,8 @@ function render() {
   renderFavorites();
   renderRivenList();
   renderKuvaGroupedList();
+  renderFrameList();
+  renderDuviri();
 }
 
 // ---------- popovers (help / multiselect) ----------
@@ -773,15 +850,17 @@ document.getElementById("kuva-form-save").addEventListener("click", () => {
   });
 });
 
-// キーワード絞り込みコンボボックス（Loadoutsと同じ発想の自前実装）。
-function setupWeaponCombobox(inputId, suggestId) {
+// キーワード絞り込みコンボボックス（Loadoutsと同じ発想の自前実装）。namesはWeaponだけでなく
+// Frame名リスト等でも再利用できるよう引数化（省略時はstate.weaponNames、既存呼び出しと後方互換）。
+function setupWeaponCombobox(inputId, suggestId, names) {
   const input = document.getElementById(inputId);
   const suggest = document.getElementById(suggestId);
   function hide() { suggest.classList.add("hidden"); }
   function update() {
     const q = input.value.trim().toLowerCase();
     if (!q) { hide(); return; }
-    const matches = state.weaponNames.filter(n => n.toLowerCase().includes(q)).slice(0, 30);
+    const pool = names || state.weaponNames;
+    const matches = pool.filter(n => n.toLowerCase().includes(q)).slice(0, 30);
     suggest.innerHTML = matches.length
       ? matches.map(n => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("")
       : `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
@@ -802,10 +881,117 @@ function setupWeaponCombobox(inputId, suggestId) {
 }
 setupWeaponCombobox("riven-weapon-input", "riven-weapon-suggest");
 
+// ---------- フレーム入手状況 ----------
+async function upsertFrame(entry) {
+  await fetch("/api/collections/frames", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
+  await loadAll();
+}
+async function deleteFrame(id) {
+  await fetch(`/api/collections/frames/${encodeURIComponent(id)}`, { method: "DELETE" });
+  await loadAll();
+}
+
+function renderFrameList() {
+  const el = document.getElementById("frame-list");
+  const entries = Object.values(state.data.frames).sort((a, b) => a.name.localeCompare(b.name));
+  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
+
+  el.innerHTML = entries.map(entry => `
+    <div class="card-v2" data-open-frame="${entry.id}">
+      <div class="card-head">
+        <div class="card-title">${escapeHtml(entry.name)}</div>
+        <div class="card-badges">
+          <span class="badge ${entry.owned ? "badge-owned" : "badge-notowned"}">${entry.owned ? "入手済み" : "未入手"}</span>
+          ${entry.rankedThirty ? `<span class="badge badge-fix">${icon("check")}ランク30済み</span>` : ""}
+          ${entry.helminthFed ? `<span class="badge badge-count">ヘルミンス済み</span>` : ""}
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn danger" data-del-frame="${entry.id}" title="削除">${icon("trash-2")}</button>
+        </div>
+      </div>
+      ${entry.chainViewNodeId ? `<div id="minigraph-frame-${entry.id}"></div>` : ""}
+      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo">${escapeHtml(entry.note)}</div>` : ""}
+    </div>
+  `).join("");
+
+  el.querySelectorAll("[data-open-frame]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("[data-del-frame]")) return;
+    openFrameModal(card.dataset.openFrame);
+  }));
+  el.querySelectorAll("[data-del-frame]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (confirm(`「${state.data.frames[btn.dataset.delFrame].name}」を削除する？`)) deleteFrame(btn.dataset.delFrame);
+  }));
+  entries.forEach(entry => {
+    if (!entry.chainViewNodeId) return;
+    const holder = document.getElementById(`minigraph-frame-${entry.id}`);
+    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
+  });
+}
+
+let frameEditingId = null;
+function openFrameModal(editId) {
+  frameEditingId = editId || null;
+  const entry = editId ? state.data.frames[editId] : null;
+  document.getElementById("frame-modal-title").textContent = entry ? "フレーム 編集" : "フレーム 新規登録";
+  document.getElementById("frame-name-input").value = entry ? entry.name : "";
+  document.getElementById("frame-owned-check").checked = entry ? !!entry.owned : false;
+  document.getElementById("frame-ranked30-check").checked = entry ? !!entry.rankedThirty : false;
+  document.getElementById("frame-helminth-check").checked = entry ? !!entry.helminthFed : false;
+  document.getElementById("frame-note-input").value = entry ? (entry.note || "") : "";
+  document.getElementById("frame-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : "");
+  document.getElementById("frame-modal-backdrop").classList.remove("hidden");
+}
+function closeFrameModal() { document.getElementById("frame-modal-backdrop").classList.add("hidden"); }
+document.getElementById("frame-new-btn").innerHTML = iconLabel("plus", "新規登録");
+document.getElementById("frame-new-btn").title = "新規登録";
+document.getElementById("frame-new-btn").addEventListener("click", () => openFrameModal(null));
+document.getElementById("frame-modal-cancel").addEventListener("click", closeFrameModal);
+document.getElementById("frame-modal-save").addEventListener("click", () => {
+  const name = document.getElementById("frame-name-input").value.trim();
+  if (!name) { alert("フレーム名を入力して"); return; }
+  const entry = {
+    id: frameEditingId || uid("frame"),
+    name,
+    owned: document.getElementById("frame-owned-check").checked,
+    rankedThirty: document.getElementById("frame-ranked30-check").checked,
+    helminthFed: document.getElementById("frame-helminth-check").checked,
+    note: document.getElementById("frame-note-input").value.trim(),
+    chainViewNodeId: document.getElementById("frame-chainview-select").value || undefined,
+  };
+  upsertFrame(entry);
+  closeFrameModal();
+});
+
+// ---------- デュビリ ----------
+// 武器単位の登録制ではなく、デュビリという場所そのものが主体（達成済み/インカーノン済み/メモの
+// 3点構成、2026-08-19再訂正）。専用モーダルは持たず、フィールド変更のたびに即保存する
+// （用語マッピングタブのblur保存と同じ発想）。
+function renderDuviri() {
+  const d = state.data.duviri || {};
+  document.getElementById("duviri-completed-check").checked = !!d.completed;
+  document.getElementById("duviri-incarnon-input").value = d.incarnonCount || 0;
+  document.getElementById("duviri-note-input").value = d.note || "";
+}
+async function saveDuviri() {
+  const duviri = {
+    completed: document.getElementById("duviri-completed-check").checked,
+    incarnonCount: Math.max(0, Number(document.getElementById("duviri-incarnon-input").value) || 0),
+    note: document.getElementById("duviri-note-input").value.trim(),
+  };
+  const res = await fetch("/api/collections/duviri", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(duviri) });
+  state.data.duviri = await res.json();
+}
+document.getElementById("duviri-completed-check").addEventListener("change", saveDuviri);
+document.getElementById("duviri-incarnon-input").addEventListener("blur", saveDuviri);
+document.getElementById("duviri-note-input").addEventListener("blur", saveDuviri);
+
 renderRivenPositivePopover();
 updateRivenPositiveBtnLabel();
-Promise.all([loadChainViewNodes(), loadWeaponNames(), loadRivenStatChoices()]).then(() => {
+Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRivenStatChoices()]).then(() => {
   renderRivenNegativeSelect();
+  setupWeaponCombobox("frame-name-input", "frame-name-suggest", state.frameNames);
   loadAll();
 });
 </script>

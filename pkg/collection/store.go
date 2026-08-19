@@ -39,6 +39,9 @@ func (s *FileStore) loadLocked() (*Data, error) {
 	if d.Kuva == nil {
 		d.Kuva = make(map[string]*KuvaEntry)
 	}
+	if d.Frames == nil {
+		d.Frames = make(map[string]*FrameEntry)
+	}
 	if d.SchemaVersion == 0 {
 		d.SchemaVersion = CurrentSchemaVersion
 	}
@@ -91,5 +94,38 @@ func (s *FileStore) DeleteKuva(id string) error {
 		return err
 	}
 	delete(d.Kuva, id)
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) UpsertFrame(entry *FrameEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	d.Frames[entry.ID] = entry
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) DeleteFrame(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	delete(d.Frames, id)
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) SetDuviri(duviri DuviriData) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	d.Duviri = duviri
 	return s.saveLocked(d)
 }

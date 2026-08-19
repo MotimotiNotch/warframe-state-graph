@@ -264,6 +264,44 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
+	mux.HandleFunc("POST /api/collections/frames", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.FrameEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertFrame(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/frames/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteFrame(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/collections/duviri", func(w http.ResponseWriter, r *http.Request) {
+		var duviri collection.DuviriData
+		if err := json.NewDecoder(r.Body).Decode(&duviri); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := cs.SetDuviri(duviri); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, duviri)
+	})
+
 	// Standing（6大シンジケートの現在ランク一覧、Chain View/Loadouts/Collectionsとは
 	// 独立した4つ目のページ）。ランクは -2〜5 の値そのものを保持する（下降もありうるため、
 	// requires連鎖トグルではなく直接更新方式。pkg/standingのパッケージコメント参照）。
