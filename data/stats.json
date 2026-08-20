@@ -18,5 +18,32 @@
     "Endurance": 0,
     "Opportunity": 0,
     "Riding": 0
-  }
+  },
+  "focusInvestment": {
+    "Madurai": "maxed",
+    "Naramon": "maxed",
+    "Unairu": "not_invested",
+    "Vazarin": "not_invested",
+    "Zenurik": "not_invested"
+  },
+  "focusActiveSchool": "Vazarin",
+  "railjackComponents": {
+    "Engines": {
+      "house": "",
+      "grade": ""
+    },
+    "Plating": {
+      "house": "",
+      "grade": ""
+    },
+    "Reactor": {
+      "house": "",
+      "grade": ""
+    },
+    "Shield Array": {
+      "house": "",
+      "grade": ""
+    }
+  },
+  "railjackPlexusNote": ""
 }

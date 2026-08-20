@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "nodes": {
     "apostasy-prologue": {
       "id": "apostasy-prologue",
@@ -298,6 +299,14 @@
       "contains": [],
       "note": "未所持だが前提なし、いつでも入手可能。"
     },
+    "natah": {
+      "id": "natah",
+      "name": "Natah",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
     "natah-quest": {
       "id": "natah-quest",
       "name": "Natah",
@@ -389,6 +398,16 @@
       "requires": [],
       "contains": [],
       "note": "現在Rank3。Standing周回でRank5到達を目指す。"
+    },
+    "rising-tide": {
+      "id": "rising-tide",
+      "name": "Rising Tide",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "the-war-within"
+      ],
+      "contains": []
     },
     "riven-stat-cc": {
       "id": "riven-stat-cc",
@@ -811,6 +830,26 @@
       ],
       "contains": [],
       "note": "Steel Path周回報酬。深さ検証用の3段目チェーン。"
+    },
+    "the-second-dream": {
+      "id": "the-second-dream",
+      "name": "The Second Dream",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "natah"
+      ],
+      "contains": []
+    },
+    "the-war-within": {
+      "id": "the-war-within",
+      "name": "The War Within",
+      "type": "Quest",
+      "satisfied": true,
+      "requires": [
+        "the-second-dream"
+      ],
+      "contains": []
     },
     "void-trader-visit": {
       "id": "void-trader-visit",

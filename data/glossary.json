@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "entries": {
+    "Ammo Maximum": {
+      "enKey": "Ammo Maximum",
+      "ja": "弾薬所持上限",
+      "category": "Riven"
+    },
+    "Cold Damage": {
+      "enKey": "Cold Damage",
+      "ja": "冷気ダメージ",
+      "category": "Riven"
+    },
+    "Combo Duration": {
+      "enKey": "Combo Duration",
+      "ja": "コンボ持続時間",
+      "category": "Riven"
+    },
+    "Corpus Damage": {
+      "enKey": "Corpus Damage",
+      "ja": "対コーパスダメージ",
+      "category": "Riven"
+    },
+    "Critical Chance": {
+      "enKey": "Critical Chance",
+      "ja": "クリティカル率",
+      "category": "Riven"
+    },
+    "Critical Damage": {
+      "enKey": "Critical Damage",
+      "ja": "クリティカルダメージ",
+      "category": "Riven"
+    },
+    "Electricity Damage": {
+      "enKey": "Electricity Damage",
+      "ja": "電気ダメージ",
+      "category": "Riven"
+    },
+    "Finisher Damage": {
+      "enKey": "Finisher Damage",
+      "ja": "追撃ダメージ",
+      "category": "Riven"
+    },
+    "Fire Rate / Attack Speed": {
+      "enKey": "Fire Rate / Attack Speed",
+      "ja": "発射速度 / 攻撃速度",
+      "category": "Riven"
+    },
+    "Grineer Damage": {
+      "enKey": "Grineer Damage",
+      "ja": "対グリニアダメージ",
+      "category": "Riven"
+    },
+    "Heat Damage": {
+      "enKey": "Heat Damage",
+      "ja": "火炎ダメージ",
+      "category": "Riven"
+    },
+    "Heavy Attack Efficiency": {
+      "enKey": "Heavy Attack Efficiency",
+      "ja": "ヘビー攻撃効率",
+      "category": "Riven"
+    },
+    "Impact Damage": {
+      "enKey": "Impact Damage",
+      "ja": "衝撃ダメージ",
+      "category": "Riven"
+    },
+    "Infestation Damage": {
+      "enKey": "Infestation Damage",
+      "ja": "対感染体ダメージ",
+      "category": "Riven"
+    },
+    "Magazine Capacity": {
+      "enKey": "Magazine Capacity",
+      "ja": "マガジンサイズ",
+      "category": "Riven"
+    },
+    "Multishot": {
+      "enKey": "Multishot",
+      "ja": "マルチショット",
+      "category": "Riven"
+    },
+    "Projectile Speed": {
+      "enKey": "Projectile Speed",
+      "ja": "弾速",
+      "category": "Riven"
+    },
+    "Punch Through": {
+      "enKey": "Punch Through",
+      "ja": "貫通距離",
+      "category": "Riven"
+    },
+    "Puncture Damage": {
+      "enKey": "Puncture Damage",
+      "ja": "貫通ダメージ",
+      "category": "Riven"
+    },
+    "Range": {
+      "enKey": "Range",
+      "ja": "範囲",
+      "category": "Riven"
+    },
+    "Recoil": {
+      "enKey": "Recoil",
+      "ja": "反動",
+      "category": "Riven"
+    },
+    "Reload Speed": {
+      "enKey": "Reload Speed",
+      "ja": "リロード速度",
+      "category": "Riven"
+    },
+    "Slash Damage": {
+      "enKey": "Slash Damage",
+      "ja": "切断ダメージ",
+      "category": "Riven"
+    },
+    "Slide Critical Chance": {
+      "enKey": "Slide Critical Chance",
+      "ja": "スライド攻撃のクリティカル率",
+      "category": "Riven"
+    },
+    "Status Chance": {
+      "enKey": "Status Chance",
+      "ja": "状態異常確率",
+      "category": "Riven"
+    },
+    "Status Duration": {
+      "enKey": "Status Duration",
+      "ja": "状態異常の持続時間",
+      "category": "Riven"
+    },
+    "Toxin Damage": {
+      "enKey": "Toxin Damage",
+      "ja": "毒ダメージ",
+      "category": "Riven"
+    },
+    "Weapon Damage / Melee Damage": {
+      "enKey": "Weapon Damage / Melee Damage",
+      "ja": "基礎ダメージ / 近接ダメージ",
+      "category": "Riven"
+    },
+    "Zoom": {
+      "enKey": "Zoom",
+      "ja": "ズーム",
+      "category": "Riven"
+    }
+  }
+}
