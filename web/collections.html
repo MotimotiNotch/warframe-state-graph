@@ -406,8 +406,12 @@
 const state = { data: { rivens: {}, kuva: {}, frames: {}, duviri: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
 
 // wfcdgen.RivenStatChoices（pkg/wfcdgen/wfcdgen.go）と1:1対応する固定の英→日マッピング。
-// Rivenステータス用語はi18n.jsonの対象外（アプリ固定リスト）と判明したため、フルi18nパイプライン
-// ではなくこの軽量な静的テーブルで足りる（2026-08-18 Collectionsページ詳細設計 項目2）。
+// pkg/glossary（`/api/glossary`、ヘッダー設定モーダル「用語」タブ・web/glossary.htmlで確認可能）
+// にほぼ同じ内容の28種が本人編集可能な形で存在するため、そちらを優先する（2026-08-20、
+// 「glossaryを書き直すと反映されるようにしてほしい」との要望を受け配線）。ただし対象範囲が
+// 完全一致しない（例: この12種にある"Damage"/"Fire Rate"はglossary側では"Weapon Damage /
+// Melee Damage"/"Fire Rate / Attack Speed"という複合キー名になっている）ため、glossaryに
+// 無いキーはこのハードコードへフォールバックし、既存の表示が消えないようにする。
 const RIVEN_STAT_JA = {
   "Critical Chance": "会心率",
   "Critical Damage": "会心ダメージ",
@@ -422,7 +426,17 @@ const RIVEN_STAT_JA = {
   "Magazine Capacity": "弾倉容量",
   "Recoil": "反動",
 };
-function ja(stat) { return RIVEN_STAT_JA[stat] || stat; }
+let glossaryMap = {};
+async function loadGlossary() {
+  try {
+    const res = await fetch("/api/glossary");
+    if (!res.ok) return;
+    const data = await res.json();
+    glossaryMap = {};
+    Object.values(data.entries || {}).forEach((e) => { glossaryMap[e.enKey] = e.ja; });
+  } catch (e) { /* 取得失敗時は従来のRIVEN_STAT_JAのみで動く */ }
+}
+function ja(stat) { return glossaryMap[stat] || RIVEN_STAT_JA[stat] || stat; }
 
 document.getElementById("riven-new-btn").innerHTML = iconLabel("plus", "新規登録");
 document.getElementById("riven-new-btn").title = "新規登録";
@@ -1057,10 +1071,12 @@ document.getElementById("duviri-note-input").addEventListener("blur", saveDuviri
 
 renderRivenPositivePopover();
 updateRivenPositiveBtnLabel();
-Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRivenStatChoices()]).then(() => {
+Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRivenStatChoices(), loadGlossary()]).then(() => {
   // loadRivenStatChoices()完了時点でstate.rivenStatChoicesが確定するため、空配列のまま
   // 描画済みだったポップオーバーをここで再描画する（2026-08-20発見・修正: 従来はこの
   // 再描画が漏れており、ポジ値チェックボックスが常に空のまま表示されていた既存バグ）。
+  // loadGlossary()もここで待ってから再描画することで、ポップオーバーのja()表示にも
+  // glossary側の最新の訳語が反映される。
   renderRivenPositivePopover();
   renderRivenNegativeSelect();
   setupWeaponCombobox("frame-name-input", "frame-name-suggest", state.frameNames);
@@ -1071,6 +1087,7 @@ Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRive
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
 <script src="/spoiler-warning.js"></script>
+<script src="/quest-progress-prompt.js"></script>
 <script src="/debug-grid.js"></script>
 </body>
 </html>
