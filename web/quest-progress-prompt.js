@@ -1,4 +1,4 @@
-// Focus School/Railjackセクション（Statsページ、未実装）はThe Second Dream/Rising Tideの
+// Focus School/Railjackセクション（Statsページ）はThe Second Dream/Rising Tideの
 // 達成状態と連動して自動的に折りたたみを解除する設計（02_Requirements_and_Roadmap.md項目23）。
 // この連動に気づけるよう、初回起動時に両クエストの達成状態をその場で登録できるモーダルを出す。
 // spoiler-warning.jsと違い「二度と出さない」localStorageフラグは使わず、**毎回実際のグラフの
@@ -50,8 +50,9 @@
       "justify-content:center;padding:16px;z-index:499;"; // spoiler-warning(500)の下、重なった場合も見える順で表示
     const box = document.createElement("div");
     box.style.cssText =
-      "background:var(--panel,#1b1e27);color:var(--text,#e4e6ec);border:1px solid var(--border,#2a2e3a);" +
-      "border-radius:16px;padding:18px 20px;max-width:440px;font-family:-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
+      // spoiler-warning.jsと同じ理由で不透明な--bgを使う（2026-08-20、のっち指摘）。
+      "background:var(--bg,#12141a);color:var(--text,#e4e6ec);border:1px solid var(--border,#2a2e3a);" +
+      "border-radius:16px;padding:18px 20px;max-width:520px;font-family:-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
       "font-size:0.85rem;line-height:1.6;box-shadow:0 12px 30px rgba(0,0,0,0.5);";
 
     const checkboxesHtml = targets.map((t, i) =>
@@ -62,8 +63,8 @@
 
     box.innerHTML =
       "<div style='font-weight:600;font-size:0.95rem;margin-bottom:8px;'>クエストの進行状況を登録</div>" +
-      "<div>近日追加予定のFocus School/Railjackセクションは、クリア済みのクエストに応じて" +
-      "ネタバレを避けた表示に自動調整されます。今のうちに登録しておくのがおすすめです。</div>" +
+      "<div>Statsページ下部には、これらのクエストの進行に応じて表示が自動調整されるセクションがあります。" +
+      "ネタバレ回避のため内容はここでは伏せていますが、今のうちに登録しておくのがおすすめです。</div>" +
       `<div>${checkboxesHtml}</div>` +
       "<div style='text-align:right;margin-top:10px;'>" +
       "<button id='quest-prompt-later' style='background:transparent;border:1px solid var(--border,#2a2e3a);" +

@@ -488,6 +488,86 @@ func main() {
 		writeJSON(w, d)
 	})
 
+	// Focus School: 5校の投資段階（3値集約）＋現在アクティブな校（2026-08-20、項目23）。
+	mux.HandleFunc("POST /api/stats/focus/{school}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Investment stats.FocusInvestment `json:"investment"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !stats.IsValidFocusInvestment(body.Investment) {
+			http.Error(w, "investment must be one of: not_invested, in_progress, maxed", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetFocusInvestment(r.PathValue("school"), body.Investment)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/stats/focus-active", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			School string `json:"school"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body.School != "" && !stats.IsValidRailjackValue(body.School, stats.FocusSchools) {
+			http.Error(w, "school must be a valid Focus School name, or empty to unset", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetFocusActiveSchool(body.School)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	// Railjack本体: 4部品の粗い現在装備（House×Grade）＋Plexus modの自由記述メモ（2026-08-20、項目23）。
+	mux.HandleFunc("POST /api/stats/railjack-component/{slot}", func(w http.ResponseWriter, r *http.Request) {
+		var body stats.RailjackComponent
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !stats.IsValidRailjackValue(body.House, stats.ValidRailjackHouses) {
+			http.Error(w, "house must be one of: (empty), Zetki, Lavan, Vidar", http.StatusBadRequest)
+			return
+		}
+		if !stats.IsValidRailjackValue(body.Grade, stats.ValidRailjackGrades) {
+			http.Error(w, "grade must be one of: (empty), Mk I, Mk II, Mk III", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetRailjackComponent(r.PathValue("slot"), body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/stats/railjack-plexus-note", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Note string `json:"note"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetRailjackPlexusNote(body.Note)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
 	// フレーム/武器名をWFCDの公開データから取得（初回のみfetch、以後はローカルキャッシュ）。
 	// loadouts.htmlの「アイテム追加」で自由入力の代わりに実データから選べるようにするため。
 	mux.HandleFunc("GET /api/reference/frames", func(w http.ResponseWriter, r *http.Request) {

@@ -49,3 +49,58 @@ func TestFileStore_SetIntrinsicsPersistsAndReloads(t *testing.T) {
 		t.Errorf("RailjackIntrinsics[Tactical] = %d, want 0 (untouched)", reloaded.RailjackIntrinsics["Tactical"])
 	}
 }
+
+func TestFileStore_SetFocusPersistsAndReloads(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "stats.json")
+	store := NewFileStore(path)
+
+	if _, err := store.SetFocusInvestment("Zenurik", FocusMaxed); err != nil {
+		t.Fatalf("SetFocusInvestment: %v", err)
+	}
+	if _, err := store.SetFocusActiveSchool("Zenurik"); err != nil {
+		t.Fatalf("SetFocusActiveSchool: %v", err)
+	}
+
+	reloaded, err := NewFileStore(path).Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if reloaded.FocusInvestment["Zenurik"] != FocusMaxed {
+		t.Errorf("FocusInvestment[Zenurik] = %q, want %q", reloaded.FocusInvestment["Zenurik"], FocusMaxed)
+	}
+	if reloaded.FocusActiveSchool != "Zenurik" {
+		t.Errorf("FocusActiveSchool = %q, want Zenurik", reloaded.FocusActiveSchool)
+	}
+	// Untouched schools should still be present at not_invested.
+	if reloaded.FocusInvestment["Madurai"] != FocusNotInvested {
+		t.Errorf("FocusInvestment[Madurai] = %q, want %q (untouched)", reloaded.FocusInvestment["Madurai"], FocusNotInvested)
+	}
+}
+
+func TestFileStore_SetRailjackComponentAndPlexusNotePersistsAndReloads(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "stats.json")
+	store := NewFileStore(path)
+
+	if _, err := store.SetRailjackComponent("Reactor", RailjackComponent{House: "Vidar", Grade: "Mk III"}); err != nil {
+		t.Fatalf("SetRailjackComponent: %v", err)
+	}
+	if _, err := store.SetRailjackPlexusNote("Battle 3x Tactical 1x"); err != nil {
+		t.Fatalf("SetRailjackPlexusNote: %v", err)
+	}
+
+	reloaded, err := NewFileStore(path).Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := reloaded.RailjackComponents["Reactor"]
+	if got == nil || got.House != "Vidar" || got.Grade != "Mk III" {
+		t.Errorf("RailjackComponents[Reactor] = %+v, want {House:Vidar Grade:Mk III}", got)
+	}
+	if reloaded.RailjackPlexusNote != "Battle 3x Tactical 1x" {
+		t.Errorf("RailjackPlexusNote = %q, want %q", reloaded.RailjackPlexusNote, "Battle 3x Tactical 1x")
+	}
+	// Untouched slots should still be present, unset.
+	if got := reloaded.RailjackComponents["Engines"]; got == nil || got.House != "" || got.Grade != "" {
+		t.Errorf("RailjackComponents[Engines] = %+v, want zero value (untouched)", got)
+	}
+}

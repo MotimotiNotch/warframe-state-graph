@@ -145,6 +145,36 @@
   .intrinsic-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
   .intrinsic-field input[type=range] { width: 100%; }
   .intrinsic-field .rank-value { font-size: 0.9rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; display: block; }
+
+  /* Focus School / Railjack: 前提クエストがThe Second Dream/Rising Tideという構造由来のネタバレ
+     （セクションの存在自体が展開を示唆してしまう）対策で、standing.htmlの「その他のシンジケート」と
+     同じ折りたたみ＋triangle-alertアイコン＋注意文パターンを流用する（2026-08-20）。 */
+  #focus-toggle, #railjack-toggle { cursor: pointer; user-select: none; }
+  #focus-toggle:hover, #railjack-toggle:hover { color: var(--accent); }
+  #focus-icon, #railjack-icon { display: inline-flex; color: var(--accent); }
+  #focus-chevron, #railjack-chevron { transition: transform 0.15s ease; }
+  #focus-chevron.expanded, #railjack-chevron.expanded { transform: rotate(180deg); }
+  .section-warning {
+    font-size: 0.78rem; color: var(--muted); margin: -4px 0 10px;
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  }
+  .collapsible-body.hidden { display: none; }
+
+  .focus-grid, .railjack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .focus-field, .railjack-field { border: 1px solid var(--accent); border-radius: 10px; padding: 8px 10px; }
+  .focus-field label, .railjack-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+  .focus-field select, .railjack-field select {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 6px; font-size: 0.82rem; font-family: inherit;
+  }
+  .focus-active-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.85rem; }
+  .focus-active-row select { background: var(--bg); color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px; font-family: inherit; }
+  .railjack-note-field { margin-top: 10px; }
+  .railjack-note-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+  .railjack-note-field textarea {
+    width: 100%; min-height: 60px; background: var(--bg); color: var(--text); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 6px 8px; font-family: inherit; font-size: 0.82rem; resize: vertical;
+  }
 </style>
 </head>
 <body>
@@ -159,7 +189,7 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計。下段の星図/Steel Path/Intrinsicsだけが数値を入力できる唯一の領域——惑星単位の粗い進捗（ノード個別トグルは持たない）とRailjack/Drifter Intrinsicsのランクを記録する。<br>⚠️ 惑星名などにネタバレを含むことがあります。</div>
+        <div class="empty">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計。下段の星図/Steel Path/Intrinsicsに加え、対応するクエストの進行に応じて内容を伏せている追加セクションが数値を入力できる領域——惑星単位の粗い進捗（ノード個別トグルは持たない）、Railjack/Drifter Intrinsicsのランクを記録する。<br>⚠️ 惑星名などにネタバレを含むことがあります。追加セクションは対応するクエストをクリア済みでない場合、内容を明かさないよう折りたたんだままにしています。</div>
       </div>
     </div>
   </nav>
@@ -199,6 +229,36 @@
     <div class="intrinsics-grid" id="railjack-intrinsics" style="margin-bottom:14px;"></div>
     <h3>Drifter</h3>
     <div class="intrinsics-grid" id="drifter-intrinsics"></div>
+  </div>
+
+  <div class="panel" id="focus-panel">
+    <div class="panel-head">
+      <h2 id="focus-toggle"><span id="focus-icon"></span><span id="focus-title">未解放セクション</span></h2>
+      <button class="icon-btn" id="focus-chevron" title="開閉"></button>
+    </div>
+    <div class="section-warning">前提クエスト（The Second Dream）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div id="focus-body" class="collapsible-body hidden">
+      <div class="focus-grid" id="focus-grid"></div>
+      <div class="focus-active-row">
+        <label for="focus-active-select">アクティブな校</label>
+        <select id="focus-active-select"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="railjack-panel">
+    <div class="panel-head">
+      <h2 id="railjack-toggle"><span id="railjack-icon"></span><span id="railjack-title">未解放セクション</span></h2>
+      <button class="icon-btn" id="railjack-chevron" title="開閉"></button>
+    </div>
+    <div class="section-warning">前提クエスト（Rising Tide）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div id="railjack-body" class="collapsible-body hidden">
+      <div class="railjack-grid" id="railjack-grid"></div>
+      <div class="railjack-note-field">
+        <label for="railjack-plexus-note">Plexus mod構成（メモ）</label>
+        <textarea id="railjack-plexus-note" placeholder="例: Battle 3枠 + Tactical 1枠"></textarea>
+      </div>
+    </div>
   </div>
 
 <script src="/icons.js"></script>
@@ -379,6 +439,129 @@ function renderIntrinsics() {
   renderIntrinsicsGroup("drifter-intrinsics", ["Combat", "Riding", "Opportunity", "Endurance"], state.statsData.drifterIntrinsics || {}, "/api/stats/drifter");
 }
 
+// ---------- Focus School（5校、3段階集約＋アクティブ校） ----------
+// 校名はUI上も英語表記のまま使う（本人指定、日本語化しない）。
+const FOCUS_SCHOOLS = ["Madurai", "Naramon", "Zenurik", "Vazarin", "Unairu"];
+const FOCUS_INVESTMENT_LABELS = { not_invested: "未投資", in_progress: "投資中", maxed: "フルマックス" };
+
+function renderFocusGrid() {
+  const el = document.getElementById("focus-grid");
+  el.innerHTML = FOCUS_SCHOOLS.map((school) => {
+    const current = (state.statsData.focusInvestment || {})[school] || "not_invested";
+    return `
+      <div class="focus-field">
+        <label>${escapeHtml(school)}</label>
+        <select data-focus-school="${escapeHtml(school)}">
+          ${Object.entries(FOCUS_INVESTMENT_LABELS).map(([val, label]) =>
+            `<option value="${val}" ${val === current ? "selected" : ""}>${label}</option>`).join("")}
+        </select>
+      </div>`;
+  }).join("");
+  el.querySelectorAll("[data-focus-school]").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      const res = await fetch(`/api/stats/focus/${encodeURIComponent(sel.dataset.focusSchool)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ investment: sel.value }),
+      });
+      state.statsData = await res.json();
+    });
+  });
+}
+
+function renderFocusActiveSelect() {
+  const el = document.getElementById("focus-active-select");
+  const current = state.statsData.focusActiveSchool || "";
+  el.innerHTML = `<option value="">未設定</option>` +
+    FOCUS_SCHOOLS.map((s) => `<option value="${escapeHtml(s)}" ${s === current ? "selected" : ""}>${escapeHtml(s)}</option>`).join("");
+  el.addEventListener("change", async () => {
+    const res = await fetch("/api/stats/focus-active", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ school: el.value }),
+    });
+    state.statsData = await res.json();
+  });
+}
+
+// ---------- Railjack本体（4部品×House/Grade＋Plexus modメモ） ----------
+const RAILJACK_SLOTS = ["Shield Array", "Engines", "Plating", "Reactor"];
+// wikiwiki.jp/warframe出典の対応表（2026-08-20、standing.htmlのSYNDICATE_JAと同じ直書きパターン）。
+const RAILJACK_PART_JA = { "Shield Array": "シールドアレイ", "Engines": "エンジン", "Plating": "プレーティング", "Reactor": "リアクター" };
+const RAILJACK_HOUSES = ["", "Zetki", "Lavan", "Vidar"];
+const RAILJACK_HOUSE_JA = { "Zetki": "ゼットキ", "Lavan": "ラバン", "Vidar": "ビダール" };
+const RAILJACK_GRADES = ["", "Mk I", "Mk II", "Mk III"];
+
+function renderRailjackGrid() {
+  const el = document.getElementById("railjack-grid");
+  el.innerHTML = RAILJACK_SLOTS.map((slot) => {
+    const current = (state.statsData.railjackComponents || {})[slot] || { house: "", grade: "" };
+    return `
+      <div class="railjack-field">
+        <label>${escapeHtml(slot)}（${escapeHtml(RAILJACK_PART_JA[slot] || slot)}）</label>
+        <select data-railjack-slot="${escapeHtml(slot)}" data-field="house">
+          ${RAILJACK_HOUSES.map((h) =>
+            `<option value="${h}" ${h === current.house ? "selected" : ""}>${h ? escapeHtml(RAILJACK_HOUSE_JA[h] || h) : "未設定"}</option>`).join("")}
+        </select>
+        <select data-railjack-slot="${escapeHtml(slot)}" data-field="grade" style="margin-top:4px;">
+          ${RAILJACK_GRADES.map((g) => `<option value="${g}" ${g === current.grade ? "selected" : ""}>${g || "未設定"}</option>`).join("")}
+        </select>
+      </div>`;
+  }).join("");
+  el.querySelectorAll("[data-railjack-slot]").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      const slot = sel.dataset.railjackSlot;
+      const houseSel = el.querySelector(`[data-railjack-slot="${CSS.escape(slot)}"][data-field="house"]`);
+      const gradeSel = el.querySelector(`[data-railjack-slot="${CSS.escape(slot)}"][data-field="grade"]`);
+      const res = await fetch(`/api/stats/railjack-component/${encodeURIComponent(slot)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ house: houseSel.value, grade: gradeSel.value }),
+      });
+      state.statsData = await res.json();
+    });
+  });
+}
+
+function renderRailjackNote() {
+  const ta = document.getElementById("railjack-plexus-note");
+  ta.value = state.statsData.railjackPlexusNote || "";
+  ta.addEventListener("blur", async () => {
+    const res = await fetch("/api/stats/railjack-plexus-note", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: ta.value }),
+    });
+    state.statsData = await res.json();
+  });
+}
+
+// ---------- Focus/Railjackパネルの折りたたみ制御 ----------
+// quest-progress-prompt.jsと同じslug変換規則をここでも複製し、graph.jsonの実データから
+// 前提クエストのsatisfiedを直接見る（サーバー側questchain.Slug()の再実装より確実）。
+function questSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+function isQuestSatisfied(name) {
+  const node = state.nodesById[questSlug(name)];
+  return !!(node && node.satisfied);
+}
+// revealedTitle（実際の機能名）は、対応するクエストをクリア済みの場合にだけh2へ出す。
+// 未クリアの間はプレースホルダー（「未解放セクション」）のまま——「この機能名はこのクエストで
+// 解放される」という組み合わせ自体が、折りたたみだけでは防げないネタバレになるため
+// （2026-08-20、のっち指摘を受けて修正）。
+function initCollapsiblePanel(prefix, questName, revealedTitle) {
+  const body = document.getElementById(`${prefix}-body`);
+  const chevron = document.getElementById(`${prefix}-chevron`);
+  const titleEl = document.getElementById(`${prefix}-title`);
+  document.getElementById(`${prefix}-icon`).innerHTML = icon("triangle-alert", { size: 15 });
+  chevron.innerHTML = icon("chevron-down");
+  if (isQuestSatisfied(questName)) {
+    titleEl.textContent = revealedTitle;
+    body.classList.remove("hidden");
+    chevron.classList.add("expanded");
+  }
+  function toggle() {
+    body.classList.toggle("hidden");
+    chevron.classList.toggle("expanded");
+  }
+  document.getElementById(`${prefix}-toggle`).addEventListener("click", toggle);
+  chevron.addEventListener("click", toggle);
+}
+
 // ---------- ロード ----------
 async function loadChainViewNodes() {
   try {
@@ -426,6 +609,12 @@ Promise.all([loadChainViewNodes(), loadLoadouts(), loadCollections(), loadStandi
   renderStandingAgg();
   renderStarchart();
   renderIntrinsics();
+  renderFocusGrid();
+  renderFocusActiveSelect();
+  renderRailjackGrid();
+  renderRailjackNote();
+  initCollapsiblePanel("focus", "The Second Dream", "Focus School");
+  initCollapsiblePanel("railjack", "Rising Tide", "Railjack");
 });
 </script>
 <script src="/wallpaper.js"></script>
