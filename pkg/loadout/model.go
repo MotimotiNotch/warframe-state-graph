@@ -3,8 +3,9 @@ package loadout
 type ItemType string
 
 const (
-	TypeFrame  ItemType = "Frame"
-	TypeWeapon ItemType = "Weapon"
+	TypeFrame     ItemType = "Frame"
+	TypeWeapon    ItemType = "Weapon"
+	TypeCompanion ItemType = "Companion"
 )
 
 type ConfigSlot string
@@ -15,10 +16,12 @@ const (
 	ConfigC ConfigSlot = "C"
 )
 
-// Item はMODを積む対象（フレームまたは武器）。Chain Viewのグラフ（graph.json）とは
+// Item はMODを積む対象（フレーム/武器/コンパニオン）。Chain Viewのグラフ（graph.json）とは
 // 独立したデータで、そちらの Weapon/Frame ノードと名前だけを緩く対応させる想定。
 // A/B/Cは実際のWarframeのMODコンフィグ機能に合わせた3枠。スロット位置・極性・ランクは
 // 持たず、MOD名のリストだけを保持する軽量版（意図的な割り切り）。
+// TypeCompanionは同時運用が1体のみで切り替え頻度も低いため、ConfigAのみを使う
+// 単一構成として扱う（B/Cはデータ構造上は存在するがUI側で隠す運用、2026-08-20設計）。
 type Item struct {
 	ID      string                  `json:"id"`
 	Name    string                  `json:"name"`

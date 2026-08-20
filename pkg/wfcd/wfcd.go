@@ -99,3 +99,29 @@ func FetchWeaponNames() ([]string, error) {
 	}
 	return names, nil
 }
+
+// FetchCompanionNames はコンパニオン本体の名前一覧。Pets.jsonはコンパニオン本体
+// （Type=="Pets"）だけでなくPet Parts/Pet Resource（交配素材等）も同居しているため
+// Typeで絞り込む（03_Data_Source_Research.md 2.10節、実データ検証で確認済み）。
+// MOA(Lambeo/Nychus/Oloro/Para)はPets.json側に含まれるが、Sentinel本体は別ファイル
+// (Sentinels.json、全件Type=="Sentinel")なので合算する。
+func FetchCompanionNames() ([]string, error) {
+	pets, err := FetchItemsFull(CategoryPets)
+	if err != nil {
+		return nil, err
+	}
+	sentinels, err := FetchItemsFull(CategorySentinels)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, it := range pets {
+		if it.Type == "Pets" {
+			names = append(names, it.Name)
+		}
+	}
+	for _, it := range sentinels {
+		names = append(names, it.Name)
+	}
+	return names, nil
+}

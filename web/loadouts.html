@@ -258,6 +258,7 @@
       <select id="new-item-type">
         <option value="Frame">Frame</option>
         <option value="Weapon">Weapon</option>
+        <option value="Companion">Companion</option>
       </select>
       <label class="field-label">名前（キーワードで絞り込み）</label>
       <div class="combobox">
@@ -371,9 +372,13 @@ function renderItems() {
   if (!items.length) { el.innerHTML = `<div class="empty">まだアイテムがありません</div>`; return; }
 
   el.innerHTML = items.map(item => {
-    const activeSlot = state.activeTab[item.id] || "A";
+    // Companionは同時運用1体のみで切り替え頻度も低いため単一構成のみ（常にConfig A、
+    // タブ自体を出さない）。データ構造(configs)はFrame/Weaponと共通のまま、UI側だけの割り切り
+    // （2026-08-20設計）。
+    const isCompanion = item.type === "Companion";
+    const activeSlot = isCompanion ? "A" : (state.activeTab[item.id] || "A");
     const mods = item.configs?.[activeSlot] || [];
-    const tabs = ["A", "B", "C"].map(slot =>
+    const tabs = isCompanion ? "" : ["A", "B", "C"].map(slot =>
       `<div class="tab ${slot === activeSlot ? "active" : ""}" data-item="${item.id}" data-slot="${slot}">Config ${slot}</div>`
     ).join("");
     const tags = mods.map((m, i) =>
@@ -626,16 +631,18 @@ function renderBuildSets() {
   });
 }
 
-const refData = { frames: [], weapons: [] };
+const refData = { frames: [], weapons: [], companions: [] };
 
 async function loadReferenceData() {
   try {
-    const [frames, weapons] = await Promise.all([
+    const [frames, weapons, companions] = await Promise.all([
       fetch("/api/reference/frames").then(r => r.json()),
       fetch("/api/reference/weapons").then(r => r.json()),
+      fetch("/api/reference/companions").then(r => r.json()),
     ]);
     refData.frames = frames;
     refData.weapons = weapons;
+    refData.companions = companions;
   } catch (e) {
     console.warn("WFCD参照データの取得に失敗（自由入力は引き続き可能）", e);
   }
@@ -649,7 +656,7 @@ function hideSuggest() { suggestEl.classList.add("hidden"); }
 
 function updateSuggest() {
   const type = document.getElementById("new-item-type").value;
-  const pool = type === "Frame" ? refData.frames : refData.weapons;
+  const pool = type === "Frame" ? refData.frames : type === "Companion" ? refData.companions : refData.weapons;
   const q = nameInput.value.trim().toLowerCase();
   if (!q) { hideSuggest(); return; }
 

@@ -508,6 +508,15 @@ func main() {
 		writeJSON(w, names)
 	})
 
+	mux.HandleFunc("GET /api/reference/companions", func(w http.ResponseWriter, r *http.Request) {
+		names, err := wfcd.CachedNames(wfcdCacheDir, "companions.json", wfcd.FetchCompanionNames)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+
 	// ノード新規作成・編集（現状data/graph.json直接編集だったマイルストーンの解消）。
 	mux.HandleFunc("POST /api/nodes", func(w http.ResponseWriter, r *http.Request) {
 		var n model.Node
