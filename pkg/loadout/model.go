@@ -28,20 +28,21 @@ type Item struct {
 	Type    ItemType                `json:"type"`
 	Configs map[ConfigSlot][]string `json:"configs"`
 
+	// Favorite は「今のメイン編成/優先度高い」という緩い主観マーカー（Collections.RivenEntry/
+	// KuvaEntryと同じ「お気に入り」パターン、2026-08-20追加）。Chain View達成状態やMODコンフィグの
+	// 完成度とは独立の別軸。
+	Favorite bool `json:"favorite,omitempty"`
+
 	// Note はカード上の自由記述メモ欄（2026-08-18 装備カード化設計、Riven/Kuva/BuildSetと
 	// 同じ「メモ欄の追加」対象範囲）。BuildSetは既にNoteを持っていたが、Itemには無かったため追加。
+	// ヘルミンス移植アビリティ・アルケイン構成のような使用頻度の低い付随情報は、専用フィールドを
+	// 個別に増やさずここに自由記述する（専用フィールドだったHelminthNoteは2026-08-20に統合・廃止）。
 	Note string `json:"note,omitempty"`
 
 	// ChainViewNodeID はChain View側ノードへの任意の緩い参照。カード上のミニ進捗グラフ表示用
 	// （2026-08-18 装備カード化 & Gitグラフ風ミニ進捗表示設計）。BuildSet.ChainViewBuildIDと同じ
 	// 「緩い参照」パターンだが、Itemは個別の武器/フレーム単位でも紐付けられるようにする。
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
-
-	// HelminthNote はHelminthで移植したアビリティの自由記述メモ（例: "Roar (Rhinoから移植)"）。
-	// 全config共通でフレーム個体そのものに効くためConfig単位ではなくItem本体に持たせる。
-	// TypeFrame限定（TypeWeaponでは未使用/非表示）。Collections側の「ヘルミンス済み」
-	// （捧げる側の記録）とは別に、受け取る側の記録として追加（2026-08-19設計）。
-	HelminthNote string `json:"helminthNote,omitempty"`
 }
 
 // ItemRef はBuildSetがフレーム/武器のどのコンフィグ（A/B/C）を使うかを指す参照。

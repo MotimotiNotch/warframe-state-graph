@@ -156,6 +156,10 @@
   .card-row { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }
   .card-row b { color: var(--text); font-weight: 500; }
   .card-memo { font-size: 0.78rem; color: var(--muted); margin-top: 4px; font-style: italic; }
+  .card-memo .note-md-list { list-style: none; margin: 2px 0; padding: 0; font-style: normal; }
+  .card-memo .note-md-check { padding: 1px 0; }
+  .card-memo .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .card-memo .note-md-check input[type="checkbox"] { cursor: pointer; }
 
   .badge { display: inline-flex; align-items: center; gap: 3px; border-radius: 8px; padding: 1px 8px; font-size: 0.72rem; border: 1px solid; white-space: nowrap; }
   .badge-fix { background: #4fd88a22; color: var(--actionable); border-color: var(--actionable); }
@@ -391,6 +395,7 @@
 
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
+<script src="/notemd.js"></script>
 <script>
 const state = { data: { rivens: {}, kuva: {}, frames: {}, duviri: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
 
@@ -657,9 +662,15 @@ function renderRivenList() {
       ${(entry.positiveStats || []).length ? `<div class="card-row"><b>ポジ値:</b> ${entry.positiveStats.map(ja).join(", ")}</div>` : ""}
       ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${ja(entry.negativeStat)}</div>` : ""}
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
-      ${entry.note ? `<div class="card-memo">${escapeHtml(entry.note)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
   `).join("");
+
+  entries.forEach(entry => {
+    if (!entry.note) return;
+    const holder = document.getElementById(`notemd-riven-${entry.id}`);
+    if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertRiven({ ...entry, note: newNote }));
+  });
 
   el.querySelectorAll("[data-open-riven]").forEach(card => card.addEventListener("click", (e) => {
     if (e.target.closest("[data-toggle-fav]") || e.target.closest("[data-del-riven]")) return;
@@ -783,7 +794,7 @@ function renderKuvaModal() {
       ${entry.chainViewNodeId ? `<div id="minigraph-kuva-${entry.id}"></div>` : ""}
       ${entry.bonusStat ? `<div class="card-row"><b>ボーナス属性:</b> ${escapeHtml(entry.bonusStat)}</div>` : ""}
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
-      ${entry.note ? `<div class="card-memo">${escapeHtml(entry.note)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo" id="notemd-kuva-${entry.id}"></div>` : ""}
     </div>
   `).join("") || (isNewWeapon ? "" : `<div class="empty" style="margin-bottom:8px;">まだこの武器は登録されていません</div>`);
 
@@ -804,6 +815,11 @@ function renderKuvaModal() {
     if (!entry.chainViewNodeId) return;
     const holder = document.getElementById(`minigraph-kuva-${entry.id}`);
     if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
+  });
+  entries.forEach(entry => {
+    if (!entry.note) return;
+    const holder = document.getElementById(`notemd-kuva-${entry.id}`);
+    if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertKuva({ ...entry, note: newNote }));
   });
 
   document.getElementById("kuva-chainview-select").innerHTML = chainViewOptions(editingId && state.data.kuva[editingId] ? state.data.kuva[editingId].chainViewNodeId : "");
@@ -912,9 +928,15 @@ function renderFrameList() {
       </div>
       ${entry.chainViewNodeId ? `<div id="minigraph-frame-${entry.id}"></div>` : ""}
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
-      ${entry.note ? `<div class="card-memo">${escapeHtml(entry.note)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo" id="notemd-frame-${entry.id}"></div>` : ""}
     </div>
   `).join("");
+
+  entries.forEach(entry => {
+    if (!entry.note) return;
+    const holder = document.getElementById(`notemd-frame-${entry.id}`);
+    if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertFrame({ ...entry, note: newNote }));
+  });
 
   el.querySelectorAll("[data-open-frame]").forEach(card => card.addEventListener("click", (e) => {
     if (e.target.closest("[data-del-frame]")) return;

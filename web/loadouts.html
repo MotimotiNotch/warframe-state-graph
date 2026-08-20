@@ -158,10 +158,19 @@
     padding: 10px 12px;
     margin-bottom: 10px;
   }
-  .item-head, .buildset-head { display: flex; align-items: center; justify-content: space-between; }
+  .item-head, .buildset-head { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .item-head-left { display: flex; align-items: center; }
   .item-name, .buildset-name { font-weight: 600; }
+  .star-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 0; color: var(--muted); }
+  .star-btn.favorite { color: var(--accent); }
+  .star-btn svg { display: block; }
+  .star-btn.favorite svg { fill: var(--accent); }
   .item-type { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
   .card-memo { font-size: 0.78rem; color: var(--muted); margin-top: 6px; font-style: italic; }
+  .card-memo .note-md-list { list-style: none; margin: 2px 0; padding: 0; font-style: normal; }
+  .card-memo .note-md-check { padding: 1px 0; }
+  .card-memo .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .card-memo .note-md-check input[type="checkbox"] { cursor: pointer; }
 
   .tabs { display: flex; gap: 6px; margin: 8px 0; }
   .tab {
@@ -282,6 +291,7 @@
 
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
+<script src="/notemd.js"></script>
 <script>
 const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
 
@@ -366,6 +376,15 @@ function render() {
   renderBuildSets();
 }
 
+// Collections（Riven/Kuva）と同じ「お気に入り」星ボタン（2026-08-20、Itemにも追加）。
+function starBtn(favorite, dataAttrs) {
+  return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? "お気に入り解除" : "お気に入りにする"}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
+}
+function toggleItemFavorite(id) {
+  const item = state.data.items[id];
+  updateItem({ ...item, favorite: !item.favorite });
+}
+
 function renderItems() {
   const el = document.getElementById("items-list");
   const items = Object.values(state.data.items).sort((a, b) => a.name.localeCompare(b.name));
@@ -388,7 +407,10 @@ function renderItems() {
     return `
       <div class="item-card">
         <div class="item-head">
-          <div><span class="item-name">${escapeHtml(item.name)}</span><span class="item-type">${item.type}</span></div>
+          <div class="item-head-left">
+            ${starBtn(item.favorite, `data-toggle-item-fav="${item.id}"`)}
+            <span class="item-name">${escapeHtml(item.name)}</span><span class="item-type">${item.type}</span>
+          </div>
           <div class="inline-form">
             <button class="icon-btn" data-edit-item-meta="${item.id}" title="連携・メモを編集">${icon("pencil")}</button>
             <button class="icon-btn danger" data-del-item="${item.id}" title="削除">${icon("trash-2")}</button>
@@ -400,8 +422,7 @@ function renderItems() {
         <div class="inline-form">
           <input type="text" placeholder="MOD名を追加してEnter" data-add-mod="${item.id}" data-slot="${activeSlot}">
         </div>
-        ${item.note ? `<div class="card-memo">${escapeHtml(item.note)}</div>` : ""}
-        ${item.type === "Frame" && item.helminthNote ? `<div class="card-memo">ヘルミンス移植: ${escapeHtml(item.helminthNote)}</div>` : ""}
+        ${item.note ? `<div class="card-memo" id="notemd-item-${item.id}"></div>` : ""}
       </div>`;
   }).join("");
 
@@ -421,6 +442,7 @@ function renderItems() {
     const mods = [...(item.configs[inp.dataset.slot] || []), inp.value.trim()];
     setConfig(inp.dataset.item, inp.dataset.slot, mods);
   }));
+  el.querySelectorAll("[data-toggle-item-fav]").forEach(btn => btn.addEventListener("click", () => toggleItemFavorite(btn.dataset.toggleItemFav)));
   el.querySelectorAll("[data-del-item]").forEach(btn => btn.addEventListener("click", () => {
     if (confirm(`「${state.data.items[btn.dataset.delItem].name}」を削除する？`)) deleteItem(btn.dataset.delItem);
   }));
@@ -430,6 +452,11 @@ function renderItems() {
     if (!item.chainViewNodeId) return;
     const holder = document.getElementById(`minigraph-item-${item.id}`);
     if (holder) renderMiniGraph(holder, item.chainViewNodeId, state.nodesById);
+  });
+  items.forEach(item => {
+    if (!item.note) return;
+    const holder = document.getElementById(`notemd-item-${item.id}`);
+    if (holder) renderNoteMd(holder, item.note, (newNote) => updateItem({ ...item, note: newNote }));
   });
 }
 
@@ -444,16 +471,7 @@ function openItemMetaPrompt(itemId) {
     item.chainViewNodeId || ""
   );
   if (chainViewNodeId === null) return;
-  let helminthNote = item.helminthNote || "";
-  if (item.type === "Frame") {
-    const input = window.prompt(
-      "ヘルミンス移植アビリティ（空欄で削除、例: Roar (Rhinoから移植)）",
-      item.helminthNote || ""
-    );
-    if (input === null) return;
-    helminthNote = input.trim();
-  }
-  updateItem({ ...item, note: note.trim(), chainViewNodeId: chainViewNodeId.trim() || undefined, helminthNote: helminthNote || undefined });
+  updateItem({ ...item, note: note.trim(), chainViewNodeId: chainViewNodeId.trim() || undefined });
 }
 
 // ---------- Item追加モーダル ----------
@@ -601,7 +619,7 @@ function renderBuildSets() {
       <div class="buildset-row"><b>Frame:</b> ${set.frame ? itemLabel(set.frame.itemId, set.frame.config) : "（未設定）"}</div>
       ${(set.weapons || []).map(w => `<div class="buildset-row"><b>Weapon:</b> ${itemLabel(w.itemId, w.config)}</div>`).join("") || `<div class="buildset-row">武器なし</div>`}
       ${linkedBuild ? `<div class="buildset-row" data-progress-for="${set.chainViewBuildId}"><b>Chain View:</b> ${escapeHtml(linkedBuild.name)} — <span class="progress-text">読み込み中…</span></div>` : ""}
-      ${set.note ? `<div class="card-memo">${escapeHtml(set.note)}</div>` : ""}
+      ${set.note ? `<div class="card-memo" id="notemd-buildset-${set.id}"></div>` : ""}
     </div>
   `;
   }).join("");
@@ -628,6 +646,11 @@ function renderBuildSets() {
     if (!set.chainViewBuildId) return;
     const holder = document.getElementById(`minigraph-buildset-${set.id}`);
     if (holder) renderMiniGraph(holder, set.chainViewBuildId, state.nodesById);
+  });
+  sets.forEach(set => {
+    if (!set.note) return;
+    const holder = document.getElementById(`notemd-buildset-${set.id}`);
+    if (holder) renderNoteMd(holder, set.note, (newNote) => saveBuildSet({ ...set, note: newNote }));
   });
 }
 

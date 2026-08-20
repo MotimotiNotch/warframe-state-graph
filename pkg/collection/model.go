@@ -74,8 +74,8 @@ type FrameEntry struct {
 	RankedThirty bool `json:"rankedThirty"`
 
 	// HelminthFed は「このフレームをHelminthへ捧げた（消費した）」側の記録。
-	// 受け取る側（アビリティ移植先）の記録は別物で、Loadouts.Item.HelminthNote
-	// （Frameタイプのconfig非依存メモ）が担う（2026-08-19、Loadouts側の見落とし修正で追加）。
+	// 受け取る側（アビリティ移植先）の記録は別物で、Loadouts.Item.Note（自由記述、
+	// 2026-08-20にHelminthNote専用フィールドから統合）が担う。
 	HelminthFed bool `json:"helminthFed"`
 
 	Note            string `json:"note,omitempty"`
@@ -95,7 +95,7 @@ type DuviriData struct {
 	IncarnonCount int `json:"incarnonCount"`
 
 	// Note はインカーノン済みの武器名等の自由記述（星図/Steel Path進捗のような構造化はせず、
-	// Loadouts.Item.HelminthNoteと同じ軽量方針）。
+	// Loadouts.Item.Noteと同じ軽量方針）。
 	Note string `json:"note,omitempty"`
 }
 
