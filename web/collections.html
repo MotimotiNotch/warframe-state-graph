@@ -84,6 +84,7 @@
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
   .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
   .icon-btn.on { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.copied { border-color: var(--actionable); color: var(--actionable); }
 
   .star-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 0; color: var(--muted); }
   .star-btn.favorite { color: var(--accent); }
@@ -271,7 +272,10 @@
         </div>
         <div>
           <label class="field-label">ネガ値ステータス（任意）</label>
-          <select id="riven-negative-select"></select>
+          <div class="inline-form">
+            <select id="riven-negative-select" style="flex:1;"></select>
+            <input type="text" inputmode="decimal" id="riven-negative-value" placeholder="数値%" style="width:80px;">
+          </div>
         </div>
       </div>
       <label class="field-label">ポジ値ステータス（複数選択可）</label>
@@ -279,6 +283,7 @@
         <button class="multiselect-btn" id="riven-positive-btn" type="button"></button>
         <div class="popover hidden multiselect-popover" id="riven-positive-popover"></div>
       </div>
+      <div id="riven-positive-values" style="margin-bottom:8px;"></div>
       <div class="form-grid">
         <div>
           <label class="field-label">Chain View連携（任意）</label>
@@ -396,6 +401,7 @@
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
 <script src="/notemd.js"></script>
+<script src="/export.js"></script>
 <script>
 const state = { data: { rivens: {}, kuva: {}, frames: {}, duviri: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
 
@@ -554,6 +560,7 @@ function renderRivenPositivePopover() {
   pop.querySelectorAll("[data-riven-positive]").forEach(cb => cb.addEventListener("change", () => {
     updateRivenPositiveBtnLabel();
     updateRivenLiveCheck();
+    renderRivenPositiveValues();
   }));
 }
 function selectedRivenPositiveStats() {
@@ -565,6 +572,27 @@ function updateRivenPositiveBtnLabel() {
     `<span>ポジ値: ${n ? `${n}件選択` : "未選択"}</span>${icon("chevron-down")}`;
 }
 setupPopoverToggle("riven-positive-btn", "riven-positive-popover");
+
+// 選択中のポジ値ごとの数値入力欄。チェックボックスの選択状態が変わるたびに再描画されるため、
+// 入力中の値をrivenPositiveValueDraftに保持して消えないようにする（保存/モーダルオープン時にクリア）。
+let rivenPositiveValueDraft = {};
+function renderRivenPositiveValues() {
+  const stats = selectedRivenPositiveStats();
+  const el = document.getElementById("riven-positive-values");
+  if (!stats.length) { el.innerHTML = ""; return; }
+  el.innerHTML = stats.map(s => `
+    <div class="inline-form" style="margin-bottom:4px;">
+      <span style="flex:1;">${ja(s)}</span>
+      <input type="text" inputmode="decimal" data-riven-value="${escapeHtml(s)}" placeholder="数値%" style="width:80px;" value="${escapeHtml(rivenPositiveValueDraft[s] ?? "")}">
+    </div>
+  `).join("");
+  el.querySelectorAll("[data-riven-value]").forEach(inp => inp.addEventListener("input", () => {
+    rivenPositiveValueDraft[inp.dataset.rivenValue] = inp.value;
+  }));
+}
+function selectedRivenPositiveValues() {
+  return selectedRivenPositiveStats().map((s) => parseFloat(rivenPositiveValueDraft[s]) || 0);
+}
 
 function renderRivenNegativeSelect() {
   document.getElementById("riven-negative-select").innerHTML =
@@ -601,6 +629,7 @@ function openRivenModal(editId) {
   document.getElementById("riven-modal-title").textContent = entry ? "Riven 編集" : "Riven 新規登録";
   document.getElementById("riven-weapon-input").value = entry ? entry.weaponName : "";
   document.getElementById("riven-negative-select").value = entry ? (entry.negativeStat || "") : "";
+  document.getElementById("riven-negative-value").value = entry && entry.negativeValue ? entry.negativeValue : "";
   document.getElementById("riven-favorite-check").checked = entry ? !!entry.favorite : false;
   document.getElementById("riven-note-input").value = entry ? (entry.note || "") : "";
   document.getElementById("riven-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : "");
@@ -608,6 +637,14 @@ function openRivenModal(editId) {
     cb.checked = entry ? (entry.positiveStats || []).includes(cb.value) : false;
   });
   updateRivenPositiveBtnLabel();
+  rivenPositiveValueDraft = {};
+  if (entry) {
+    (entry.positiveStats || []).forEach((s, i) => {
+      const v = (entry.positiveValues || [])[i];
+      if (v) rivenPositiveValueDraft[s] = String(v);
+    });
+  }
+  renderRivenPositiveValues();
   document.getElementById("riven-live-check").innerHTML = "";
   if (entry) updateRivenLiveCheck();
   document.getElementById("riven-modal-backdrop").classList.remove("hidden");
@@ -622,7 +659,9 @@ document.getElementById("riven-modal-save").addEventListener("click", () => {
     id: rivenEditingId || uid("riven"),
     weaponName,
     positiveStats: selectedRivenPositiveStats(),
+    positiveValues: selectedRivenPositiveValues(),
     negativeStat: document.getElementById("riven-negative-select").value,
+    negativeValue: parseFloat(document.getElementById("riven-negative-value").value) || 0,
     fixed: rivenEditingId ? state.data.rivens[rivenEditingId].fixed : false,
     favorite: document.getElementById("riven-favorite-check").checked,
     note: document.getElementById("riven-note-input").value.trim(),
@@ -655,12 +694,13 @@ function renderRivenList() {
           <span class="badge ${entry.fixed ? "badge-fix" : "badge-unfixed"}">${entry.fixed ? icon("check") + "FIX" : "要リロール"}</span>
         </div>
         <div class="card-actions">
+          <button class="icon-btn" data-copy-riven="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-riven="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
       </div>
       ${entry.chainViewNodeId ? `<div id="minigraph-riven-${entry.id}"></div>` : ""}
-      ${(entry.positiveStats || []).length ? `<div class="card-row"><b>ポジ値:</b> ${entry.positiveStats.map(ja).join(", ")}</div>` : ""}
-      ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${ja(entry.negativeStat)}</div>` : ""}
+      ${(entry.positiveStats || []).length ? `<div class="card-row"><b>ポジ値:</b> ${entry.positiveStats.map((s, i) => formatRivenStat(s, (entry.positiveValues || [])[i], ja)).join(", ")}</div>` : ""}
+      ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${formatRivenStat(entry.negativeStat, entry.negativeValue, ja)}</div>` : ""}
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
@@ -671,6 +711,7 @@ function renderRivenList() {
     const holder = document.getElementById(`notemd-riven-${entry.id}`);
     if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertRiven({ ...entry, note: newNote }));
   });
+  wireCopyButtons(el, "[data-copy-riven]", (btn) => buildRivenExportText(state.data.rivens[btn.dataset.copyRiven], ja));
 
   el.querySelectorAll("[data-open-riven]").forEach(card => card.addEventListener("click", (e) => {
     if (e.target.closest("[data-toggle-fav]") || e.target.closest("[data-del-riven]")) return;
@@ -788,6 +829,7 @@ function renderKuvaModal() {
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
         <span class="badge ${entry.owned ? "badge-owned" : "badge-notowned"}">${entry.owned ? "所持済み" : "未所持"}</span>
         <span style="flex:1"></span>
+        <button class="icon-btn" data-copy-kuva="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
         <button class="icon-btn" data-edit-kuva="${entry.id}" title="編集">${icon("pencil")}</button>
         <button class="icon-btn danger" data-del-kuva="${entry.id}" title="削除">${icon("trash-2")}</button>
       </div>
@@ -821,6 +863,7 @@ function renderKuvaModal() {
     const holder = document.getElementById(`notemd-kuva-${entry.id}`);
     if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertKuva({ ...entry, note: newNote }));
   });
+  wireCopyButtons(entriesEl, "[data-copy-kuva]", (btn) => buildKuvaExportText(state.data.kuva[btn.dataset.copyKuva]));
 
   document.getElementById("kuva-chainview-select").innerHTML = chainViewOptions(editingId && state.data.kuva[editingId] ? state.data.kuva[editingId].chainViewNodeId : "");
 
@@ -923,6 +966,7 @@ function renderFrameList() {
           ${entry.helminthFed ? `<span class="badge badge-count">ヘルミンス済み</span>` : ""}
         </div>
         <div class="card-actions">
+          <button class="icon-btn" data-copy-frame="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-frame="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
       </div>
@@ -937,6 +981,7 @@ function renderFrameList() {
     const holder = document.getElementById(`notemd-frame-${entry.id}`);
     if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertFrame({ ...entry, note: newNote }));
   });
+  wireCopyButtons(el, "[data-copy-frame]", (btn) => buildFrameEntryExportText(state.data.frames[btn.dataset.copyFrame]));
 
   el.querySelectorAll("[data-open-frame]").forEach(card => card.addEventListener("click", (e) => {
     if (e.target.closest("[data-del-frame]")) return;
@@ -1013,6 +1058,10 @@ document.getElementById("duviri-note-input").addEventListener("blur", saveDuviri
 renderRivenPositivePopover();
 updateRivenPositiveBtnLabel();
 Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRivenStatChoices()]).then(() => {
+  // loadRivenStatChoices()完了時点でstate.rivenStatChoicesが確定するため、空配列のまま
+  // 描画済みだったポップオーバーをここで再描画する（2026-08-20発見・修正: 従来はこの
+  // 再描画が漏れており、ポジ値チェックボックスが常に空のまま表示されていた既存バグ）。
+  renderRivenPositivePopover();
   renderRivenNegativeSelect();
   setupWeaponCombobox("frame-name-input", "frame-name-suggest", state.frameNames);
   loadAll();

@@ -11,7 +11,16 @@ type RivenEntry struct {
 	ID            string   `json:"id"`
 	WeaponName    string   `json:"weaponName"`
 	PositiveStats []string `json:"positiveStats"`
-	NegativeStat  string   `json:"negativeStat,omitempty"`
+
+	// PositiveValues はPositiveStatsと同じインデックスで対応する、実際にロールされた数値
+	// （%表記の数値をそのまま入れる想定、例: 150.5）。理論値レンジ計算（可能な最大/最小値の
+	// 算出）はスコープ外のまま——これは「今の1本にどの数値が出たか」を記録するだけの軽量な
+	// 追加項目（2026-08-20、カードのテキストエクスポートに数値も出したいという要望から追加）。
+	PositiveValues []float64 `json:"positiveValues,omitempty"`
+
+	NegativeStat string `json:"negativeStat,omitempty"`
+	// NegativeValue はNegativeStatに対応する数値。NegativeStatが空なら無視される。
+	NegativeValue float64 `json:"negativeValue,omitempty"`
 
 	// Fixed は「完成した・もう回さなくていい」を示す。falseは「まだ回す必要がある」
 	// （中間状態を持たないシンプルな二値、本人の明示的な要望どおり）。

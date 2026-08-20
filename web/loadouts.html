@@ -119,6 +119,7 @@
   }
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
   .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .icon-btn.copied { border-color: var(--actionable); color: var(--actionable); }
 
   .popover-wrap { position: relative; display: inline-block; }
   .popover {
@@ -292,6 +293,7 @@
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
 <script src="/notemd.js"></script>
+<script src="/export.js"></script>
 <script>
 const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
 
@@ -412,6 +414,7 @@ function renderItems() {
             <span class="item-name">${escapeHtml(item.name)}</span><span class="item-type">${item.type}</span>
           </div>
           <div class="inline-form">
+            <button class="icon-btn" data-copy-item="${item.id}" title="フレーム/MOD/メモをテキストでコピー">${icon("copy")}</button>
             <button class="icon-btn" data-edit-item-meta="${item.id}" title="連携・メモを編集">${icon("pencil")}</button>
             <button class="icon-btn danger" data-del-item="${item.id}" title="削除">${icon("trash-2")}</button>
           </div>
@@ -443,6 +446,7 @@ function renderItems() {
     setConfig(inp.dataset.item, inp.dataset.slot, mods);
   }));
   el.querySelectorAll("[data-toggle-item-fav]").forEach(btn => btn.addEventListener("click", () => toggleItemFavorite(btn.dataset.toggleItemFav)));
+  wireCopyButtons(el, "[data-copy-item]", (btn) => buildItemExportText(state.data.items[btn.dataset.copyItem]));
   el.querySelectorAll("[data-del-item]").forEach(btn => btn.addEventListener("click", () => {
     if (confirm(`「${state.data.items[btn.dataset.delItem].name}」を削除する？`)) deleteItem(btn.dataset.delItem);
   }));
@@ -613,7 +617,10 @@ function renderBuildSets() {
     <div class="buildset-card">
       <div class="buildset-head">
         <div class="buildset-name">${escapeHtml(set.name)}</div>
-        <button class="icon-btn danger" data-del-set="${set.id}" title="削除">${icon("trash-2")}</button>
+        <div class="inline-form">
+          <button class="icon-btn" data-copy-set="${set.id}" title="ビルドセットをテキストでコピー">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-set="${set.id}" title="削除">${icon("trash-2")}</button>
+        </div>
       </div>
       ${set.chainViewBuildId ? `<div id="minigraph-buildset-${set.id}"></div>` : ""}
       <div class="buildset-row"><b>Frame:</b> ${set.frame ? itemLabel(set.frame.itemId, set.frame.config) : "（未設定）"}</div>
@@ -627,6 +634,7 @@ function renderBuildSets() {
   el.querySelectorAll("[data-del-set]").forEach(btn => btn.addEventListener("click", () => {
     if (confirm(`「${state.data.buildSets[btn.dataset.delSet].name}」を削除する？`)) deleteBuildSet(btn.dataset.delSet);
   }));
+  wireCopyButtons(el, "[data-copy-set]", (btn) => buildBuildSetExportText(state.data.buildSets[btn.dataset.copySet], state.data.items));
 
   el.querySelectorAll("[data-progress-for]").forEach(row => {
     const buildId = row.dataset.progressFor;
