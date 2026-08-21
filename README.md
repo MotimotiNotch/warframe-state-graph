@@ -66,7 +66,7 @@ go build -o warframe-state-graph.exe ./cmd/server
 - `pkg/collection`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
 - `pkg/standing`: 16シンジケートの現在ランク・最高到達実績永続化
 - `pkg/questchain`: クエストの前提関係（Wiki由来の静的テーブル）
-- `pkg/stats`: 星図/Steel Path進捗・Intrinsics・Focus School・Railjack本体の永続化、4データソース横断集計
+- `pkg/stats`: 星図/Steel Path進捗・Intrinsicsおよび進行度に応じて解放される追加セクションの永続化、4データソース横断集計
 - `pkg/starchart`: 星図（惑星単位）の総ノード数集計
 - `pkg/glossary`: ゲーム内用語の英→日対応マッピング（編集可能な設定データ）
 - `pkg/scratch`: どのデータにも紐づかないクイックメモ（自由記述メモ＋手動カウンター）の永続化
