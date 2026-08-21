@@ -63,6 +63,14 @@ func TestSyndicateInfo_MinMaxRank(t *testing.T) {
 	}
 }
 
+func TestAllSyndicates_RanksAndSacrificesLengthsMatch(t *testing.T) {
+	for _, s := range AllSyndicates {
+		if len(s.Ranks) != len(s.Sacrifices) {
+			t.Errorf("%s: len(Ranks)=%d, len(Sacrifices)=%d (parallel slices must match)", s.Name, len(s.Ranks), len(s.Sacrifices))
+		}
+	}
+}
+
 func TestFileStore_SetRankPersistsAndReloads(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "standing.json")
 	store := NewFileStore(path)

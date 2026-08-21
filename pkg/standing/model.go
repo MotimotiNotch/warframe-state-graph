@@ -78,17 +78,6 @@ func (s SyndicateInfo) MaxRank() int { return len(s.Ranks) }
 func sac(items ...string) RankSacrifice { return RankSacrifice{Items: items} }
 
 var noSacrifice = RankSacrifice{None: true}
-var unconfirmedSacrifice = RankSacrifice{Unconfirmed: true}
-
-// repeatUnconfirmed はn個のunconfirmedSacrificeを持つスライスを作る（調査未完了のシンジケートの
-// Sacrifices初期値に使う）。
-func repeatUnconfirmed(n int) []RankSacrifice {
-	out := make([]RankSacrifice, n)
-	for i := range out {
-		out[i] = unconfirmedSacrifice
-	}
-	return out
-}
 
 // MajorSyndicates は6大シンジケートの固定リスト。
 var MajorSyndicates = []SyndicateInfo{
@@ -104,9 +93,11 @@ var MajorSyndicates = []SyndicateInfo{
 // ランク名・順序・敵対relationshipの有無を確定。Vox Solaris/The Holdfastsは機械抽出の
 // 並び順が誤っていたため公式Wikiで訂正済み、The Quillsも「Architect/Adherent同閾値」説を
 // 実データで否定し5段階とも別々のランクと確定した）。貢献アイテムの中身は
-// wiki.warframe.comの各シンジケートページから個別に確認済み（Solaris Unitedのみ、
-// テーブル抽出だけでは「そのランクでの純増分」か「その時点の累計保有量」かを判別できず、
-// 不確かな個数を確定情報として書かないという方針により未確認のまま保留）。
+// wiki.warframe.comの各シンジケートページから個別に確認済み。Solaris Unitedのみ、
+// テーブル抽出だけでは「そのランクでの純増分」か「その時点の累計保有量」かを判別できず
+// 一時未確認のまま保留していたが、2026-08-22にWebFetchでwiki.warframe.com/w/Debt-Bondの
+// 合計行（Training6/Shelter9/Medical11/Advances10/Familial5）と個別ランクの数値を突き合わせ、
+// 各ランクの数値がその場での新規消費量であり合算が合計行と一致することを確認して解決済み。
 var ExtendedSyndicates = []SyndicateInfo{
 	{Name: "Ostron", Faction: FactionNone, Ranks: []string{"Offworlder", "Visitor", "Trusted", "Surah", "Kin"}, Sacrifices: []RankSacrifice{
 		sac("Nistlepod×25", "Iradite×25", "Grokdrul×25"),
@@ -115,7 +106,13 @@ var ExtendedSyndicates = []SyndicateInfo{
 		sac("Maprico×10", "Fersteel Alloy×40", "Murkray Liver×5"),
 		sac("Nyth×1", "Sentirum×1", "Norg Brain×1", "Cuthol Tendrils×1"),
 	}},
-	{Name: "Solaris United", Faction: FactionNone, Ranks: []string{"Outworlder", "Rapscallion", "Doer", "Cove", "Old Mate"}, Sacrifices: repeatUnconfirmed(5), Note: "1ランクにつき複数種の負債証書(Debt-Bond)を同時消費する。Wikiのテーブル抽出では同じ証書種別の個数がランクを跨いで繰り返し出現しており、「そのランクでの新規消費量」か「その時点で保有すべき累計量」かを判別できなかったため個数は未確認のまま"},
+	{Name: "Solaris United", Faction: FactionNone, Ranks: []string{"Outworlder", "Rapscallion", "Doer", "Cove", "Old Mate"}, Sacrifices: []RankSacrifice{
+		sac("Training Debt-Bond×2"),
+		sac("Training Debt-Bond×2", "Shelter Debt-Bond×3"),
+		sac("Training Debt-Bond×2", "Shelter Debt-Bond×3", "Medical Debt-Bond×4"),
+		sac("Shelter Debt-Bond×3", "Medical Debt-Bond×4", "Advances Debt-Bond×5"),
+		sac("Medical Debt-Bond×3", "Advances Debt-Bond×5", "Familial Debt-Bond×5"),
+	}, Note: "1ランクにつき複数種の負債証書(Debt-Bond)を同時消費する。公式Wiki（wiki.warframe.com/w/Debt-Bond）のランク別テーブルに各証書種別の合計行（Training6/Shelter9/Medical11/Advances10/Familial5）が付記されており、ここに掲載した各ランクの個数を合算するとその合計と一致することを確認済み（2026-08-22、WebFetch調査でその場での新規消費量と確定）"},
 	{Name: "Vox Solaris", Faction: FactionNone, Ranks: []string{"Operative", "Agent", "Hand", "Instrument", "Shadow"}, Sacrifices: []RankSacrifice{
 		sac("Calda Toroid×1", "Vega Toroid×1", "Sola Toroid×1"),
 		sac("Gyromag Systems×1", "Vega Toroid×1"),
