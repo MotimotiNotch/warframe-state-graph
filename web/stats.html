@@ -148,12 +148,16 @@
 
   /* Focus School / Railjack: 前提クエストがThe Second Dream/Rising Tideという構造由来のネタバレ
      （セクションの存在自体が展開を示唆してしまう）対策で、standing.htmlの「その他のシンジケート」と
-     同じ折りたたみ＋triangle-alertアイコン＋注意文パターンを流用する（2026-08-20）。 */
-  #focus-toggle, #railjack-toggle { cursor: pointer; user-select: none; }
-  #focus-toggle:hover, #railjack-toggle:hover { color: var(--accent); }
-  #focus-icon, #railjack-icon { display: inline-flex; color: var(--accent); }
-  #focus-chevron, #railjack-chevron { transition: transform 0.15s ease; }
-  #focus-chevron.expanded, #railjack-chevron.expanded { transform: rotate(180deg); }
+     同じ折りたたみ＋triangle-alertアイコン＋注意文パターンを流用する（2026-08-20）。
+     Railjack/Drifter Intrinsics（2026-08-21追加）も同じ理由でゲート対象——Intrinsicsパネル自体は
+     項目22実装時（2026-08-19）にこの保護が漏れており、見出し文字列が常時表示のままだった不備を修正。 */
+  #focus-toggle, #railjack-toggle, #railjack-intrinsics-toggle, #drifter-intrinsics-toggle {
+    cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; margin: 0;
+  }
+  #focus-toggle:hover, #railjack-toggle:hover, #railjack-intrinsics-toggle:hover, #drifter-intrinsics-toggle:hover { color: var(--accent); }
+  #focus-icon, #railjack-icon, #railjack-intrinsics-icon, #drifter-intrinsics-icon { display: inline-flex; color: var(--accent); }
+  #focus-chevron, #railjack-chevron, #railjack-intrinsics-chevron, #drifter-intrinsics-chevron { transition: transform 0.15s ease; }
+  #focus-chevron.expanded, #railjack-chevron.expanded, #railjack-intrinsics-chevron.expanded, #drifter-intrinsics-chevron.expanded { transform: rotate(180deg); }
   .section-warning {
     font-size: 0.78rem; color: var(--muted); margin: -4px 0 10px;
     padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
@@ -189,7 +193,7 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計。下段の星図/Steel Path/Intrinsicsに加え、対応するクエストの進行に応じて内容を伏せている追加セクションが数値を入力できる領域——惑星単位の粗い進捗（ノード個別トグルは持たない）、Railjack/Drifter Intrinsicsのランクを記録する。<br>⚠️ 惑星名などにネタバレを含むことがあります。追加セクションは対応するクエストをクリア済みでない場合、内容を明かさないよう折りたたんだままにしています。</div>
+        <div class="empty">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計。下段の星図/Steel Path/Intrinsicsに加え、対応するクエストの進行に応じて内容を伏せている追加セクションが数値を入力できる領域——惑星単位の粗い進捗（ノード個別トグルは持たない）を記録する。<br>⚠️ 惑星名などにネタバレを含むことがあります。対応するクエストをクリア済みでないセクションは、内容を明かさないよう折りたたんだままにしています。</div>
       </div>
     </div>
   </nav>
@@ -225,10 +229,24 @@
 
   <div class="panel" id="intrinsics-panel">
     <div class="panel-head"><h2>Intrinsics</h2></div>
-    <h3>Railjack</h3>
-    <div class="intrinsics-grid" id="railjack-intrinsics" style="margin-bottom:14px;"></div>
-    <h3>Drifter</h3>
-    <div class="intrinsics-grid" id="drifter-intrinsics"></div>
+
+    <div class="panel-head">
+      <h3 id="railjack-intrinsics-toggle"><span id="railjack-intrinsics-icon"></span><span id="railjack-intrinsics-title">未解放セクション</span></h3>
+      <button class="icon-btn" id="railjack-intrinsics-chevron" title="開閉"></button>
+    </div>
+    <div class="section-warning">前提クエスト（Rising Tide）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div id="railjack-intrinsics-body" class="collapsible-body hidden" style="margin-bottom:14px;">
+      <div class="intrinsics-grid" id="railjack-intrinsics"></div>
+    </div>
+
+    <div class="panel-head">
+      <h3 id="drifter-intrinsics-toggle"><span id="drifter-intrinsics-icon"></span><span id="drifter-intrinsics-title">未解放セクション</span></h3>
+      <button class="icon-btn" id="drifter-intrinsics-chevron" title="開閉"></button>
+    </div>
+    <div class="section-warning">前提クエスト（The Duviri Paradox）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div id="drifter-intrinsics-body" class="collapsible-body hidden">
+      <div class="intrinsics-grid" id="drifter-intrinsics"></div>
+    </div>
   </div>
 
   <div class="panel" id="focus-panel">
@@ -615,6 +633,8 @@ Promise.all([loadChainViewNodes(), loadLoadouts(), loadCollections(), loadStandi
   renderRailjackNote();
   initCollapsiblePanel("focus", "The Second Dream", "Focus School");
   initCollapsiblePanel("railjack", "Rising Tide", "Railjack");
+  initCollapsiblePanel("railjack-intrinsics", "Rising Tide", "Railjack");
+  initCollapsiblePanel("drifter-intrinsics", "The Duviri Paradox", "Drifter");
 });
 </script>
 <script src="/notemd.js"></script>
