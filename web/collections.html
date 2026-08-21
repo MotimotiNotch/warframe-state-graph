@@ -157,7 +157,8 @@
   @media (max-width: 480px) {
     .riven-grid, .kuva-grid, .frame-grid { grid-template-columns: 1fr; }
   }
-  .card-v2 { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+  /* transitionはホバー3D傾き（web/card-tilt.js）の離脱時リセット用。 */
+  .card-v2 { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: transform 0.1s ease-out, border-color 0.15s; will-change: transform; }
   .card-v2:hover { border-color: var(--accent); }
   /* 新規登録用の「＋カード」（2026-08-21）。ヘッダーの新規登録ボタンを撤去し一覧グリッドに一本化。 */
   .add-card {
@@ -170,6 +171,8 @@
     cursor: pointer;
     color: var(--muted);
     background: none;
+    transition: transform 0.1s ease-out, border-color 0.15s, color 0.15s;
+    will-change: transform;
   }
   .add-card:hover { border-color: var(--accent); color: var(--accent); }
   .add-card svg { width: 32px; height: 32px; }
@@ -422,6 +425,7 @@
 <script src="/minigraph.js"></script>
 <script src="/notemd.js"></script>
 <script src="/export.js"></script>
+<script src="/card-tilt.js"></script>
 <script>
 const state = { data: { rivens: {}, kuva: {}, frames: {}, duviri: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
 

@@ -168,6 +168,10 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px 12px;
+    /* ホバー3D傾き（web/card-tilt.js）用。transitionは離脱時に0度へ滑らかに戻すためのもの
+       （ホバー中の追従はJS側でrequestAnimationFrameごとにtransformを直接更新する）。 */
+    transition: transform 0.1s ease-out;
+    will-change: transform;
   }
   /* 新規登録用の「＋カード」（2026-08-21）。ヘッダーの新規登録ボタンを撤去し、一覧グリッド内の
      このカードに一本化——Standingの「一覧を見れば全情報が分かる」構成に寄せる狙い。 */
@@ -181,6 +185,8 @@
     cursor: pointer;
     color: var(--muted);
     background: none;
+    transition: transform 0.1s ease-out, border-color 0.15s, color 0.15s;
+    will-change: transform;
   }
   .add-card:hover { border-color: var(--accent); color: var(--accent); }
   .add-card svg { width: 32px; height: 32px; }
@@ -317,6 +323,7 @@
 <script src="/minigraph.js"></script>
 <script src="/notemd.js"></script>
 <script src="/export.js"></script>
+<script src="/card-tilt.js"></script>
 <script>
 const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
 
