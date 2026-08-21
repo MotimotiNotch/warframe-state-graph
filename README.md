@@ -79,6 +79,14 @@ go build -o warframe-state-graph.exe ./cmd/server
 設計背景の詳細は `moti_base` Vault側の `Works/plans/WarframeStateGraph/` を参照
 （このリポジトリは実装コードのみ、設計ドキュメントはVault側で管理）。
 
+## 開発に参加する
+
+コードを変更する場合は [CONTRIBUTING.md](CONTRIBUTING.md) を先に読んでほしい。特に
+「実データ(`data/*.json`)について」の節は必読——このリポジトリはリポジトリ作者の実際の
+プレイ進行データをgit管理下に置いており、ローカルで動かす前に隔離検証の手順を踏まないと
+うっかり上書きしてしまう。Claude Code等のAIエージェントで作業する場合は
+`.claude/skills/warframe-dev/SKILL.md` に同じ内容がより手順ベースでまとまっている。
+
 ## ライセンス
 
 MIT。ただし本ツールが参照するWFCDデータ・Warframe自体の権利表記は `LICENSE` 参照。
