@@ -148,8 +148,31 @@
   .multiselect-popover { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
   .multiselect-popover label { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 400; }
 
-  .card-v2 { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+  /* Riven/Kuva/フレームの一覧はStandingページの.syn-gridと同じグリッドに揃える（2026-08-21、
+     「LoadoutsのTOPレイアウトをStandingに合わせる」指示をCollectionsにも展開）。 */
+  .riven-grid, .kuva-grid, .frame-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+  @media (max-width: 900px) {
+    .riven-grid, .kuva-grid, .frame-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .riven-grid, .kuva-grid, .frame-grid { grid-template-columns: 1fr; }
+  }
+  .card-v2 { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
   .card-v2:hover { border-color: var(--accent); }
+  /* 新規登録用の「＋カード」（2026-08-21）。ヘッダーの新規登録ボタンを撤去し一覧グリッドに一本化。 */
+  .add-card {
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 72px;
+    cursor: pointer;
+    color: var(--muted);
+    background: none;
+  }
+  .add-card:hover { border-color: var(--accent); color: var(--accent); }
+  .add-card svg { width: 32px; height: 32px; }
   .card-head { display: flex; align-items: flex-start; gap: 8px; }
   .card-title { font-weight: 600; flex: 1; min-width: 0; }
   .card-badges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
@@ -220,25 +243,22 @@
   <div class="panel" id="riven-panel">
     <div class="panel-head">
       <h2>Riven Mods</h2>
-      <button class="primary" id="riven-new-btn"></button>
     </div>
-    <div id="riven-list"></div>
+    <div id="riven-list" class="riven-grid"></div>
   </div>
 
   <div class="panel" id="kuva-panel">
     <div class="panel-head">
       <h2>Kuva / Tenet / Coda 武器</h2>
-      <button class="primary" id="kuva-new-btn"></button>
     </div>
-    <div id="kuva-list"></div>
+    <div id="kuva-list" class="kuva-grid"></div>
   </div>
 
   <div class="panel" id="frame-panel">
     <div class="panel-head">
       <h2>フレーム入手状況</h2>
-      <button class="primary" id="frame-new-btn"></button>
     </div>
-    <div id="frame-list"></div>
+    <div id="frame-list" class="frame-grid"></div>
   </div>
 
   <div class="panel" id="duviri-panel">
@@ -438,10 +458,6 @@ async function loadGlossary() {
 }
 function ja(stat) { return glossaryMap[stat] || RIVEN_STAT_JA[stat] || stat; }
 
-document.getElementById("riven-new-btn").innerHTML = iconLabel("plus", "新規登録");
-document.getElementById("riven-new-btn").title = "新規登録";
-document.getElementById("kuva-new-btn").innerHTML = iconLabel("plus", "新規登録");
-document.getElementById("kuva-new-btn").title = "新規登録";
 document.getElementById("help-toggle").innerHTML = icon("info");
 
 async function loadAll() {
@@ -664,7 +680,6 @@ function openRivenModal(editId) {
   document.getElementById("riven-modal-backdrop").classList.remove("hidden");
 }
 function closeRivenModal() { document.getElementById("riven-modal-backdrop").classList.add("hidden"); }
-document.getElementById("riven-new-btn").addEventListener("click", () => openRivenModal(null));
 document.getElementById("riven-modal-cancel").addEventListener("click", closeRivenModal);
 document.getElementById("riven-modal-save").addEventListener("click", () => {
   const weaponName = document.getElementById("riven-weapon-input").value.trim();
@@ -697,7 +712,7 @@ async function deleteRiven(id) {
 function renderRivenList() {
   const el = document.getElementById("riven-list");
   const entries = Object.values(state.data.rivens).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
-  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
+  const addCardHtml = `<button class="add-card" id="add-riven-card" title="新規登録">${icon("plus")}</button>`;
 
   el.innerHTML = entries.map(entry => `
     <div class="card-v2" data-open-riven="${entry.id}">
@@ -718,7 +733,9 @@ function renderRivenList() {
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
-  `).join("");
+  `).join("") + addCardHtml;
+
+  document.getElementById("add-riven-card").addEventListener("click", () => openRivenModal(null));
 
   entries.forEach(entry => {
     if (!entry.note) return;
@@ -768,7 +785,7 @@ function renderKuvaGroupedList() {
   const el = document.getElementById("kuva-list");
   const groups = groupedKuva();
   const names = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-  if (!names.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
+  const addCardHtml = `<button class="add-card" id="add-kuva-card" title="新規登録">${icon("plus")}</button>`;
 
   el.innerHTML = names.map(name => {
     const entries = groups[name];
@@ -787,7 +804,9 @@ function renderKuvaGroupedList() {
         </div>
       </div>
     </div>`;
-  }).join("");
+  }).join("") + addCardHtml;
+
+  document.getElementById("add-kuva-card").addEventListener("click", () => openKuvaModal(""));
 
   el.querySelectorAll("[data-open-kuva-group]").forEach(card => card.addEventListener("click", () => {
     openKuvaModal(card.dataset.openKuvaGroup);
@@ -802,7 +821,6 @@ function openKuvaModal(weaponName) {
   document.getElementById("kuva-modal-backdrop").classList.remove("hidden");
 }
 function closeKuvaModal() { document.getElementById("kuva-modal-backdrop").classList.add("hidden"); }
-document.getElementById("kuva-new-btn").addEventListener("click", () => openKuvaModal(""));
 document.getElementById("kuva-modal-close").addEventListener("click", closeKuvaModal);
 document.getElementById("kuva-form-cancel").addEventListener("click", () => {
   kuvaModalState.formOpen = false;
@@ -968,7 +986,7 @@ async function deleteFrame(id) {
 function renderFrameList() {
   const el = document.getElementById("frame-list");
   const entries = Object.values(state.data.frames).sort((a, b) => a.name.localeCompare(b.name));
-  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録されていません</div>`; return; }
+  const addCardHtml = `<button class="add-card" id="add-frame-card" title="新規登録">${icon("plus")}</button>`;
 
   el.innerHTML = entries.map(entry => `
     <div class="card-v2" data-open-frame="${entry.id}">
@@ -988,7 +1006,9 @@ function renderFrameList() {
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-frame-${entry.id}"></div>` : ""}
     </div>
-  `).join("");
+  `).join("") + addCardHtml;
+
+  document.getElementById("add-frame-card").addEventListener("click", () => openFrameModal(null));
 
   entries.forEach(entry => {
     if (!entry.note) return;
@@ -1026,9 +1046,6 @@ function openFrameModal(editId) {
   document.getElementById("frame-modal-backdrop").classList.remove("hidden");
 }
 function closeFrameModal() { document.getElementById("frame-modal-backdrop").classList.add("hidden"); }
-document.getElementById("frame-new-btn").innerHTML = iconLabel("plus", "新規登録");
-document.getElementById("frame-new-btn").title = "新規登録";
-document.getElementById("frame-new-btn").addEventListener("click", () => openFrameModal(null));
 document.getElementById("frame-modal-cancel").addEventListener("click", closeFrameModal);
 document.getElementById("frame-modal-save").addEventListener("click", () => {
   const name = document.getElementById("frame-name-input").value.trim();

@@ -153,12 +153,37 @@
   .suggest-item:hover { background: var(--border); color: var(--accent); }
   .suggest-empty { padding: 5px 10px; color: var(--muted); font-size: 0.8rem; }
 
+  /* 一覧はStandingページの.syn-gridと同じグリッド（3列固定→900px以下2列→480px以下1列）に
+     揃える（2026-08-21、「LoadoutsのTOPレイアウトをStandingに合わせる」指示）。
+     align-items:startはStandingと同じ理由（カードごとの高さがバラバラなので、同じ行の
+     他カードまでstretchで伸びてしまうのを防ぐ）。 */
+  .items-grid, .buildsets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+  @media (max-width: 900px) {
+    .items-grid, .buildsets-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .items-grid, .buildsets-grid { grid-template-columns: 1fr; }
+  }
   .item-card, .buildset-card {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px 12px;
-    margin-bottom: 10px;
   }
+  /* 新規登録用の「＋カード」（2026-08-21）。ヘッダーの新規登録ボタンを撤去し、一覧グリッド内の
+     このカードに一本化——Standingの「一覧を見れば全情報が分かる」構成に寄せる狙い。 */
+  .add-card {
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 72px;
+    cursor: pointer;
+    color: var(--muted);
+    background: none;
+  }
+  .add-card:hover { border-color: var(--accent); color: var(--accent); }
+  .add-card svg { width: 32px; height: 32px; }
   .item-head, .buildset-head { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
   .item-head-left { display: flex; align-items: center; }
   .item-name, .buildset-name { font-weight: 600; }
@@ -246,18 +271,16 @@
       <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理</h2>
       <div class="inline-form">
         <button id="refresh-wfcd-btn" title="WFCDの参照データ（フレーム/武器名）を再取得する"></button>
-        <button class="primary" id="new-item-btn"></button>
       </div>
     </div>
-    <div id="items-list"></div>
+    <div id="items-list" class="items-grid"></div>
   </div>
 
   <div class="panel">
     <div class="panel-head">
       <h2>Build Sets（フレーム＋武器の組み合わせ）</h2>
-      <button class="primary" id="new-buildset-btn"></button>
     </div>
-    <div id="buildsets-list"></div>
+    <div id="buildsets-list" class="buildsets-grid"></div>
   </div>
 
   <!-- Item新規登録モーダル -->
@@ -305,10 +328,6 @@ document.getElementById("help-toggle").addEventListener("click", (e) => {
 document.getElementById("help-popover").addEventListener("click", (e) => e.stopPropagation());
 document.addEventListener("click", () => document.getElementById("help-popover").classList.add("hidden"));
 
-document.getElementById("new-item-btn").innerHTML = iconLabel("plus", "新規登録");
-document.getElementById("new-item-btn").title = "新規登録";
-document.getElementById("new-buildset-btn").innerHTML = iconLabel("plus", "新規登録");
-document.getElementById("new-buildset-btn").title = "新規登録";
 document.getElementById("refresh-wfcd-btn").innerHTML = iconLabel("refresh-cw", "データ更新");
 document.getElementById("refresh-wfcd-btn").title = "データ更新";
 
@@ -390,7 +409,9 @@ function toggleItemFavorite(id) {
 function renderItems() {
   const el = document.getElementById("items-list");
   const items = Object.values(state.data.items).sort((a, b) => a.name.localeCompare(b.name));
-  if (!items.length) { el.innerHTML = `<div class="empty">まだアイテムがありません</div>`; return; }
+  // ヘッダーの新規登録ボタンを撤去し、一覧グリッド末尾の「＋カード」に一本化（2026-08-21）。
+  // 0件のときもこのカードだけは常に出す（空メッセージより「ここから追加できる」ことが伝わる）。
+  const addCardHtml = `<button class="add-card" id="add-item-card" title="新規登録">${icon("plus")}</button>`;
 
   el.innerHTML = items.map(item => {
     // Companionは同時運用1体のみで切り替え頻度も低いため単一構成のみ（常にConfig A、
@@ -427,7 +448,9 @@ function renderItems() {
         </div>
         ${item.note ? `<div class="card-memo" id="notemd-item-${item.id}"></div>` : ""}
       </div>`;
-  }).join("");
+  }).join("") + addCardHtml;
+
+  document.getElementById("add-item-card").addEventListener("click", openItemModal);
 
   el.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
     state.activeTab[t.dataset.item] = t.dataset.slot;
@@ -485,7 +508,6 @@ function openItemModal() {
   document.getElementById("item-modal-backdrop").classList.remove("hidden");
 }
 function closeItemModal() { document.getElementById("item-modal-backdrop").classList.add("hidden"); }
-document.getElementById("new-item-btn").addEventListener("click", openItemModal);
 document.getElementById("item-modal-cancel").addEventListener("click", closeItemModal);
 
 document.getElementById("add-item-btn").addEventListener("click", () => {
@@ -531,7 +553,6 @@ function openBuildSetModal() {
   document.getElementById("buildset-modal-backdrop").classList.remove("hidden");
 }
 function closeBuildSetModal() { document.getElementById("buildset-modal-backdrop").classList.add("hidden"); }
-document.getElementById("new-buildset-btn").addEventListener("click", openBuildSetModal);
 
 function renderBuildSetForm() {
   const el = document.getElementById("new-buildset-form");
@@ -609,7 +630,7 @@ function itemLabel(itemId, config) {
 function renderBuildSets() {
   const el = document.getElementById("buildsets-list");
   const sets = Object.values(state.data.buildSets).sort((a, b) => a.name.localeCompare(b.name));
-  if (!sets.length) { el.innerHTML = `<div class="empty">まだビルドセットがありません</div>`; return; }
+  const addCardHtml = `<button class="add-card" id="add-buildset-card" title="新規登録">${icon("plus")}</button>`;
 
   el.innerHTML = sets.map(set => {
     const linkedBuild = set.chainViewBuildId ? state.chainViewBuilds.find(b => b.id === set.chainViewBuildId) : null;
@@ -629,7 +650,9 @@ function renderBuildSets() {
       ${set.note ? `<div class="card-memo" id="notemd-buildset-${set.id}"></div>` : ""}
     </div>
   `;
-  }).join("");
+  }).join("") + addCardHtml;
+
+  document.getElementById("add-buildset-card").addEventListener("click", openBuildSetModal);
 
   el.querySelectorAll("[data-del-set]").forEach(btn => btn.addEventListener("click", () => {
     if (confirm(`「${state.data.buildSets[btn.dataset.delSet].name}」を削除する？`)) deleteBuildSet(btn.dataset.delSet);
