@@ -192,6 +192,10 @@
     color: var(--muted);
     margin: 0 0 12px;
   }
+  nav { font-size: 0.85rem; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav a.current { color: var(--accent); }
+  nav a:hover { color: var(--accent); }
   .breadcrumb {
     font-size: 0.82rem;
     color: var(--muted);
@@ -227,8 +231,10 @@
     fill: var(--text);
     font-size: 11px;
     text-anchor: middle;
-    pointer-events: none;
+    cursor: pointer;
   }
+  text.node-label:hover { fill: var(--accent); }
+  text.node-label.drillable { cursor: zoom-in; }
   line.edge-contains { stroke: var(--border); stroke-width: 1.5; }
   line.edge-requires { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
 
@@ -320,12 +326,12 @@
 </head>
 <body>
   <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Chain View</span></h1>
-  <nav style="font-size:.85rem;margin-bottom:4px;">
-    <a href="/" style="color:var(--accent);text-decoration:none;margin-right:12px;">Chain View</a>
-    <a href="/loadouts.html" style="color:var(--muted);text-decoration:none;margin-right:12px;">Loadouts</a>
-    <a href="/collections.html" style="color:var(--muted);text-decoration:none;margin-right:12px;">Collections</a>
-    <a href="/standing.html" style="color:var(--muted);text-decoration:none;margin-right:12px;">Standing</a>
-    <a href="/stats.html" style="color:var(--muted);text-decoration:none;">Stats</a>
+  <nav>
+    <a href="/" class="current">Chain View</a>
+    <a href="/loadouts.html">Loadouts</a>
+    <a href="/collections.html">Collections</a>
+    <a href="/standing.html">Standing</a>
+    <a href="/stats.html">Stats</a>
   </nav>
 
   <div class="toolbar">
@@ -789,7 +795,9 @@ function renderGraph() {
     circle.setAttribute("class", "node" + (state.selected === id ? " selected" : "") + (drillable ? " drillable" : ""));
     circle.dataset.id = id;
     // 子(contains)を持つノードはクリックでその場で1段フォーカスを移し、葉ノードは選択してInspectorに詳細を出す。
-    circle.addEventListener("click", () => {
+    // ラベル文字列（14文字超は省略表示）とcircleで同じハンドラーを共有する — 円だけが当たり判定だと、
+    // 省略された名前の続きを見たくてラベルをクリックしても無反応になるため（2026-08-21）。
+    const handleNodeClick = () => {
       if (drillable) {
         focusOn(id);
       } else {
@@ -797,14 +805,16 @@ function renderGraph() {
         renderGraph();
         renderPanel();
       }
-    });
+    };
+    circle.addEventListener("click", handleNodeClick);
     // ホバーすると中にある全ノード（レイヤーパネルの一覧）を表示し、クリックで一気にそこまで飛べる
     // （通常クリックは1段ずつ、というルールはそのまま。これは複数段を飛ぶショートカット）。
+    const handleNodeEnter = () => {
+      const items = collectDescendants(id);
+      showFlyout(circle, "中身（クリックで直接ジャンプ）", items, (it) => focusOn(it.id));
+    };
     if (drillable) {
-      circle.addEventListener("mouseenter", () => {
-        const items = collectDescendants(id);
-        showFlyout(circle, "中身（クリックで直接ジャンプ）", items, (it) => focusOn(it.id));
-      });
+      circle.addEventListener("mouseenter", handleNodeEnter);
       circle.addEventListener("mouseleave", scheduleHideFlyout);
     }
     svg.appendChild(circle);
@@ -865,8 +875,13 @@ function renderGraph() {
 
     const label = document.createElementNS(ns, "text");
     label.setAttribute("x", pos.x); label.setAttribute("y", pos.y + 34);
-    label.setAttribute("class", "node-label");
+    label.setAttribute("class", "node-label" + (drillable ? " drillable" : ""));
     label.textContent = node.name.length > 14 ? node.name.slice(0, 13) + "…" : node.name;
+    label.addEventListener("click", handleNodeClick);
+    if (drillable) {
+      label.addEventListener("mouseenter", handleNodeEnter);
+      label.addEventListener("mouseleave", scheduleHideFlyout);
+    }
     svg.appendChild(label);
   }
 }
