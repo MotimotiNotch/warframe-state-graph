@@ -23,10 +23,13 @@ go run ./cmd/server
 
 `http://127.0.0.1:8787` にローカルWebサーバーが立ち上がり、既定のブラウザが自動で開く。
 
-- **Chain View** (`/`): 依存関係グラフの表示・ドリルダウン・ワンタップトグル
-- **Loadouts** (`/loadouts.html`): MODコンフィグ(A/B/C)・ビルドセットの管理
-- **Collections** (`/collections.html`): Riven / Kuva・Tenet・Coda武器の入手ログ
-- **Standing** (`/standing.html`): 6大シンジケートの現在ランク管理
+- **Chain View** (`/`): 依存関係グラフの表示・ドリルダウン・ワンタップトグル・WFCD自動ノード生成（フレーム/武器/クエスト/シンジケート等）
+- **Loadouts** (`/loadouts.html`): フレーム/武器/コンパニオンのMODコンフィグ(A/B/C、コンパニオンは単一構成)・ビルドセットの管理
+- **Collections** (`/collections.html`): Riven / Kuva・Tenet・Coda武器の入手ログ、フレーム入手状況、デュビリ進捗
+- **Standing** (`/standing.html`): 16シンジケート（6大シンジケート＋オープンワールド等10）の現在ランク・最高到達実績管理
+- **Stats** (`/stats.html`): 星図/Steel Path進捗、Railjack/Drifter Intrinsics、Focus School投資状況、Railjack本体構成の入力、4データソース横断の読み取り専用集計
+
+全ページ共通のヘッダーウィジェット: ブースタータイマー、ライト/ダーク切替、壁紙/アイコン/ぼかし設定、用語マッピング編集、クイックメモ（どのデータにも紐づかない自由記述メモ＋手動カウンター）。
 
 **注意（2026-08-19〜）**: `web/` はビルド時にバイナリへ埋め込まれる（`webassets.go`）。
 `go run ./cmd/server` はコマンド自体が毎回ソースから再ビルドするため、`html`/`js`を編集して
@@ -51,12 +54,16 @@ go build -o warframe-state-graph.exe ./cmd/server
 
 - `pkg/model`: ノード/グラフの型定義（フラットなノード集合＋有向エッジ）
 - `pkg/engine`: DAG探索・Next Action導出・requiresカスケード
-- `pkg/persist`: 3つのFileStore共通の永続化基盤（アトミック書き込み・世代バックアップ・破損時の自動復旧）
+- `pkg/persist`: 各FileStore共通の永続化基盤（アトミック書き込み・世代バックアップ・破損時の自動復旧）
 - `pkg/store`: `data/graph.json` の永続化
 - `pkg/loadout`: MODコンフィグ・ビルドセットの永続化
 - `pkg/collection`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
-- `pkg/standing`: 6大シンジケートの現在ランク永続化
+- `pkg/standing`: 16シンジケートの現在ランク・最高到達実績永続化
 - `pkg/questchain`: クエストの前提関係（Wiki由来の静的テーブル）
+- `pkg/stats`: 星図/Steel Path進捗・Intrinsics・Focus School・Railjack本体の永続化、4データソース横断集計
+- `pkg/starchart`: 星図（惑星単位）の総ノード数集計
+- `pkg/glossary`: ゲーム内用語の英→日対応マッピング（編集可能な設定データ）
+- `pkg/scratch`: どのデータにも紐づかないクイックメモ（自由記述メモ＋手動カウンター）の永続化
 - `pkg/wfcd`: WFCD公開データ（フレーム/武器/レリック等）の取得・キャッシュ
 - `pkg/wfcdgen`: WFCDデータからノード候補を自動生成するロジック
 - `cmd/server`: ローカルREST API + 静的ファイル配信（`web/`は常にバイナリへ埋め込み済み、開発時もビルドし直せば最新反映）
