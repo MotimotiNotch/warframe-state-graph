@@ -19,6 +19,7 @@ import (
 	"warframe-state-graph/pkg/glossary"
 	"warframe-state-graph/pkg/loadout"
 	"warframe-state-graph/pkg/model"
+	"warframe-state-graph/pkg/scratch"
 	"warframe-state-graph/pkg/standing"
 	"warframe-state-graph/pkg/starchart"
 	"warframe-state-graph/pkg/stats"
@@ -79,6 +80,7 @@ func main() {
 	standingPath := filepath.Join(root, "data", "standing.json")
 	glossaryPath := filepath.Join(root, "data", "glossary.json")
 	statsPath := filepath.Join(root, "data", "stats.json")
+	scratchPath := filepath.Join(root, "data", "scratch.json")
 
 	webRoot, err := fs.Sub(webassets.FS, "web")
 	if err != nil {
@@ -91,6 +93,7 @@ func main() {
 	ss := standing.NewFileStore(standingPath)
 	gs := glossary.NewFileStore(glossaryPath)
 	sts := stats.NewFileStore(statsPath)
+	scs := scratch.NewFileStore(scratchPath)
 	wfcdCacheDir := filepath.Join(root, "data", "wfcd-cache")
 
 	mux := http.NewServeMux()
@@ -203,6 +206,84 @@ func main() {
 
 	mux.HandleFunc("DELETE /api/build-sets/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if err := ls.DeleteBuildSet(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// クイックメモ（Chain View/Loadouts/Collections/Standing/Statsのどれにも紐づかない、
+	// ヘッダーの新規アイコンから全ページ共通で開くスクラッチ領域。2026-08-21追加）。
+	mux.HandleFunc("GET /api/scratch", func(w http.ResponseWriter, r *http.Request) {
+		d, err := scs.Load()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("PUT /api/scratch/note", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Note string `json:"note"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		d, err := scs.SetNote(body.Note)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/scratch/counters", func(w http.ResponseWriter, r *http.Request) {
+		var c scratch.Counter
+		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if c.ID == "" {
+			http.Error(w, "id is required", http.StatusBadRequest)
+			return
+		}
+		d, err := scs.AddCounter(c)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/scratch/counters/{id}/increment", func(w http.ResponseWriter, r *http.Request) {
+		c, err := scs.IncrementCounter(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, c)
+	})
+
+	mux.HandleFunc("PUT /api/scratch/counters/{id}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Label string `json:"label"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		c, err := scs.RenameCounter(r.PathValue("id"), body.Label)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, c)
+	})
+
+	mux.HandleFunc("DELETE /api/scratch/counters/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := scs.DeleteCounter(r.PathValue("id")); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
