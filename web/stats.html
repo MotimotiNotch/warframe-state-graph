@@ -228,7 +228,15 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計。下段の星図/鋼の道のり/性能値（Intrinsics）に加え、対応するクエストの進行に応じて内容を伏せている追加セクションが数値を入力できる領域——惑星単位の粗い進捗（ノード個別トグルは持たない）を記録する。<br>⚠️ 惑星名などにネタバレを含むことがあります。対応するクエストをクリア済みでないセクションは、内容を明かさないよう折りたたんだままにしています。</div>
+        <div class="empty">
+          <div style="margin-bottom:8px;">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計です。</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>「クエスト進行状況」パネルでクリア済みのクエストにチェックを入れると、対応する下段の追加セクションの折りたたみが解除されます</li>
+            <li>星図/鋼の道のり/性能値（Intrinsics）は、惑星・地域単位の粗い進捗（ノード個別トグルは持たない）を記録する数値入力欄です</li>
+            <li>すべてのパネルは右上のアイコンで開閉でき、状態は次回起動時も引き継がれます</li>
+          </ul>
+          <div>⚠️ 惑星名などにネタバレを含むことがあります。対応するクエストをクリア済みでないセクションは、内容を明かさないよう折りたたんだままにしています。</div>
+        </div>
       </div>
     </div>
   </nav>
