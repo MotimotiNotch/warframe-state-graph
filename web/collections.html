@@ -88,6 +88,9 @@
     cursor: pointer; line-height: 0;
   }
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  @keyframes wfcd-spin { to { transform: rotate(360deg); } }
+  #refresh-wfcd-btn.spinning { color: var(--actionable); border-color: var(--actionable); animation: wfcd-spin 0.8s linear infinite; }
+  #refresh-wfcd-btn.success { color: var(--actionable); border-color: var(--actionable); }
   .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
   .icon-btn.on { border-color: var(--accent); color: var(--accent); }
   .icon-btn.copied { border-color: var(--actionable); color: var(--actionable); }
@@ -236,6 +239,7 @@
     <a href="/standing.html">Standing</a>
     <a href="/stats.html">Stats</a>
     <span style="flex:1"></span>
+    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
@@ -467,6 +471,25 @@ async function loadGlossary() {
   } catch (e) { /* 取得失敗時は従来のRIVEN_STAT_JAのみで動く */ }
 }
 function ja(stat) { return glossaryMap[stat] || RIVEN_STAT_JA[stat] || stat; }
+
+document.getElementById("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
+document.getElementById("refresh-wfcd-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("refresh-wfcd-btn");
+  btn.disabled = true;
+  btn.classList.add("spinning");
+  btn.title = "更新中…";
+  await fetch("/api/wfcd/refresh", { method: "POST" });
+  btn.classList.remove("spinning");
+  btn.classList.add("success");
+  btn.innerHTML = icon("check");
+  btn.title = "更新完了";
+  setTimeout(() => {
+    btn.classList.remove("success");
+    btn.innerHTML = icon("refresh-cw");
+    btn.disabled = false;
+    btn.title = "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください";
+  }, 2000);
+});
 
 document.getElementById("help-toggle").innerHTML = icon("info");
 
