@@ -43,7 +43,7 @@ func TestGroupPlanets(t *testing.T) {
 
 func TestGroupProxima(t *testing.T) {
 	raw := map[string]regionNode{
-		"SolNode1":  {SystemName: "/Lotus/Language/Locations/Earth"},         // ground, not Proxima
+		"SolNode1":  {SystemName: "/Lotus/Language/Locations/Earth"}, // ground, not Proxima
 		"SolNode2":  {SystemName: "/Lotus/Language/Locations/Earth_SPACE"},
 		"SolNode3":  {SystemName: "/Lotus/Language/Locations/Earth_SPACE"},
 		"SolNode4":  {SystemName: "/Lotus/Language/Locations/DeepSpace_SPACE"}, // Veil Proxima
