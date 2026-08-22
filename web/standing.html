@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Warframe State Graph — Standing</title>
 <script>
   // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
@@ -59,7 +62,7 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
     padding: 14px;
   }
   h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
@@ -451,6 +454,7 @@ async function loadStanding() {
 loadStanding();
 </script>
 <script src="/notemd.js"></script>
+<script src="/booster.js"></script>
 <script src="/scratch.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>

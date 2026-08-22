@@ -27,7 +27,7 @@
       // 通常パネルは壁紙を透かすため--panel（半透明）を使うが、このモーダルは必ず一度読ませたい
       // 確認ダイアログなので、背後の壁紙で文字が読みにくくならないよう不透明な--bgを使う（2026-08-20、のっち指摘）。
       "background:var(--bg,#12141a);color:var(--text,#e4e6ec);border:1px solid var(--border,#2a2e3a);" +
-      "border-radius:16px;padding:18px 20px;max-width:560px;font-family:-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
+      "border-radius:16px;padding:18px 20px;max-width:560px;font-family:'Noto Sans JP',-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
       "font-size:0.85rem;line-height:1.6;box-shadow:0 12px 30px rgba(0,0,0,0.5);max-height:80vh;overflow-y:auto;";
     const h4 = "font-weight:600;font-size:0.78rem;color:var(--muted,#7c818f);margin:0 0 4px;text-transform:uppercase;letter-spacing:0.02em;";
     const ul = "margin:0 0 14px;padding-left:18px;";

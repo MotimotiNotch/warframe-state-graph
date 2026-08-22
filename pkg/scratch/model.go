@@ -1,8 +1,7 @@
 package scratch
 
-// Counter は「Void Trace 145個集めた」のような、ボタンで+1していく簡易カウンター。
-// ラベルは自由記述、値はカウントアップ操作でのみ増える（減算UIは今回のスコープ外、
-// 間違えたら削除して作り直す運用を想定）。
+// Counter は「Void Trace 145個集めた」のような、ボタンで+1/-1していく簡易カウンター。
+// ラベルは自由記述、値は+/-ボタンまたは直接編集で増減する（2026-08-22、減算・直接編集に対応）。
 type Counter struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`

@@ -33,6 +33,7 @@
     { id: "mod_drop", label: "MODドロップ率" }, // Mod Drop Chance Booster
   ];
   const BOOSTER_BY_ID = Object.fromEntries(BOOSTERS.map((b) => [b.id, b]));
+  const customOpenIds = new Set(); // 「任意の時間を追加」フォームを開いているブースターID（一時状態、保存不要）
 
   function loadState() {
     try {
@@ -117,7 +118,7 @@
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
         border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
-        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       }
       #booster-toggle-btn:hover, #booster-toggle-btn.active { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
@@ -132,7 +133,7 @@
         border-radius: 14px;
         font-size: 0.72rem;
         color: var(--text, #e4e6ec);
-        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         min-width: 250px;
         box-shadow: 0 8px 20px rgba(0,0,0,0.4);
       }
@@ -148,6 +149,23 @@
         background: transparent; border: none; color: var(--muted, #7c818f); cursor: pointer; line-height: 0; padding: 2px;
       }
       #booster-panel .b-head button:hover { color: var(--danger, #e88c93); }
+      /* scratch.jsと同じ理由: .b-head buttonの汎用スタイルがページ側の.icon-btnを上書きしてしまう
+         ため明示的に復元。.popoverもページごとにleft/right基準が不統一（index.htmlはleft:0）で
+         右上floatingパネル内だとはみ出すため、right:0固定で明示的に上書きする（2026-08-22）。 */
+      #booster-panel .b-head .popover-wrap { position: relative; display: inline-flex; }
+      #booster-panel .b-head .icon-btn {
+        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
+        border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; line-height: 0;
+      }
+      #booster-panel .b-head .icon-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
+      #booster-panel .popover {
+        position: absolute; top: calc(100% + 6px); right: 0; left: auto; z-index: 200;
+        background: var(--popover-bg, rgba(20, 22, 28, 0.94)); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+        border: 1px solid var(--border, #2a2e3a); border-radius: 10px; padding: 8px 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); width: 240px; font-size: 0.72rem; line-height: 1.7;
+        color: var(--text, #e4e6ec);
+      }
+      #booster-panel .popover code { background: var(--bg, #12141a); padding: 0 3px; border-radius: 3px; }
       #booster-panel .b-body { padding: 6px 8px; }
       #booster-panel .b-add-row { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border, #2a2e3a); }
       #booster-panel .b-add-row select { flex: 1; }
@@ -156,7 +174,7 @@
          中身4つを親グリッドの列に直接参加させる）。 */
       #booster-list-body {
         display: grid;
-        grid-template-columns: max-content max-content max-content max-content;
+        grid-template-columns: max-content max-content max-content max-content max-content;
         align-items: center;
         column-gap: 8px;
         row-gap: 4px;
@@ -170,7 +188,18 @@
       }
       #booster-panel button.b-action:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
       #booster-panel button.b-action.b-remove:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
+      #booster-panel button.b-action.b-custom-toggle.active { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
       #booster-panel .b-empty { grid-column: 1 / -1; color: var(--muted, #7c818f); font-size: 0.72rem; padding: 4px 0; }
+      /* テンノコンの大量購入（既定90日超）・リレーでの他プレイヤーからの時間単位ギフト、
+         どちらもプルダウンの固定期間(3/7/30/90日)に収まらないため、任意の日数/時間を
+         「開始 or 稼働中に加算」できる行を追加する（2026-08-22）。 */
+      #booster-panel .b-custom-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; padding: 2px 0 4px; }
+      #booster-panel .b-custom-row input[type="number"] {
+        width: 3.8em; background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
+        border-radius: 4px; font-size: 0.68rem; padding: 2px 4px; font-family: inherit; -moz-appearance: textfield;
+      }
+      #booster-panel .b-custom-row input[type="number"]::-webkit-inner-spin-button,
+      #booster-panel .b-custom-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     `;
     document.head.appendChild(style);
   }
@@ -231,14 +260,23 @@
       const b = BOOSTER_BY_ID[id];
       const entry = state[id];
       const remaining = entry ? entry.expiry - Date.now() : 0;
+      const customOpen = customOpenIds.has(id);
+      const customRow = customOpen ? `
+        <div class="b-custom-row">
+          <input type="number" min="0" max="365" step="1" placeholder="日" data-custom-days="${id}">日
+          <input type="number" min="0" max="23" step="1" placeholder="時間" data-custom-hours="${id}">時間
+          <button class="b-action" data-custom-confirm="${id}">${remaining > 0 ? "追加" : "開始"}</button>
+        </div>` : "";
       if (entry && remaining > 0) {
         return `
           <div class="b-row">
             <span class="b-label">${b.label}</span>
             <span class="b-time" data-expiry="${entry.expiry}" data-id="${id}">${formatRemaining(remaining)}</span>
             <button class="b-action" data-stop="${id}">停止</button>
+            <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の時間を追加（テンノコン大量購入・リレーでの他プレイヤーからのギフト等）">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
             <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
-          </div>`;
+          </div>
+          ${customRow}`;
       }
       const options = DURATIONS_HOURS.map((d) => `<option value="${d.hours}">${d.label}</option>`).join("");
       return `
@@ -246,8 +284,10 @@
           <span class="b-label">${b.label}</span>
           <select data-duration="${id}">${options}</select>
           <button class="b-action" data-start="${id}">開始</button>
+          <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の日数/時間を指定して開始（テンノコン大量購入・リレーでの他プレイヤーからのギフト等）">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
           <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
-        </div>`;
+        </div>
+        ${customRow}`;
     }).join("");
 
     body.querySelectorAll("[data-start]").forEach((btn) => {
@@ -269,6 +309,32 @@
         render();
       });
     });
+    body.querySelectorAll("[data-custom-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.customToggle;
+        if (customOpenIds.has(id)) customOpenIds.delete(id); else customOpenIds.add(id);
+        render();
+      });
+    });
+    body.querySelectorAll("[data-custom-confirm]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.customConfirm;
+        const rawDays = Number(body.querySelector(`[data-custom-days="${id}"]`).value) || 0;
+        const rawHours = Number(body.querySelector(`[data-custom-hours="${id}"]`).value) || 0;
+        // min/max属性はキーボード直接入力までは防げないため、確定時にもクランプする。
+        const days = Math.min(Math.max(rawDays, 0), 365);
+        const hours = Math.min(Math.max(rawHours, 0), 23);
+        const addMs = (days * 24 + hours) * 3600 * 1000;
+        if (addMs <= 0) return;
+        const s = loadState();
+        const current = s[id];
+        const base = current && current.expiry > Date.now() ? current.expiry : Date.now();
+        s[id] = { expiry: base + addMs };
+        saveState(s);
+        customOpenIds.delete(id);
+        render();
+      });
+    });
     body.querySelectorAll("[data-remove]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.remove;
@@ -277,6 +343,7 @@
         const s = loadState();
         delete s[id];
         saveState(s);
+        customOpenIds.delete(id);
         render();
       });
     });
@@ -386,6 +453,14 @@
     panel.innerHTML = `
       <div class="b-head" id="booster-drag-handle">
         <span class="b-title">${window.icon ? window.icon("zap", { size: 14 }) : ""}ブースト</span>
+        <div class="popover-wrap">
+          <button class="icon-btn" id="booster-help-toggle" title="使い方">${window.icon ? window.icon("circle-alert", { size: 14 }) : "!"}</button>
+          <div class="popover hidden" id="booster-help-popover">
+            プルダウンは購入時の固定期間（3/7/30/90日）専用。<br>
+            <code>+</code>ボタンで任意の日数/時間を指定可能（上限365日23時間）——テンノコンでの大量購入や、リレーで他プレイヤーから貰った時間単位のギフトに対応。<br>
+            稼働中に<code>+</code>を押すと「追加」になり、残り時間に加算されます。
+          </div>
+        </div>
         <button id="booster-close" title="閉じる">${window.icon ? window.icon("x", { size: 14 }) : "×"}</button>
       </div>
       <div class="b-body">
@@ -399,6 +474,15 @@
     btn.addEventListener("click", () => togglePanel(btn, panel));
     panel.querySelector("#booster-close").addEventListener("click", () => togglePanel(btn, panel));
     setupDrag(panel, panel.querySelector("#booster-drag-handle"));
+
+    panel.querySelector("#booster-help-toggle").addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.querySelector("#booster-help-popover").classList.toggle("hidden");
+    });
+    panel.querySelector("#booster-help-popover").addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => {
+      panel.querySelector("#booster-help-popover").classList.add("hidden");
+    });
 
     // 前回開いたまま（閉じずに）リロードされていたら、開いた状態を引き継ぐ。
     if (loadOpen()) {

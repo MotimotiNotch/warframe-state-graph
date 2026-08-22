@@ -282,6 +282,31 @@ func main() {
 		writeJSON(w, c)
 	})
 
+	mux.HandleFunc("POST /api/scratch/counters/{id}/decrement", func(w http.ResponseWriter, r *http.Request) {
+		c, err := scs.DecrementCounter(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, c)
+	})
+
+	mux.HandleFunc("PUT /api/scratch/counters/{id}/value", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Value int `json:"value"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		c, err := scs.SetCounterValue(r.PathValue("id"), body.Value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		writeJSON(w, c)
+	})
+
 	mux.HandleFunc("DELETE /api/scratch/counters/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if err := scs.DeleteCounter(r.PathValue("id")); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

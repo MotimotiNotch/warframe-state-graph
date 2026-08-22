@@ -97,6 +97,46 @@ func (s *FileStore) IncrementCounter(id string) (*Counter, error) {
 	return nil, fmt.Errorf("counter %q not found", id)
 }
 
+// DecrementCounter は指定カウンターの値を-1する（0未満も許容、誤操作の巻き戻し用）。
+func (s *FileStore) DecrementCounter(id string) (*Counter, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return nil, err
+	}
+	for i := range d.Counters {
+		if d.Counters[i].ID == id {
+			d.Counters[i].Value--
+			if err := s.saveLocked(d); err != nil {
+				return nil, err
+			}
+			return &d.Counters[i], nil
+		}
+	}
+	return nil, fmt.Errorf("counter %q not found", id)
+}
+
+// SetCounterValue は値を直接指定の数値に差し替える（手入力編集用）。
+func (s *FileStore) SetCounterValue(id string, value int) (*Counter, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return nil, err
+	}
+	for i := range d.Counters {
+		if d.Counters[i].ID == id {
+			d.Counters[i].Value = value
+			if err := s.saveLocked(d); err != nil {
+				return nil, err
+			}
+			return &d.Counters[i], nil
+		}
+	}
+	return nil, fmt.Errorf("counter %q not found", id)
+}
+
 // RenameCounter はラベルだけを差し替える（値はそのまま）。
 func (s *FileStore) RenameCounter(id, label string) (*Counter, error) {
 	s.mu.Lock()

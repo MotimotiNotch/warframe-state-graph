@@ -44,7 +44,7 @@
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
         border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
-        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       }
       #scratch-toggle-btn:hover, #scratch-toggle-btn.active { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
@@ -59,7 +59,7 @@
         border-radius: 14px;
         font-size: 0.78rem;
         color: var(--text, #e4e6ec);
-        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         width: 300px;
         max-height: 70vh;
         display: flex;
@@ -83,16 +83,32 @@
       #scratch-panel .s-section-title { color: var(--muted, #7c818f); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
       #scratch-panel .s-section-title:first-child { margin-top: 0; }
 
-      #scratch-note-input {
-        width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
-        background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
-        border-radius: 6px; font-size: 0.78rem; padding: 6px; font-family: inherit;
+      /* ページごとに.popoverのleft/right基準がバラバラ（index.htmlはleft:0、他はright:0）なため、
+         このパネル自身の右寄り位置に合わせてID差でここだけ明示的に上書きする（2026-08-22、
+         index.html上ではみ出す不具合の修正）。 */
+      #scratch-panel .popover-wrap { position: relative; display: inline-flex; }
+      #scratch-panel .popover {
+        position: absolute; top: calc(100% + 6px); right: 0; left: auto; z-index: 200;
+        background: var(--popover-bg, rgba(20, 22, 28, 0.94)); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+        border: 1px solid var(--border, #2a2e3a); border-radius: 10px; padding: 8px 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); width: 220px; font-size: 0.72rem; line-height: 1.7;
+        color: var(--text, #e4e6ec);
       }
-      #scratch-note-preview { margin-top: 4px; }
-      #scratch-note-preview .note-md-list { list-style: none; margin: 2px 0; padding: 0; }
-      #scratch-note-preview .note-md-check { padding: 1px 0; }
-      #scratch-note-preview .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-      #scratch-note-preview .note-md-check input[type="checkbox"] { cursor: pointer; }
+      #scratch-panel .popover code { background: var(--bg, #12141a); padding: 0 3px; border-radius: 3px; }
+
+      #scratch-panel .note-live-editor {
+        width: 100%; box-sizing: border-box; min-height: 60px; max-height: 220px; overflow-y: auto;
+        background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
+        border-radius: 6px; font-size: 0.78rem; padding: 6px; font-family: inherit; cursor: text;
+      }
+      #scratch-panel .note-live-editor .note-line { min-height: 1.3em; word-break: break-word; }
+      #scratch-panel .note-live-editor .note-line-active { background: rgba(255, 255, 255, 0.06); border-radius: 3px; }
+      #scratch-panel .note-live-editor .note-placeholder { color: var(--muted, #7c818f); }
+      #scratch-panel .note-live-editor .note-md-check { padding: 1px 0; }
+      #scratch-panel .note-live-editor .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+      #scratch-panel .note-live-editor .note-md-check input[type="checkbox"] { cursor: pointer; }
+      #scratch-panel .note-live-editor .note-md-bullet { display: flex; gap: 6px; }
+      #scratch-panel .note-live-editor .note-md-bullet-dot { color: var(--muted, #7c818f); }
 
       .scratch-counter-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
       .scratch-counter-row .sc-label-input {
@@ -100,8 +116,14 @@
         background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
         border-radius: 4px; font-size: 0.75rem; padding: 3px 5px; font-family: inherit;
       }
-      .scratch-counter-row .sc-sep { color: var(--muted, #7c818f); }
-      .scratch-counter-row .sc-value { color: var(--actionable, #7ee3a9); font-variant-numeric: tabular-nums; min-width: 1.5em; text-align: right; }
+      .scratch-counter-row .sc-value {
+        color: var(--actionable, #7ee3a9); font-variant-numeric: tabular-nums;
+        width: 3.6em; text-align: right; background: var(--bg, #12141a);
+        border: 1px solid var(--border, #2a2e3a); border-radius: 4px; padding: 2px 4px;
+        font-family: inherit; font-size: inherit; -moz-appearance: textfield;
+      }
+      .scratch-counter-row .sc-value::-webkit-inner-spin-button,
+      .scratch-counter-row .sc-value::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
       .scratch-counter-row button {
         background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
         border-radius: 4px; font-size: 0.68rem; padding: 2px 4px; cursor: pointer; line-height: 0;
@@ -127,24 +149,15 @@
     return cache;
   }
 
+  let noteEditor = null;
+
   function renderNote() {
-    const input = document.getElementById("scratch-note-input");
-    const preview = document.getElementById("scratch-note-preview");
-    if (!input || !preview) return;
-    input.value = cache.note || "";
-    if (window.renderNoteMd) {
-      window.renderNoteMd(preview, cache.note || "", async (newNote) => {
-        await fetch("/api/scratch/note", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: newNote }) });
-        cache.note = newNote;
-        renderNote();
-      });
-    }
+    if (noteEditor) noteEditor.setText(cache.note || "");
   }
 
   async function saveNote(newNote) {
     const res = await fetch("/api/scratch/note", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: newNote }) });
     if (res.ok) cache.note = newNote;
-    renderNote();
   }
 
   function renderCounters() {
@@ -158,8 +171,8 @@
     body.innerHTML = counters.map((c) => `
       <div class="scratch-counter-row" data-counter-id="${c.id}">
         <input type="text" class="sc-label-input" placeholder="メモ" value="${escapeHtmlLocal(c.label)}">
-        <span class="sc-sep">-</span>
-        <span class="sc-value">${c.value}</span>
+        <button class="sc-dec" title="-1">${window.icon ? window.icon("minus", { size: 12 }) : "-"}</button>
+        <input type="number" class="sc-value" value="${c.value}">
         <button class="sc-inc" title="+1">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
         <button class="sc-del" title="削除">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
       </div>
@@ -179,6 +192,33 @@
       btn.addEventListener("click", async () => {
         const id = btn.closest(".scratch-counter-row").dataset.counterId;
         const res = await fetch(`/api/scratch/counters/${encodeURIComponent(id)}/increment`, { method: "POST" });
+        if (res.ok) {
+          const updated = await res.json();
+          const c = cache.counters.find((x) => x.id === id);
+          if (c) c.value = updated.value;
+          renderCounters();
+        }
+      });
+    });
+    body.querySelectorAll(".sc-dec").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.closest(".scratch-counter-row").dataset.counterId;
+        const res = await fetch(`/api/scratch/counters/${encodeURIComponent(id)}/decrement`, { method: "POST" });
+        if (res.ok) {
+          const updated = await res.json();
+          const c = cache.counters.find((x) => x.id === id);
+          if (c) c.value = updated.value;
+          renderCounters();
+        }
+      });
+    });
+    body.querySelectorAll(".sc-value").forEach((input) => {
+      input.addEventListener("change", async () => {
+        const id = input.closest(".scratch-counter-row").dataset.counterId;
+        const value = parseInt(input.value, 10) || 0;
+        const res = await fetch(`/api/scratch/counters/${encodeURIComponent(id)}/value`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value }),
+        });
         if (res.ok) {
           const updated = await res.json();
           const c = cache.counters.find((x) => x.id === id);
@@ -280,7 +320,7 @@
 
     const btn = document.createElement("button");
     btn.id = "scratch-toggle-btn";
-    btn.innerHTML = (window.icon ? window.icon("pencil") : "") + "メモ";
+    btn.innerHTML = (window.icon ? window.icon("pencil") : "") + "クイックメモ";
     getTopRightBar().appendChild(btn);
 
     const panel = document.createElement("div");
@@ -288,13 +328,20 @@
     panel.className = "hidden";
     panel.innerHTML = `
       <div class="s-head" id="scratch-drag-handle">
-        <span class="s-title">${window.icon ? window.icon("pencil", { size: 14 }) : ""}メモ</span>
+        <span class="s-title">${window.icon ? window.icon("pencil", { size: 14 }) : ""}クイックメモ</span>
+        <div class="popover-wrap">
+          <button class="icon-btn" id="scratch-help-toggle" title="記法チートシート">${window.icon ? window.icon("circle-alert", { size: 14 }) : "!"}</button>
+          <div class="popover hidden" id="scratch-help-popover">
+            <code>**太字**</code> で太字<br>
+            <code>- </code> で箇条書き<br>
+            <code>- [ ]</code> / <code>- [x]</code> でチェックリスト（クリックで切替）<br>
+            編集中の行だけ生のMarkdown表示、他の行は整形表示になります。
+          </div>
+        </div>
         <button id="scratch-close" title="閉じる">${window.icon ? window.icon("x", { size: 14 }) : "×"}</button>
       </div>
       <div class="s-body">
-        <div class="s-section-title">メモ（Markdown対応、- [ ] でチェックリスト）</div>
-        <textarea id="scratch-note-input" placeholder="ここにメモを書く"></textarea>
-        <div id="scratch-note-preview"></div>
+        <div id="scratch-note-editor"></div>
         <div class="s-section-title">カウントアップ</div>
         <div id="scratch-counters-body"></div>
         <button id="scratch-add-counter-btn">${window.icon ? window.icon("plus", { size: 12 }) : "+"}カウントアップを追加</button>
@@ -307,8 +354,16 @@
     panel.querySelector("#scratch-close").addEventListener("click", () => togglePanel(btn, panel));
     setupDrag(panel, panel.querySelector("#scratch-drag-handle"));
 
-    const noteInput = panel.querySelector("#scratch-note-input");
-    noteInput.addEventListener("blur", () => saveNote(noteInput.value));
+    panel.querySelector("#scratch-help-toggle").addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.querySelector("#scratch-help-popover").classList.toggle("hidden");
+    });
+    panel.querySelector("#scratch-help-popover").addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => {
+      panel.querySelector("#scratch-help-popover").classList.add("hidden");
+    });
+
+    noteEditor = window.createLiveEditor(panel.querySelector("#scratch-note-editor"), "", saveNote);
 
     panel.querySelector("#scratch-add-counter-btn").addEventListener("click", async () => {
       const c = { id: genId("counter"), label: "", value: 0 };

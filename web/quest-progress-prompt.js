@@ -52,7 +52,7 @@
     box.style.cssText =
       // spoiler-warning.jsと同じ理由で不透明な--bgを使う（2026-08-20、のっち指摘）。
       "background:var(--bg,#12141a);color:var(--text,#e4e6ec);border:1px solid var(--border,#2a2e3a);" +
-      "border-radius:16px;padding:18px 20px;max-width:520px;font-family:-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
+      "border-radius:16px;padding:18px 20px;max-width:520px;font-family:'Noto Sans JP',-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
       "font-size:0.85rem;line-height:1.6;box-shadow:0 12px 30px rgba(0,0,0,0.5);";
 
     const checkboxesHtml = targets.map((t, i) =>

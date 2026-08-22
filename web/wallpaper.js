@@ -169,7 +169,7 @@
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);
         border-radius: 18px; padding: 16px; width: min(480px, 90vw);
-        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         color: var(--text, #e4e6ec);
       }
       #wallpaper-position-modal h3 { margin: 0 0 4px; font-size: 1rem; }
@@ -198,7 +198,7 @@
         border: 1px solid var(--border, #2a2e3a);
         border-radius: 18px; padding: 16px; width: min(380px, 92vw);
         max-height: 84vh; overflow-y: auto;
-        font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+        font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         color: var(--text, #e4e6ec);
       }
       #header-icon-modal h3 { margin: 0 0 10px; font-size: 1rem; }

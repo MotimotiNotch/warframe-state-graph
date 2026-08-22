@@ -1,4 +1,16 @@
 {
-  "items": {},
+  "schemaVersion": 1,
+  "items": {
+    "item-mt3ogrilz6eq": {
+      "id": "item-mt3ogrilz6eq",
+      "name": "Ash Prime",
+      "type": "Frame",
+      "configs": {
+        "A": [],
+        "B": [],
+        "C": []
+      }
+    }
+  },
   "buildSets": {}
 }
