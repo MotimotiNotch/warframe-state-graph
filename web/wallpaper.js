@@ -173,7 +173,7 @@
         color: var(--text, #e4e6ec);
       }
       #wallpaper-position-modal h3 { margin: 0 0 4px; font-size: 1rem; }
-      #wallpaper-position-modal .wp-hint { margin: 0 0 10px; font-size: 0.78rem; color: var(--muted, #8a8f9c); }
+      #wallpaper-position-modal .wp-hint { margin: 0 0 10px; font-size: 0.78rem; color: var(--muted, #7c818f); }
       #wallpaper-position-modal .wp-frame {
         position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
         border-radius: 8px; border: 1px solid var(--border, #2a2e3a);
@@ -204,21 +204,21 @@
       #header-icon-modal h3 { margin: 0 0 10px; font-size: 1rem; }
       #header-icon-modal .hi-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
       #header-icon-modal .hi-tab {
-        flex: 1; background: transparent; color: var(--muted, #8a8f9c);
+        flex: 1; background: transparent; color: var(--muted, #7c818f);
         border: 1px solid var(--border, #2a2e3a); border-radius: 8px;
         padding: 6px 8px; font-size: 0.78rem; cursor: pointer; font-family: inherit;
       }
       #header-icon-modal .hi-tab.active {
-        background: var(--bg, #12141a); color: var(--accent, #f0c674); border-color: var(--accent, #f0c674);
+        background: var(--bg, #12141a); color: var(--accent, #f6ddaa); border-color: var(--accent, #f6ddaa);
       }
       #header-icon-modal .hi-glossary-cat-title {
-        font-size: 0.75rem; color: var(--muted, #8a8f9c); letter-spacing: 0.04em;
+        font-size: 0.75rem; color: var(--muted, #7c818f); letter-spacing: 0.04em;
         text-transform: uppercase; margin: 10px 0 4px;
       }
       #header-icon-modal .hi-glossary-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
       #header-icon-modal .hi-glossary-table td { padding: 2px 0; vertical-align: middle; }
       #header-icon-modal .hi-glossary-en {
-        font-size: 0.72rem; color: var(--muted, #8a8f9c); max-width: 120px;
+        font-size: 0.72rem; color: var(--muted, #7c818f); max-width: 120px;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px;
       }
       #header-icon-modal .hi-glossary-ja-input {
@@ -226,7 +226,7 @@
         border: 1px solid var(--border, #2a2e3a); border-radius: 6px;
         padding: 4px 6px; font-size: 0.78rem; font-family: inherit;
       }
-      #header-icon-modal .hi-glossary-ja-input:focus { border-color: var(--accent, #f0c674); outline: none; }
+      #header-icon-modal .hi-glossary-ja-input:focus { border-color: var(--accent, #f6ddaa); outline: none; }
       #header-icon-modal .hi-glossary-table .hi-glossary-del {
         width: auto; margin: 0 0 0 4px; padding: 4px 6px; line-height: 0;
       }
@@ -246,9 +246,9 @@
         padding: 10px 12px; font-size: 0.88rem; cursor: pointer; margin-bottom: 8px;
         font-family: inherit;
       }
-      #header-icon-modal .hi-choice:hover { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
-      #header-icon-modal .hi-choice.hi-reset { color: var(--muted, #8a8f9c); font-size: 0.8rem; padding: 7px 12px; }
-      #header-icon-modal .hi-choice.hi-reset:hover { border-color: var(--danger, #e0616b); color: var(--danger, #e0616b); }
+      #header-icon-modal .hi-choice:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
+      #header-icon-modal .hi-choice.hi-reset { color: var(--muted, #7c818f); font-size: 0.8rem; padding: 7px 12px; }
+      #header-icon-modal .hi-choice.hi-reset:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
       #header-icon-modal .hi-sub {
         display: flex; flex-direction: column; gap: 6px;
         margin: -2px 0 10px; padding: 8px 10px;
@@ -265,13 +265,13 @@
         border-radius: 6px; padding: 4px 6px; font-size: 0.78rem; font-family: inherit;
       }
       #header-icon-modal .hi-blur-row { margin-bottom: 10px; }
-      #header-icon-modal .hi-hint { font-size: 0.72rem; color: var(--muted, #8a8f9c); margin: 6px 0 0; }
+      #header-icon-modal .hi-hint { font-size: 0.72rem; color: var(--muted, #7c818f); margin: 6px 0 0; }
       #header-icon-modal .hi-cancel-row { display: flex; justify-content: flex-end; margin-top: 10px; }
       #header-icon-modal .hi-cancel-row button {
-        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #8a8f9c);
+        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
         border-radius: 8px; padding: 5px 10px; font-size: 0.78rem; cursor: pointer; font-family: inherit;
       }
-      #header-icon-modal .hi-cancel-row button:hover { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
+      #header-icon-modal .hi-cancel-row button:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
     `;
     document.head.appendChild(style);
   }

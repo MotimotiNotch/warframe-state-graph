@@ -42,12 +42,12 @@
         background: var(--panel, #1b1e27);
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
-        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #8a8f9c);
+        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
         border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
         font-family: -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       }
-      #scratch-toggle-btn:hover, #scratch-toggle-btn.active { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
+      #scratch-toggle-btn:hover, #scratch-toggle-btn.active { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
 
       #scratch-panel {
         position: fixed;
@@ -75,12 +75,12 @@
       #scratch-panel .s-head.dragging { cursor: grabbing; }
       #scratch-panel .s-head .s-title { font-weight: 600; color: var(--text, #e4e6ec); flex: 1; }
       #scratch-panel .s-head button {
-        background: transparent; border: none; color: var(--muted, #8a8f9c); cursor: pointer; line-height: 0; padding: 2px;
+        background: transparent; border: none; color: var(--muted, #7c818f); cursor: pointer; line-height: 0; padding: 2px;
       }
-      #scratch-panel .s-head button:hover { color: var(--danger, #e0616b); }
+      #scratch-panel .s-head button:hover { color: var(--danger, #e88c93); }
       #scratch-panel .s-body { padding: 8px; overflow-y: auto; }
 
-      #scratch-panel .s-section-title { color: var(--muted, #8a8f9c); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
+      #scratch-panel .s-section-title { color: var(--muted, #7c818f); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
       #scratch-panel .s-section-title:first-child { margin-top: 0; }
 
       #scratch-note-input {
@@ -100,21 +100,21 @@
         background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
         border-radius: 4px; font-size: 0.75rem; padding: 3px 5px; font-family: inherit;
       }
-      .scratch-counter-row .sc-sep { color: var(--muted, #8a8f9c); }
-      .scratch-counter-row .sc-value { color: var(--actionable, #4fd88a); font-variant-numeric: tabular-nums; min-width: 1.5em; text-align: right; }
+      .scratch-counter-row .sc-sep { color: var(--muted, #7c818f); }
+      .scratch-counter-row .sc-value { color: var(--actionable, #7ee3a9); font-variant-numeric: tabular-nums; min-width: 1.5em; text-align: right; }
       .scratch-counter-row button {
         background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
         border-radius: 4px; font-size: 0.68rem; padding: 2px 4px; cursor: pointer; line-height: 0;
       }
-      .scratch-counter-row button:hover { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
-      .scratch-counter-row button.sc-del:hover { border-color: var(--danger, #e0616b); color: var(--danger, #e0616b); }
+      .scratch-counter-row button:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
+      .scratch-counter-row button.sc-del:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
       #scratch-add-counter-btn {
         display: inline-flex; align-items: center; gap: 5px; margin-top: 6px;
-        background: transparent; color: var(--muted, #8a8f9c); border: 1px dashed var(--border, #2a2e3a);
+        background: transparent; color: var(--muted, #7c818f); border: 1px dashed var(--border, #2a2e3a);
         border-radius: 6px; font-size: 0.75rem; padding: 4px 8px; cursor: pointer; width: 100%; justify-content: center;
       }
-      #scratch-add-counter-btn:hover { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
-      #scratch-counters-empty { color: var(--muted, #8a8f9c); font-size: 0.72rem; padding: 2px 0; }
+      #scratch-add-counter-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
+      #scratch-counters-empty { color: var(--muted, #7c818f); font-size: 0.72rem; padding: 2px 0; }
     `;
     document.head.appendChild(style);
   }

@@ -58,7 +58,7 @@
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);
-        color: var(--muted, #8a8f9c);
+        color: var(--muted, #7c818f);
         border-radius: 10px;
         padding: 6px;
         display: inline-flex;
@@ -68,7 +68,7 @@
         line-height: 0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       }
-      #theme-toggle-btn:hover { border-color: var(--accent, #f0c674); color: var(--accent, #f0c674); }
+      #theme-toggle-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
     `;
     document.head.appendChild(style);
   }
