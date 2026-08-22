@@ -36,6 +36,11 @@ type Entry struct {
 // 基にしたメインストーリークエストの前提関係。Source:
 // https://wiki.warframe.com/w/Quest (2026-08-19確認、Update 35.0でMastery Rank要件は
 // 大半のメインクエストから撤廃済みとの記載あり、本表ではMR要件は扱わずクエスト前提のみ扱う)。
+// Name表記はWFCD Quests.json（全単語先頭大文字、前置詞も含む）に揃えている。2026-08-22、
+// 「Heart of Deimos」のような自然な英語表記（前置詞小文字）で書いていた4件が、Statsページの
+// クエストチェックリスト（WFCD由来の表記）と大文字小文字で食い違い、カスケード結果が別キーに
+// 書き込まれてチェックボックスが反応しないように見えるバグの原因になっていた。表記ゆれは
+// 今後もこの手のバグを生むため、必ずWFCD表記に揃えること。
 var MainStoryChain = []Entry{
 	// --- Arc 1: Tenno Awakening ---
 	{Name: "Awakening"},
@@ -43,8 +48,8 @@ var MainStoryChain = []Entry{
 	{Name: "The Teacher", Prerequisites: []string{"Vor's Prize"}},
 	{Name: "Vox Solaris", Prerequisites: []string{"The Teacher"}},
 	{Name: "Once Awake", Prerequisites: []string{"Vox Solaris"}},
-	{Name: "Heart of Deimos", Prerequisites: []string{"Once Awake"}},
-	{Name: "The Archwing", Prerequisites: []string{"Heart of Deimos"}},
+	{Name: "Heart Of Deimos", Prerequisites: []string{"Once Awake"}},
+	{Name: "The Archwing", Prerequisites: []string{"Heart Of Deimos"}},
 	{Name: "Stolen Dreams", Prerequisites: []string{"The Archwing"}},
 	{Name: "The New Strange", Prerequisites: []string{"Stolen Dreams"}},
 	{Name: "The Duviri Paradox", Prerequisites: []string{"The New Strange"}},
@@ -57,8 +62,8 @@ var MainStoryChain = []Entry{
 	{Name: "The War Within", Prerequisites: []string{"The Second Dream"}},
 	{Name: "The Glast Gambit", Prerequisites: []string{"The War Within"}},
 	{Name: "Rising Tide", Prerequisites: []string{"The War Within"}},
-	{Name: "Chains of Harrow", Prerequisites: []string{"Rising Tide"}},
-	{Name: "Apostasy Prologue", Prerequisites: []string{"Chains of Harrow"}},
+	{Name: "Chains Of Harrow", Prerequisites: []string{"Rising Tide"}},
+	{Name: "Apostasy Prologue", Prerequisites: []string{"Chains Of Harrow"}},
 	{Name: "The Sacrifice", Prerequisites: []string{"Apostasy Prologue"}},
 
 	// --- Arc 3: The New War ---
@@ -69,14 +74,14 @@ var MainStoryChain = []Entry{
 	// The New War は Duviri Paradox（Arc1末尾）とも絡むとWiki記載あり。ここでは
 	// メインライン（Arc3内のThe Maker後）を代表の前提として採用。
 	{Name: "The New War", Prerequisites: []string{"The Maker"}},
-	{Name: "Angels of the Zariman", Prerequisites: []string{"The New War"}},
+	{Name: "Angels Of The Zariman", Prerequisites: []string{"The New War"}},
 	{Name: "Veilbreaker", Prerequisites: []string{"The New War"}},
 	{Name: "Jade Shadows", Prerequisites: []string{"Veilbreaker"}},
 	{Name: "Jade Shadows: Constellations", Prerequisites: []string{"Jade Shadows"}},
 
 	// --- Arc 4: Void War Saga ---
-	{Name: "Whispers in the Walls", Prerequisites: []string{"The New War"}},
-	{Name: "The Lotus Eaters", Prerequisites: []string{"Whispers in the Walls"}},
+	{Name: "Whispers In The Walls", Prerequisites: []string{"The New War"}},
+	{Name: "The Lotus Eaters", Prerequisites: []string{"Whispers In The Walls"}},
 	// The Hex はWikiで「The Duviri Paradoxも前提」と明記されていた（複数前提のAND条件）。
 	{Name: "The Hex", Prerequisites: []string{"The Lotus Eaters", "The Duviri Paradox"}},
 	{Name: "The Old Peace", Prerequisites: []string{"The Lotus Eaters"}},
@@ -90,6 +95,17 @@ func entryByName(name string) (Entry, bool) {
 		}
 	}
 	return Entry{}, false
+}
+
+// MainQuestNames はMainStoryChainに登録されている全クエスト名（Arc順）を返す。
+// Statsページ「クエスト進行状況」でメイン/サブクエストを分けて表示する際の判定に使う
+// （2026-08-22）。ここに無い名前は全てサブクエスト扱いになる。
+func MainQuestNames() []string {
+	names := make([]string, len(MainStoryChain))
+	for i, e := range MainStoryChain {
+		names[i] = e.Name
+	}
+	return names
 }
 
 // slugPattern はwfcdgen.Slugと同じ変換ルール（英数字とハイフン以外を除去）。

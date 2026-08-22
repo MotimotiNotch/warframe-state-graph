@@ -42,6 +42,9 @@ func (s *FileStore) loadLocked() (*Data, error) {
 	if d.Frames == nil {
 		d.Frames = make(map[string]*FrameEntry)
 	}
+	if d.Incarnons == nil {
+		d.Incarnons = make(map[string]*IncarnonEntry)
+	}
 	if d.SchemaVersion == 0 {
 		d.SchemaVersion = CurrentSchemaVersion
 	}
@@ -119,13 +122,24 @@ func (s *FileStore) DeleteFrame(id string) error {
 	return s.saveLocked(d)
 }
 
-func (s *FileStore) SetDuviri(duviri DuviriData) error {
+func (s *FileStore) UpsertIncarnon(entry *IncarnonEntry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	d, err := s.loadLocked()
 	if err != nil {
 		return err
 	}
-	d.Duviri = duviri
+	d.Incarnons[entry.ID] = entry
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) DeleteIncarnon(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	delete(d.Incarnons, id)
 	return s.saveLocked(d)
 }

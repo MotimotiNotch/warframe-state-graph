@@ -3,8 +3,13 @@
   "rivens": {},
   "kuva": {},
   "frames": {},
-  "duviri": {
-    "completed": false,
-    "incarnonCount": 0
+  "incarnons": {
+    "incarnon-mt45jcdz7l4f": {
+      "id": "incarnon-mt45jcdz7l4f",
+      "weaponName": "Dorrclave",
+      "obtained": true,
+      "completed": true,
+      "note": "テスト\nじつはつよい"
+    }
   }
 }

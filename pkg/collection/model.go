@@ -91,21 +91,28 @@ type FrameEntry struct {
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
 }
 
-// DuviriData はデュビリ（The Duviri Paradox）の進捗。武器単位の登録制ではなく、
-// デュビリという場所そのものが主体——達成済み/インカーノン済みの2軸で持つ
-// （2026-08-19、当初「Kuvaと同じ武器登録制」→「自由記述メモのみ」と縮小したが、
-// 本人の訂正を受けてこの3点構成に確定した）。
-type DuviriData struct {
-	// Completed はデュビリ本編クリア相当の達成済みフラグ（定義は実装時確定の想定どおり、
-	// ここでは「デュビリのメインの目標を一通り終えた」という単一の二値に留める）。
+// IncarnonEntry はインカーノン対応武器1件の進捗記録。武器単位の登録制
+// （Riven/Kuva/Frameと同じ、2026-08-22再々訂正）。デュビリという場所そのものを主体に
+// した「達成済み/インカーノン済み」という2軸の集計方式を経由したが、WFCD
+// （warframe-itemsのタグ／warframe-drop-dataの報酬表）双方にCircuit経由のインカーノン
+// 対象武器一覧が存在しないことを確認し、母数を要する集計を断念——Riven/Kuva/Frameと同じ
+// 「気になる武器だけ手動登録」方式に回帰した。デュビリ本編（Lone Story／Orowyrm撃破等の
+// ストーリー進捗）のクリア状況はこのツールのスコープ外で、扱わない。
+type IncarnonEntry struct {
+	ID         string `json:"id"`
+	WeaponName string `json:"weaponName"` // WFCD Primary/Secondary/Melee.jsonから選択
+
+	// Obtained は「インカーノン取得済み」（Duviri Circuit経由でIncarnon Genesis
+	// アダプターを入手済みか）。
+	Obtained bool `json:"obtained"`
+
+	// Completed は「インカーノン済み」（アダプター装着後、進化チャレンジを完了して
+	// 実際にIncarnon形態を解放済みか）。ObtainedがfalseでCompletedがtrueの組み合わせは
+	// ゲーム的には起こらない想定だが、Riven.Fixed等と同じくUI側で強制はしない。
 	Completed bool `json:"completed"`
 
-	// IncarnonCount はCircuit経由でIncarnon adapterを入手した数。
-	IncarnonCount int `json:"incarnonCount"`
-
-	// Note はインカーノン済みの武器名等の自由記述（星図/Steel Path進捗のような構造化はせず、
-	// Loadouts.Item.Noteと同じ軽量方針）。
-	Note string `json:"note,omitempty"`
+	Note            string `json:"note,omitempty"`
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
 }
 
 // CurrentSchemaVersion is the on-disk shape version this build writes.
@@ -114,11 +121,11 @@ type DuviriData struct {
 const CurrentSchemaVersion = 1
 
 type Data struct {
-	SchemaVersion int                    `json:"schemaVersion"`
-	Rivens        map[string]*RivenEntry `json:"rivens"`
-	Kuva          map[string]*KuvaEntry  `json:"kuva"`
-	Frames        map[string]*FrameEntry `json:"frames"`
-	Duviri        DuviriData             `json:"duviri"`
+	SchemaVersion int                       `json:"schemaVersion"`
+	Rivens        map[string]*RivenEntry    `json:"rivens"`
+	Kuva          map[string]*KuvaEntry     `json:"kuva"`
+	Frames        map[string]*FrameEntry    `json:"frames"`
+	Incarnons     map[string]*IncarnonEntry `json:"incarnons"`
 }
 
 func NewData() *Data {
@@ -127,5 +134,6 @@ func NewData() *Data {
 		Rivens:        make(map[string]*RivenEntry),
 		Kuva:          make(map[string]*KuvaEntry),
 		Frames:        make(map[string]*FrameEntry),
+		Incarnons:     make(map[string]*IncarnonEntry),
 	}
 }

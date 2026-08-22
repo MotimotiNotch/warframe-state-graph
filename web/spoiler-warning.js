@@ -46,7 +46,7 @@
       "特定の入手手段を持つ武器名など、<b>まだプレイしていないコンテンツの名称が画面に表示される</b>ことがあります。</div>" +
       `<ul style='margin:0;padding-left:18px;'>` +
       "<li>先の情報を見たくないページ（特にChain ViewのWFCD自動生成）は利用を控えてください</li>" +
-      "<li>先にChain ViewでWFCD自動生成インポートを使ってクエストの達成状態を登録しておくと、自分の進行にネタバレの状態を合わせやすくなります</li>" +
+      "<li>先にStatsページの「クエスト進行状況」パネルでクリア済みクエストを登録しておくと、自分の進行にネタバレの状態を合わせやすくなります</li>" +
       "</ul>" +
       "<div style='text-align:right;margin-top:14px;'>" +
       "<button id='spoiler-ack-btn' style='background:transparent;border:1px solid var(--accent,#f6ddaa);" +
@@ -59,6 +59,9 @@
         localStorage.setItem(KEY, "1");
       } catch (e) {}
       backdrop.remove();
+      // quest-onboarding.js（クエスト進行状況の先行登録モーダル）が、このモーダルと
+      // 同時に2枚重ならないよう、閉じたタイミングを待って自分を表示する（2026-08-22）。
+      window.dispatchEvent(new CustomEvent("warframe-state-graph:spoiler-acknowledged"));
     });
   }
 

@@ -35,6 +35,9 @@ func (s *FileStore) loadLocked() (*Data, error) {
 	if d.Planets == nil {
 		d.Planets = make(map[string]*PlanetProgress)
 	}
+	if d.RailjackProxima == nil {
+		d.RailjackProxima = make(map[string]*PlanetProgress)
+	}
 	if d.RailjackIntrinsics == nil {
 		d.RailjackIntrinsics = make(map[string]int)
 	}
@@ -67,6 +70,14 @@ func (s *FileStore) loadLocked() (*Data, error) {
 			d.RailjackComponents[slot] = &RailjackComponent{}
 		}
 	}
+	if d.QuestsCleared == nil {
+		d.QuestsCleared = make(map[string]bool)
+	}
+	for _, quest := range GatingQuests {
+		if _, ok := d.QuestsCleared[quest]; !ok {
+			d.QuestsCleared[quest] = false
+		}
+	}
 	if d.SchemaVersion == 0 {
 		d.SchemaVersion = CurrentSchemaVersion
 	}
@@ -87,6 +98,22 @@ func (s *FileStore) SetPlanetProgress(planetKey string, progress PlanetProgress)
 		return nil, err
 	}
 	d.Planets[planetKey] = &progress
+	if err := s.saveLocked(d); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+// SetProximaProgress はRailjack Proxima1地域分の分子を更新する。SetPlanetProgressと
+// 同形（2026-08-22、星図側のnodeCount合算からProxima分離）。
+func (s *FileStore) SetProximaProgress(proximaKey string, progress PlanetProgress) (*Data, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return nil, err
+	}
+	d.RailjackProxima[proximaKey] = &progress
 	if err := s.saveLocked(d); err != nil {
 		return nil, err
 	}
@@ -117,6 +144,40 @@ func (s *FileStore) SetDrifterIntrinsic(category string, rank int) (*Data, error
 		return nil, err
 	}
 	d.DrifterIntrinsics[category] = rank
+	if err := s.saveLocked(d); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+// SetQuestCleared はStats独自のクエストクリア状態を更新する（Chain Viewのノード登録有無
+// とは無関係、GatingQuests参照）。
+func (s *FileStore) SetQuestCleared(quest string, cleared bool) (*Data, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return nil, err
+	}
+	d.QuestsCleared[quest] = cleared
+	if err := s.saveLocked(d); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+// SetQuestsCleared は複数クエストをまとめてclearedに設定する（メインクエストの前提連鎖
+// カスケード用、2026-08-22）。1回のロック・保存で済ませる。
+func (s *FileStore) SetQuestsCleared(quests []string, cleared bool) (*Data, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return nil, err
+	}
+	for _, quest := range quests {
+		d.QuestsCleared[quest] = cleared
+	}
 	if err := s.saveLocked(d); err != nil {
 		return nil, err
 	}

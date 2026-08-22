@@ -78,30 +78,46 @@ func IsValidRailjackValue(v string, allowed []string) bool {
 	return false
 }
 
+// GatingQuests はStatsページのFocus/Railjack/Drifterセクションの折りたたみを制御する
+// 前提クエスト一覧。Chain View側のノード登録（`requires`グラフの一部として意図的に
+// トラッキング対象にしたビルドのみ）とは別軸——「実際にこのクエストをクリアしたか」という
+// アカウント状態の事実であり、Chain Viewにノードを登録していなくても真になり得る
+// （2026-08-22、「Chain view未登録＝未クリア扱いになるのはおかしい」という指摘を受けて
+// QuestsClearedをStats独自の入力として新設、Chain View由来のisQuestSatisfied()判定を置換）。
+var GatingQuests = []string{"The Second Dream", "Rising Tide", "The Duviri Paradox"}
+
 // CurrentSchemaVersion is the on-disk shape version this build writes.
 const CurrentSchemaVersion = 1
 
 // Data は永続化される全体データ。Planetsはpkg/starchart.Planet.Keyをキーにする
 // （固定リストではなく、ゲームアップデートで惑星が増えても既存キーはそのまま残る想定）。
 type Data struct {
-	SchemaVersion      int                           `json:"schemaVersion"`
-	Planets            map[string]*PlanetProgress    `json:"planets"`
+	SchemaVersion int                        `json:"schemaVersion"`
+	Planets       map[string]*PlanetProgress `json:"planets"`
+	// RailjackProxima はpkg/starchart.Proxima.Keyをキーにする、Railjack Proxima地域ごとの
+	// 進捗（分子）。PlanetProgressと同じ形（Cleared/SteelPathCleared）なので型を再利用する
+	// （2026-08-22、星図側のnodeCount合算からProxima分離）。星図とは独立したセクション
+	// （Railjackパネル配下、ネタバレゲート済み）に表示するため別マップに分ける。
+	RailjackProxima    map[string]*PlanetProgress    `json:"railjackProxima"`
 	RailjackIntrinsics map[string]int                `json:"railjackIntrinsics"`
 	DrifterIntrinsics  map[string]int                `json:"drifterIntrinsics"`
 	FocusInvestment    map[string]FocusInvestment    `json:"focusInvestment"`
 	FocusActiveSchool  string                        `json:"focusActiveSchool"`
 	RailjackComponents map[string]*RailjackComponent `json:"railjackComponents"`
 	RailjackPlexusNote string                        `json:"railjackPlexusNote"`
+	QuestsCleared      map[string]bool               `json:"questsCleared"`
 }
 
 func NewData() *Data {
 	d := &Data{
 		SchemaVersion:      CurrentSchemaVersion,
 		Planets:            make(map[string]*PlanetProgress),
+		RailjackProxima:    make(map[string]*PlanetProgress),
 		RailjackIntrinsics: make(map[string]int),
 		DrifterIntrinsics:  make(map[string]int),
 		FocusInvestment:    make(map[string]FocusInvestment),
 		RailjackComponents: make(map[string]*RailjackComponent),
+		QuestsCleared:      make(map[string]bool),
 	}
 	for _, name := range RailjackCategories {
 		d.RailjackIntrinsics[name] = 0
@@ -114,6 +130,9 @@ func NewData() *Data {
 	}
 	for _, slot := range RailjackComponentSlots {
 		d.RailjackComponents[slot] = &RailjackComponent{}
+	}
+	for _, quest := range GatingQuests {
+		d.QuestsCleared[quest] = false
 	}
 	return d
 }

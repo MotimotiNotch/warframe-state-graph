@@ -18,6 +18,7 @@ import (
 
 const (
 	frameSourceURL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Warframes.json"
+	questSourceURL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Quests.json"
 )
 
 var weaponSourceURLs = []string{
@@ -80,6 +81,14 @@ func CachedNames(cacheDir, cacheFile string, fetch func() ([]string, error)) ([]
 
 func FetchFrameNames() ([]string, error) {
 	return fetchNames(frameSourceURL)
+}
+
+// FetchQuestNames はメイン/サブクエスト全件（Quests.json、46件、2026-08-22確認）の名前一覧。
+// pkg/questchain.MainStoryChainは前提関係を持つメインストーリーの部分集合に限定しているが、
+// こちらは「実際にクリアしたか」を記録するだけの用途（Stats「クエスト進行状況」）なので、
+// サブクエスト込みの全件をそのまま使う。
+func FetchQuestNames() ([]string, error) {
+	return fetchNames(questSourceURL)
 }
 
 func FetchWeaponNames() ([]string, error) {

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	webassets "warframe-state-graph"
@@ -19,6 +20,7 @@ import (
 	"warframe-state-graph/pkg/glossary"
 	"warframe-state-graph/pkg/loadout"
 	"warframe-state-graph/pkg/model"
+	"warframe-state-graph/pkg/questchain"
 	"warframe-state-graph/pkg/scratch"
 	"warframe-state-graph/pkg/standing"
 	"warframe-state-graph/pkg/starchart"
@@ -400,17 +402,29 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	mux.HandleFunc("POST /api/collections/duviri", func(w http.ResponseWriter, r *http.Request) {
-		var duviri collection.DuviriData
-		if err := json.NewDecoder(r.Body).Decode(&duviri); err != nil {
+	mux.HandleFunc("POST /api/collections/incarnons", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.IncarnonEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err := cs.SetDuviri(duviri); err != nil {
+		if entry.ID == "" || entry.WeaponName == "" {
+			http.Error(w, "id and weaponName are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertIncarnon(&entry); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		writeJSON(w, duviri)
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/incarnons/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteIncarnon(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// Standing（6大シンジケートの現在ランク一覧、Chain View/Loadouts/Collectionsとは
@@ -524,6 +538,18 @@ func main() {
 		writeJSON(w, planets)
 	})
 
+	// Railjack Proxima（星図とは分離、2026-08-22）。ネタバレゲート済みのRailjackセクション
+	// 配下に表示する想定なので、星図のような常時表示のフラットなAPIだが呼び出し側で
+	// 表示タイミングを制御する。
+	mux.HandleFunc("GET /api/starchart/proxima", func(w http.ResponseWriter, r *http.Request) {
+		proxima, err := wfcd.CachedJSON(wfcdCacheDir, "starchart-proxima.json", starchart.FetchProxima)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, proxima)
+	})
+
 	// Stats: 星図/Steel Path進捗（分子）とIntrinsicsランク。4データソース横断集計はここでは
 	// 持たず、フロントエンドが既存の各GET API（graph/loadouts/collections/standing）を
 	// 読み合わせて計算する（2026-08-19設計）。
@@ -547,6 +573,24 @@ func main() {
 			return
 		}
 		d, err := sts.SetPlanetProgress(r.PathValue("key"), progress)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	mux.HandleFunc("POST /api/stats/railjack-proxima/{key}", func(w http.ResponseWriter, r *http.Request) {
+		var progress stats.PlanetProgress
+		if err := json.NewDecoder(r.Body).Decode(&progress); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if progress.Cleared < 0 || progress.SteelPathCleared < 0 {
+			http.Error(w, "cleared and steelPathCleared must be >= 0", http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetProximaProgress(r.PathValue("key"), progress)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -587,6 +631,123 @@ func main() {
 			return
 		}
 		d, err := sts.SetDrifterIntrinsic(r.PathValue("category"), body.Rank)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	// メイン/サブクエスト全件の統合リスト。WFCD Quests.json（46件）には「Prelude to War」
+	// 「The Maker」のようにquestchain.MainStoryChainには載っているが欠落しているメイン
+	// クエストが存在することを2026-08-22に確認した（WFCD側の実データを直接fetchして0件
+	// ヒットで確認済み）。この欠落分を落とすとチェックリストに一生表示されず、前提連鎖
+	// カスケードで書き込まれても画面から触れない孤立キーになるため、WFCD名と
+	// questchain名の和集合を「クエスト全件」の権威あるリストとする。
+	mergedQuestNames := func() ([]string, error) {
+		wfcdNames, err := wfcd.CachedNames(wfcdCacheDir, "quests.json", wfcd.FetchQuestNames)
+		if err != nil {
+			return nil, err
+		}
+		seen := make(map[string]bool, len(wfcdNames))
+		merged := make([]string, 0, len(wfcdNames))
+		for _, n := range wfcdNames {
+			key := strings.ToLower(n)
+			if !seen[key] {
+				seen[key] = true
+				merged = append(merged, n)
+			}
+		}
+		for _, n := range questchain.MainQuestNames() {
+			key := strings.ToLower(n)
+			if !seen[key] {
+				seen[key] = true
+				merged = append(merged, n)
+			}
+		}
+		sort.Strings(merged)
+		return merged, nil
+	}
+
+	// クエストクリア状態。Chain Viewのノード登録有無とは無関係の、Stats独自の「実際にクリアしたか」
+	// の入力（2026-08-22）。メイン/サブクエスト全件（/api/reference/quests）が対象——このうち
+	// stats.GatingQuestsの3件だけがFocus/Railjack/Drifterセクションの折りたたみも連動して制御する。
+	mux.HandleFunc("POST /api/stats/quest/{quest}", func(w http.ResponseWriter, r *http.Request) {
+		quest := r.PathValue("quest")
+		if quest == "" {
+			http.Error(w, "quest name is required", http.StatusBadRequest)
+			return
+		}
+		var body struct {
+			Cleared bool `json:"cleared"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		var d *stats.Data
+		var err error
+		if body.Cleared {
+			// メインクエストの前提連鎖をカスケードでクリア済みにする（例: 「新たな大戦」を
+			// クリア済みにチェックしたら、その前提である「目覚め」〜「サクリファイス」まで
+			// 全部クリア済みになる。実際のゲームでも後のクエストを始めるには前提を全部
+			// クリアしている必要があるため、一つずつ手動でチェックする手間を省く、2026-08-22）。
+			// サイドクエスト等MainStoryChainに無い名前はquestchain.ResolveChainが単体で返す
+			// ので、この処理は素の単一クエストクリアとしても安全に動く。
+			d, err = sts.SetQuestsCleared(questchain.ResolveChain(quest), true)
+		} else {
+			d, err = sts.SetQuestCleared(quest, false)
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+
+	// 「メイン全部クリア/未クリア」「サブ全部クリア/未クリア」ボタン用（2026-08-22、
+	// 「メインとサブは分けてほしかった」との指摘で単一の/allから分離）。対象はいずれも
+	// クライアントの自己申告リストではなくサーバー側で権威あるリストを取り直す
+	// （不完全なリストで一部が取り残されるのを防ぐため）。
+	mux.HandleFunc("POST /api/stats/quests/main", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Cleared bool `json:"cleared"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		d, err := sts.SetQuestsCleared(questchain.MainQuestNames(), body.Cleared)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, d)
+	})
+	mux.HandleFunc("POST /api/stats/quests/sub", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Cleared bool `json:"cleared"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		all, err := mergedQuestNames()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		isMain := make(map[string]bool, len(questchain.MainQuestNames()))
+		for _, n := range questchain.MainQuestNames() {
+			isMain[strings.ToLower(n)] = true
+		}
+		var subNames []string
+		for _, n := range all {
+			if !isMain[strings.ToLower(n)] {
+				subNames = append(subNames, n)
+			}
+		}
+		d, err := sts.SetQuestsCleared(subNames, body.Cleared)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -701,6 +862,22 @@ func main() {
 			return
 		}
 		writeJSON(w, names)
+	})
+
+	// Statsページ「クエスト進行状況」用、メイン/サブクエスト全件（2026-08-22）。
+	mux.HandleFunc("GET /api/reference/quests", func(w http.ResponseWriter, r *http.Request) {
+		names, err := mergedQuestNames()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+
+	// メインストーリークエスト名一覧（questchain.MainStoryChain由来、静的データなので
+	// キャッシュ不要）。フロントエンドの「メイン/サブ」分類・前提連鎖カスケードの判定に使う。
+	mux.HandleFunc("GET /api/reference/main-quests", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, questchain.MainQuestNames())
 	})
 
 	// ノード新規作成・編集（現状data/graph.json直接編集だったマイルストーンの解消）。

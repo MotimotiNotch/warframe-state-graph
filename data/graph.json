@@ -5,7 +5,7 @@
       "id": "apostasy-prologue",
       "name": "Apostasy Prologue",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "chains-of-harrow"
       ],
@@ -104,7 +104,7 @@
       "id": "chains-of-harrow",
       "name": "Chains of Harrow",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "saya-vigil"
       ],
@@ -311,7 +311,7 @@
       "id": "natah-quest",
       "name": "Natah",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "war-within-quest"
       ],
@@ -449,7 +449,7 @@
       "id": "saya-vigil",
       "name": "Saya's Vigil",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [],
       "contains": [],
       "note": "縦の深さ検証用チェーン（9段目、末端でACTIONABLE）。"
@@ -458,7 +458,7 @@
       "id": "second-dream-quest",
       "name": "The Second Dream",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "apostasy-prologue"
       ],
@@ -489,7 +489,7 @@
       "id": "steel-path-junction",
       "name": "Steel Path 解放",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "natah-quest"
       ],
@@ -824,7 +824,7 @@
       "id": "teshin-token",
       "name": "テシンの証",
       "type": "Resource",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "steel-path-junction"
       ],
@@ -864,7 +864,7 @@
       "id": "war-within-quest",
       "name": "The War Within",
       "type": "Quest",
-      "satisfied": true,
+      "satisfied": false,
       "requires": [
         "second-dream-quest"
       ],

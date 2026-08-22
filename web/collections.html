@@ -274,21 +274,9 @@
     <div id="frame-list" class="frame-grid"></div>
   </div>
 
-  <div class="panel" id="duviri-panel">
-    <div class="panel-head"><h2>デュビリ</h2></div>
-    <div class="form-grid">
-      <div>
-        <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="duviri-completed-check" style="width:auto;">達成済み
-        </label>
-      </div>
-      <div>
-        <label class="field-label">インカーノン済み数</label>
-        <input type="text" inputmode="numeric" id="duviri-incarnon-input" style="width:100%;">
-      </div>
-    </div>
-    <label class="field-label">メモ（インカーノン済み武器名等）</label>
-    <textarea id="duviri-note-input" placeholder="任意"></textarea>
+  <div class="panel" id="incarnon-panel">
+    <div class="panel-head"><h2>デュビリ（インカーノン）</h2></div>
+    <div id="incarnon-list" class="frame-grid"></div>
   </div>
 
   <!-- Riven登録/編集モーダル -->
@@ -431,13 +419,43 @@
     </div>
   </div>
 
+  <!-- デュビリ・インカーノン登録/編集モーダル -->
+  <div id="incarnon-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="incarnon-modal-title">インカーノン 新規登録</h3>
+      <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="incarnon-weapon-input" placeholder="例: Braton" autocomplete="off">
+        <div id="incarnon-weapon-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div class="form-grid" style="margin-top:8px;">
+        <div>
+          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="incarnon-obtained-check" style="width:auto;">インカーノン取得済み
+          </label>
+        </div>
+        <div>
+          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="incarnon-completed-check" style="width:auto;">インカーノン済み
+          </label>
+        </div>
+      </div>
+      <label class="field-label">メモ</label>
+      <textarea id="incarnon-note-input" placeholder="任意"></textarea>
+      <div class="actions">
+        <button id="incarnon-modal-cancel">キャンセル</button>
+        <button class="primary" id="incarnon-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
 <script src="/notemd.js"></script>
 <script src="/export.js"></script>
 <script src="/card-tilt.js"></script>
 <script>
-const state = { data: { rivens: {}, kuva: {}, frames: {}, duviri: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
+const state = { data: { rivens: {}, kuva: {}, frames: {}, incarnons: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
 
 // wfcdgen.RivenStatChoices（pkg/wfcdgen/wfcdgen.go）と1:1対応する固定の英→日マッピング。
 // pkg/glossary（`/api/glossary`、ヘッダー設定モーダル「用語」タブ・web/glossary.htmlで確認可能）
@@ -499,7 +517,7 @@ async function loadAll() {
   if (!state.data.rivens) state.data.rivens = {};
   if (!state.data.kuva) state.data.kuva = {};
   if (!state.data.frames) state.data.frames = {};
-  if (!state.data.duviri) state.data.duviri = { completed: false, incarnonCount: 0, note: "" };
+  if (!state.data.incarnons) state.data.incarnons = {};
   render();
 }
 
@@ -559,7 +577,7 @@ function render() {
   renderRivenList();
   renderKuvaGroupedList();
   renderFrameList();
-  renderDuviri();
+  renderIncarnonList();
 }
 
 // ---------- popovers (help / multiselect) ----------
@@ -1096,28 +1114,95 @@ document.getElementById("frame-modal-save").addEventListener("click", () => {
   closeFrameModal();
 });
 
-// ---------- デュビリ ----------
-// 武器単位の登録制ではなく、デュビリという場所そのものが主体（達成済み/インカーノン済み/メモの
-// 3点構成、2026-08-19再訂正）。専用モーダルは持たず、フィールド変更のたびに即保存する
-// （用語マッピングタブのblur保存と同じ発想）。
-function renderDuviri() {
-  const d = state.data.duviri || {};
-  document.getElementById("duviri-completed-check").checked = !!d.completed;
-  document.getElementById("duviri-incarnon-input").value = d.incarnonCount || 0;
-  document.getElementById("duviri-note-input").value = d.note || "";
+// ---------- デュビリ・インカーノン ----------
+// 武器単位の登録制（Riven/Kuva/Frameと同じ、2026-08-22再々訂正）。「デュビリ本編クリア」の
+// 集計を試みたが、WFCD（items側タグ／drop-data側報酬表）どちらにもCircuit経由のインカーノン
+// 対象武器一覧が存在せず母数を自動取得できないため、気になる武器だけ手動登録する方式に確定。
+// 「取得済み」（アダプター入手）と「インカーノン済み」（進化チャレンジ完了）は独立した2軸。
+async function upsertIncarnon(entry) {
+  await fetch("/api/collections/incarnons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
+  await loadAll();
 }
-async function saveDuviri() {
-  const duviri = {
-    completed: document.getElementById("duviri-completed-check").checked,
-    incarnonCount: Math.max(0, Number(document.getElementById("duviri-incarnon-input").value) || 0),
-    note: document.getElementById("duviri-note-input").value.trim(),
+async function deleteIncarnon(id) {
+  await fetch(`/api/collections/incarnons/${encodeURIComponent(id)}`, { method: "DELETE" });
+  await loadAll();
+}
+
+function renderIncarnonList() {
+  const el = document.getElementById("incarnon-list");
+  const entries = Object.values(state.data.incarnons).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
+  const addCardHtml = `<button class="add-card" id="add-incarnon-card" title="新規登録">${icon("plus")}</button>`;
+
+  el.innerHTML = entries.map(entry => `
+    <div class="card-v2" data-open-incarnon="${entry.id}">
+      <div class="card-head">
+        <div class="card-title">${escapeHtml(entry.weaponName)}</div>
+        <div class="card-badges">
+          <span class="badge ${entry.obtained ? "badge-owned" : "badge-notowned"}">${entry.obtained ? "取得済み" : "未取得"}</span>
+          ${entry.completed ? `<span class="badge badge-fix">${icon("check")}インカーノン済み</span>` : ""}
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn" data-copy-incarnon="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-incarnon="${entry.id}" title="削除">${icon("trash-2")}</button>
+        </div>
+      </div>
+      ${entry.chainViewNodeId ? `<div id="minigraph-incarnon-${entry.id}"></div>` : ""}
+      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo" id="notemd-incarnon-${entry.id}"></div>` : ""}
+    </div>
+  `).join("") + addCardHtml;
+
+  document.getElementById("add-incarnon-card").addEventListener("click", () => openIncarnonModal(null));
+
+  entries.forEach(entry => {
+    if (!entry.note) return;
+    const holder = document.getElementById(`notemd-incarnon-${entry.id}`);
+    if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertIncarnon({ ...entry, note: newNote }));
+  });
+  wireCopyButtons(el, "[data-copy-incarnon]", (btn) => buildIncarnonExportText(state.data.incarnons[btn.dataset.copyIncarnon]));
+
+  el.querySelectorAll("[data-open-incarnon]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("[data-del-incarnon]")) return;
+    openIncarnonModal(card.dataset.openIncarnon);
+  }));
+  el.querySelectorAll("[data-del-incarnon]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (confirm(`「${state.data.incarnons[btn.dataset.delIncarnon].weaponName}」を削除する？`)) deleteIncarnon(btn.dataset.delIncarnon);
+  }));
+  entries.forEach(entry => {
+    if (!entry.chainViewNodeId) return;
+    const holder = document.getElementById(`minigraph-incarnon-${entry.id}`);
+    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
+  });
+}
+
+let incarnonEditingId = null;
+function openIncarnonModal(editId) {
+  incarnonEditingId = editId || null;
+  const entry = editId ? state.data.incarnons[editId] : null;
+  document.getElementById("incarnon-modal-title").textContent = entry ? "インカーノン 編集" : "インカーノン 新規登録";
+  document.getElementById("incarnon-weapon-input").value = entry ? entry.weaponName : "";
+  document.getElementById("incarnon-obtained-check").checked = entry ? !!entry.obtained : false;
+  document.getElementById("incarnon-completed-check").checked = entry ? !!entry.completed : false;
+  document.getElementById("incarnon-note-input").value = entry ? (entry.note || "") : "";
+  document.getElementById("incarnon-modal-backdrop").classList.remove("hidden");
+}
+function closeIncarnonModal() { document.getElementById("incarnon-modal-backdrop").classList.add("hidden"); }
+document.getElementById("incarnon-modal-cancel").addEventListener("click", closeIncarnonModal);
+document.getElementById("incarnon-modal-save").addEventListener("click", () => {
+  const weaponName = document.getElementById("incarnon-weapon-input").value.trim();
+  if (!weaponName) { alert("武器名を入力して"); return; }
+  const entry = {
+    id: incarnonEditingId || uid("incarnon"),
+    weaponName,
+    obtained: document.getElementById("incarnon-obtained-check").checked,
+    completed: document.getElementById("incarnon-completed-check").checked,
+    note: document.getElementById("incarnon-note-input").value.trim(),
   };
-  const res = await fetch("/api/collections/duviri", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(duviri) });
-  state.data.duviri = await res.json();
-}
-document.getElementById("duviri-completed-check").addEventListener("change", saveDuviri);
-document.getElementById("duviri-incarnon-input").addEventListener("blur", saveDuviri);
-document.getElementById("duviri-note-input").addEventListener("blur", saveDuviri);
+  upsertIncarnon(entry);
+  closeIncarnonModal();
+});
+setupWeaponCombobox("incarnon-weapon-input", "incarnon-weapon-suggest");
 
 renderRivenPositivePopover();
 updateRivenPositiveBtnLabel();
@@ -1138,7 +1223,7 @@ Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRive
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
 <script src="/spoiler-warning.js"></script>
-<script src="/quest-progress-prompt.js"></script>
+<script src="/quest-onboarding.js"></script>
 <script src="/debug-grid.js"></script>
 </body>
 </html>

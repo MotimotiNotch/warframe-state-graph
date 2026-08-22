@@ -75,6 +75,16 @@
     return lines.join("\n");
   }
 
+  // Collections.IncarnonEntry（デュビリ・インカーノン進捗）用（2026-08-22、DuviriDataの
+  // 集計方式から登録制へ移行した際に追加）。
+  function buildIncarnonExportText(entry) {
+    const lines = [`${entry.weaponName} (Incarnon)`];
+    lines.push(`取得: ${entry.obtained ? "済み" : "未取得"}`);
+    lines.push(`インカーノン: ${entry.completed ? "済み" : "未"}`);
+    if (entry.note) lines.push("", "Note:", entry.note);
+    return lines.join("\n");
+  }
+
   // ボタンのクリックハンドラから直接（awaitを挟まず）呼ばれる想定。
   // navigator.clipboard.writeText はクリックのtransient user activationが
   // 必要なため、間に別の非同期処理を挟むと失効することに注意。
@@ -109,6 +119,7 @@
   window.buildRivenExportText = buildRivenExportText;
   window.buildKuvaExportText = buildKuvaExportText;
   window.buildFrameEntryExportText = buildFrameEntryExportText;
+  window.buildIncarnonExportText = buildIncarnonExportText;
   window.copyTextToClipboard = copyTextToClipboard;
   window.wireCopyButtons = wireCopyButtons;
 })();

@@ -2,14 +2,23 @@
   "schemaVersion": 1,
   "planets": {
     "1999MapName": {
-      "cleared": 0,
+      "cleared": 8,
       "steelPathCleared": 0
+    },
+    "Ceres": {
+      "cleared": 0,
+      "steelPathCleared": 12
+    },
+    "Mars": {
+      "cleared": 0,
+      "steelPathCleared": 19
     }
   },
+  "railjackProxima": {},
   "railjackIntrinsics": {
-    "Command": 10,
+    "Command": 0,
     "Engineering": 0,
-    "Gunnery": 10,
+    "Gunnery": 0,
     "Piloting": 0,
     "Tactical": 0
   },
@@ -45,5 +54,55 @@
       "grade": ""
     }
   },
-  "railjackPlexusNote": ""
+  "railjackPlexusNote": "",
+  "questsCleared": {
+    "A Man Of Few Words": false,
+    "Angels Of The Zariman": false,
+    "Apostasy Prologue": false,
+    "Awakening": false,
+    "Call Of The Tempestarii": false,
+    "Chains Of Harrow": false,
+    "Chimera Prologue": false,
+    "Clan Key": false,
+    "Erra": false,
+    "Heart Of Deimos": false,
+    "Hidden Messages": false,
+    "Howl Of The Kubrow": false,
+    "Jade Shadows": false,
+    "Jade Shadows: Constellations": false,
+    "Mask Of The Revenant": false,
+    "Mutalist Alad V Assassinate": false,
+    "Natah": false,
+    "Octavia's Anthem": false,
+    "Once Awake": false,
+    "Patient Zero": false,
+    "Prelude to War": false,
+    "Rising Tide": false,
+    "Sands Of Inaros": false,
+    "Saya's Vigil": false,
+    "Stolen Dreams": false,
+    "The Archwing": false,
+    "The Deadlock Protocol": false,
+    "The Duviri Paradox": false,
+    "The Glast Gambit": false,
+    "The Hex": false,
+    "The Hex Finale": false,
+    "The Jordas Precept": false,
+    "The Limbo Theorem": false,
+    "The Lotus Eaters": false,
+    "The Maker": false,
+    "The New Strange": false,
+    "The New War": false,
+    "The Old Peace": false,
+    "The Sacrifice": false,
+    "The Second Dream": false,
+    "The Silver Grove": false,
+    "The Teacher": false,
+    "The War Within": false,
+    "The Waverider": false,
+    "Veilbreaker": false,
+    "Vor's Prize": false,
+    "Vox Solaris": false,
+    "Whispers In The Walls": false
+  }
 }
