@@ -31,6 +31,11 @@
       "ja": "クリティカルダメージ",
       "category": "Riven"
     },
+    "Earth": {
+      "enKey": "Earth",
+      "ja": "地球",
+      "category": "惑星"
+    },
     "Electricity Damage": {
       "enKey": "Electricity Damage",
       "ja": "電気ダメージ",

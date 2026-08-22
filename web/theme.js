@@ -58,7 +58,7 @@
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);
-        color: var(--muted, #7c818f);
+        color: var(--muted, #9aa0ab);
         border-radius: 10px;
         padding: 6px;
         display: inline-flex;

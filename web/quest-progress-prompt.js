@@ -68,7 +68,7 @@
       `<div>${checkboxesHtml}</div>` +
       "<div style='text-align:right;margin-top:10px;'>" +
       "<button id='quest-prompt-later' style='background:transparent;border:1px solid var(--border,#2a2e3a);" +
-      "color:var(--muted,#7c818f);border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;margin-right:8px;'>後で</button>" +
+      "color:var(--muted,#9aa0ab);border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;margin-right:8px;'>後で</button>" +
       "<button id='quest-prompt-save' style='background:transparent;border:1px solid var(--accent,#f6ddaa);" +
       "color:var(--accent,#f6ddaa);border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;'>登録する</button>" +
       "</div>";

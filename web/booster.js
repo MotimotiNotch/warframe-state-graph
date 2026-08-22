@@ -116,7 +116,7 @@
         background: var(--panel, #1b1e27);
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
-        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
+        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #9aa0ab);
         border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
         font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
@@ -146,7 +146,7 @@
       #booster-panel .b-head.dragging { cursor: grabbing; }
       #booster-panel .b-head .b-title { font-weight: 600; color: var(--text, #e4e6ec); flex: 1; }
       #booster-panel .b-head button {
-        background: transparent; border: none; color: var(--muted, #7c818f); cursor: pointer; line-height: 0; padding: 2px;
+        background: transparent; border: none; color: var(--muted, #9aa0ab); cursor: pointer; line-height: 0; padding: 2px;
       }
       #booster-panel .b-head button:hover { color: var(--danger, #e88c93); }
       /* scratch.jsと同じ理由: .b-head buttonの汎用スタイルがページ側の.icon-btnを上書きしてしまう
@@ -154,7 +154,7 @@
          右上floatingパネル内だとはみ出すため、right:0固定で明示的に上書きする（2026-08-22）。 */
       #booster-panel .b-head .popover-wrap { position: relative; display: inline-flex; }
       #booster-panel .b-head .icon-btn {
-        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
+        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #9aa0ab);
         border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; line-height: 0;
       }
       #booster-panel .b-head .icon-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
@@ -180,7 +180,7 @@
         row-gap: 4px;
       }
       #booster-panel .b-row { display: contents; }
-      #booster-panel .b-label { color: var(--muted, #7c818f); white-space: nowrap; }
+      #booster-panel .b-label { color: var(--muted, #9aa0ab); white-space: nowrap; }
       #booster-panel .b-time { color: var(--actionable, #7ee3a9); font-variant-numeric: tabular-nums; justify-self: start; }
       #booster-panel select, #booster-panel button.b-action {
         background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
@@ -189,7 +189,7 @@
       #booster-panel button.b-action:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
       #booster-panel button.b-action.b-remove:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
       #booster-panel button.b-action.b-custom-toggle.active { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
-      #booster-panel .b-empty { grid-column: 1 / -1; color: var(--muted, #7c818f); font-size: 0.72rem; padding: 4px 0; }
+      #booster-panel .b-empty { grid-column: 1 / -1; color: var(--muted, #9aa0ab); font-size: 0.72rem; padding: 4px 0; }
       /* テンノコンの大量購入（既定90日超）・リレーでの他プレイヤーからの時間単位ギフト、
          どちらもプルダウンの固定期間(3/7/30/90日)に収まらないため、任意の日数/時間を
          「開始 or 稼働中に加算」できる行を追加する（2026-08-22）。 */
@@ -273,7 +273,7 @@
             <span class="b-label">${b.label}</span>
             <span class="b-time" data-expiry="${entry.expiry}" data-id="${id}">${formatRemaining(remaining)}</span>
             <button class="b-action" data-stop="${id}">停止</button>
-            <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の時間を追加（テンノコン大量購入・リレーでの他プレイヤーからのギフト等）">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
+            <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の時間を追加">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
             <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
           </div>
           ${customRow}`;
@@ -284,7 +284,7 @@
           <span class="b-label">${b.label}</span>
           <select data-duration="${id}">${options}</select>
           <button class="b-action" data-start="${id}">開始</button>
-          <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の日数/時間を指定して開始（テンノコン大量購入・リレーでの他プレイヤーからのギフト等）">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
+          <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の日数/時間を指定して開始">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
           <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
         </div>
         ${customRow}`;
@@ -457,7 +457,7 @@
           <button class="icon-btn" id="booster-help-toggle" title="使い方">${window.icon ? window.icon("circle-alert", { size: 14 }) : "!"}</button>
           <div class="popover hidden" id="booster-help-popover">
             プルダウンは購入時の固定期間（3/7/30/90日）専用。<br>
-            <code>+</code>ボタンで任意の日数/時間を指定可能（上限365日23時間）——テンノコンでの大量購入や、リレーで他プレイヤーから貰った時間単位のギフトに対応。<br>
+            <code>+</code>ボタンで任意の日数/時間を指定可能（上限365日23時間）。<br>
             稼働中に<code>+</code>を押すと「追加」になり、残り時間に加算されます。
           </div>
         </div>

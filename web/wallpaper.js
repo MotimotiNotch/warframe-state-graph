@@ -131,11 +131,16 @@
 
   function applyWallpaper(settings) {
     if (settings.image) {
-      document.body.style.setProperty("--wallpaper-image", `url("${settings.image}")`);
+      // 巨大なdata URL（数MB級）をCSS変数(--wallpaper-image)に入れると、Chromium系ブラウザが
+      // 黙って値を破棄する（getPropertyValueが空文字になる、エラーは出ない）ため反映されない
+      // 不具合があった。ネイティブのbackground-imageプロパティに直接同じ長さの値を設定すると
+      // 問題なく通ることを実機検証済みなので、CSS変数経由をやめて直接設定する（2026-08-22）。
+      document.body.style.backgroundImage =
+        `linear-gradient(color-mix(in srgb, var(--bg) ${(1 - OPACITY) * 100}%, transparent), color-mix(in srgb, var(--bg) ${(1 - OPACITY) * 100}%, transparent)), url("${settings.image}")`;
       document.body.style.setProperty("--wallpaper-position", `${settings.posX}% ${settings.posY}%`);
       document.body.classList.add("has-wallpaper");
     } else {
-      document.body.style.removeProperty("--wallpaper-image");
+      document.body.style.removeProperty("background-image");
       document.body.style.removeProperty("--wallpaper-position");
       document.body.classList.remove("has-wallpaper");
     }
@@ -150,9 +155,8 @@
     // bodyの通常背景の下へ潜り込むことがあるため、body自身の背景合成に一本化した。
     style.textContent = `
       body.has-wallpaper {
-        background-image:
-          linear-gradient(color-mix(in srgb, var(--bg) ${(1 - OPACITY) * 100}%, transparent), color-mix(in srgb, var(--bg) ${(1 - OPACITY) * 100}%, transparent)),
-          var(--wallpaper-image);
+        /* background-imageはapplyWallpaper()がインラインstyleで直接設定する（CSS変数経由だと
+           巨大なdata URLがブラウザに黙って破棄されるため）。ここではposition/size等のみ扱う。 */
         background-size: auto, cover;
         background-position: center, var(--wallpaper-position, center);
         background-repeat: no-repeat, no-repeat;
@@ -173,7 +177,7 @@
         color: var(--text, #e4e6ec);
       }
       #wallpaper-position-modal h3 { margin: 0 0 4px; font-size: 1rem; }
-      #wallpaper-position-modal .wp-hint { margin: 0 0 10px; font-size: 0.78rem; color: var(--muted, #7c818f); }
+      #wallpaper-position-modal .wp-hint { margin: 0 0 10px; font-size: 0.78rem; color: var(--muted, #9aa0ab); }
       #wallpaper-position-modal .wp-frame {
         position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
         border-radius: 8px; border: 1px solid var(--border, #2a2e3a);
@@ -204,7 +208,7 @@
       #header-icon-modal h3 { margin: 0 0 10px; font-size: 1rem; }
       #header-icon-modal .hi-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
       #header-icon-modal .hi-tab {
-        flex: 1; background: transparent; color: var(--muted, #7c818f);
+        flex: 1; background: transparent; color: var(--muted, #9aa0ab);
         border: 1px solid var(--border, #2a2e3a); border-radius: 8px;
         padding: 6px 8px; font-size: 0.78rem; cursor: pointer; font-family: inherit;
       }
@@ -212,13 +216,13 @@
         background: var(--bg, #12141a); color: var(--accent, #f6ddaa); border-color: var(--accent, #f6ddaa);
       }
       #header-icon-modal .hi-glossary-cat-title {
-        font-size: 0.75rem; color: var(--muted, #7c818f); letter-spacing: 0.04em;
+        font-size: 0.75rem; color: var(--muted, #9aa0ab); letter-spacing: 0.04em;
         text-transform: uppercase; margin: 10px 0 4px;
       }
       #header-icon-modal .hi-glossary-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
       #header-icon-modal .hi-glossary-table td { padding: 2px 0; vertical-align: middle; }
       #header-icon-modal .hi-glossary-en {
-        font-size: 0.72rem; color: var(--muted, #7c818f); max-width: 120px;
+        font-size: 0.72rem; color: var(--muted, #9aa0ab); max-width: 120px;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px;
       }
       #header-icon-modal .hi-glossary-ja-input {
@@ -247,7 +251,7 @@
         font-family: inherit;
       }
       #header-icon-modal .hi-choice:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
-      #header-icon-modal .hi-choice.hi-reset { color: var(--muted, #7c818f); font-size: 0.8rem; padding: 7px 12px; }
+      #header-icon-modal .hi-choice.hi-reset { color: var(--muted, #9aa0ab); font-size: 0.8rem; padding: 7px 12px; }
       #header-icon-modal .hi-choice.hi-reset:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
       #header-icon-modal .hi-sub {
         display: flex; flex-direction: column; gap: 6px;
@@ -265,10 +269,10 @@
         border-radius: 6px; padding: 4px 6px; font-size: 0.78rem; font-family: inherit;
       }
       #header-icon-modal .hi-blur-row { margin-bottom: 10px; }
-      #header-icon-modal .hi-hint { font-size: 0.72rem; color: var(--muted, #7c818f); margin: 6px 0 0; }
+      #header-icon-modal .hi-hint { font-size: 0.72rem; color: var(--muted, #9aa0ab); margin: 6px 0 0; }
       #header-icon-modal .hi-cancel-row { display: flex; justify-content: flex-end; margin-top: 10px; }
       #header-icon-modal .hi-cancel-row button {
-        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
+        background: transparent; border: 1px solid var(--border, #2a2e3a); color: var(--muted, #9aa0ab);
         border-radius: 8px; padding: 5px 10px; font-size: 0.78rem; cursor: pointer; font-family: inherit;
       }
       #header-icon-modal .hi-cancel-row button:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }

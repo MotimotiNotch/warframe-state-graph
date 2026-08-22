@@ -42,7 +42,7 @@
         background: var(--panel, #1b1e27);
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
-        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #7c818f);
+        border: 1px solid var(--border, #2a2e3a); color: var(--muted, #9aa0ab);
         border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;
         font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.35);
@@ -75,12 +75,12 @@
       #scratch-panel .s-head.dragging { cursor: grabbing; }
       #scratch-panel .s-head .s-title { font-weight: 600; color: var(--text, #e4e6ec); flex: 1; }
       #scratch-panel .s-head button {
-        background: transparent; border: none; color: var(--muted, #7c818f); cursor: pointer; line-height: 0; padding: 2px;
+        background: transparent; border: none; color: var(--muted, #9aa0ab); cursor: pointer; line-height: 0; padding: 2px;
       }
       #scratch-panel .s-head button:hover { color: var(--danger, #e88c93); }
       #scratch-panel .s-body { padding: 8px; overflow-y: auto; }
 
-      #scratch-panel .s-section-title { color: var(--muted, #7c818f); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
+      #scratch-panel .s-section-title { color: var(--muted, #9aa0ab); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
       #scratch-panel .s-section-title:first-child { margin-top: 0; }
 
       /* ページごとに.popoverのleft/right基準がバラバラ（index.htmlはleft:0、他はright:0）なため、
@@ -103,12 +103,12 @@
       }
       #scratch-panel .note-live-editor .note-line { min-height: 1.3em; word-break: break-word; }
       #scratch-panel .note-live-editor .note-line-active { background: rgba(255, 255, 255, 0.06); border-radius: 3px; }
-      #scratch-panel .note-live-editor .note-placeholder { color: var(--muted, #7c818f); }
+      #scratch-panel .note-live-editor .note-placeholder { color: var(--muted, #9aa0ab); }
       #scratch-panel .note-live-editor .note-md-check { padding: 1px 0; }
       #scratch-panel .note-live-editor .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
       #scratch-panel .note-live-editor .note-md-check input[type="checkbox"] { cursor: pointer; }
       #scratch-panel .note-live-editor .note-md-bullet { display: flex; gap: 6px; }
-      #scratch-panel .note-live-editor .note-md-bullet-dot { color: var(--muted, #7c818f); }
+      #scratch-panel .note-live-editor .note-md-bullet-dot { color: var(--muted, #9aa0ab); }
 
       .scratch-counter-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
       .scratch-counter-row .sc-label-input {
@@ -132,11 +132,11 @@
       .scratch-counter-row button.sc-del:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
       #scratch-add-counter-btn {
         display: inline-flex; align-items: center; gap: 5px; margin-top: 6px;
-        background: transparent; color: var(--muted, #7c818f); border: 1px dashed var(--border, #2a2e3a);
+        background: transparent; color: var(--muted, #9aa0ab); border: 1px dashed var(--border, #2a2e3a);
         border-radius: 6px; font-size: 0.75rem; padding: 4px 8px; cursor: pointer; width: 100%; justify-content: center;
       }
       #scratch-add-counter-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
-      #scratch-counters-empty { color: var(--muted, #7c818f); font-size: 0.72rem; padding: 2px 0; }
+      #scratch-counters-empty { color: var(--muted, #9aa0ab); font-size: 0.72rem; padding: 2px 0; }
     `;
     document.head.appendChild(style);
   }

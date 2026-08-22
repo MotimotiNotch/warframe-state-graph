@@ -1,16 +1,5 @@
 {
   "schemaVersion": 1,
   "note": "\n\n",
-  "counters": [
-    {
-      "id": "counter-mt3p47m2f6ww",
-      "label": "xxx",
-      "value": 0
-    },
-    {
-      "id": "counter-mt3q06eranu2",
-      "label": "",
-      "value": 1
-    }
-  ]
+  "counters": []
 }
