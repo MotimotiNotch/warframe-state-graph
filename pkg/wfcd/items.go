@@ -30,6 +30,12 @@ type Item struct {
 	Tags       []string    `json:"tags"`
 	Components []Component `json:"components"`
 
+	// ProductCategory はWarframes.json内でウォーフレーム本体("Suits")とネクラメック
+	// ("MechSuits")を区別するためのフィールド（2026-08-23、Loadouts側にArchwing/Necramech
+	// 種別を追加した際に実データで確認：Warframes.jsonにVoidrig/Bonewidowが
+	// productCategory="MechSuits"として同居している）。
+	ProductCategory string `json:"productCategory,omitempty"`
+
 	// Riven武器アーキタイプ判定用（03_Data_Source_Research.md、item2の2026-08-17追加スコープ）。
 	Disposition        float64 `json:"disposition"`
 	CriticalChance     float64 `json:"criticalChance"`

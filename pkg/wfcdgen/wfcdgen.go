@@ -163,11 +163,20 @@ func Slug(name string) string {
 	return strings.Trim(s, "-")
 }
 
-// RelicCandidate はパーツ1つに対する入手先レリックの候補。OR関係（どれか1つで良い）なので
-// requiresへの追加は自動化せず、ユーザーが選んだ1件だけをフロント側で追加する想定。
+// RelicCandidate はパーツ1つに対する入手先候補（レリック、または通常ミッション/抹殺のドロップ）。
+// OR関係（どれか1つで良い）なのでrequiresへの追加は自動化せず、ユーザーが選んだ1件だけを
+// フロント側で追加する想定。
+//
+// WFCDのComponent.Drops.Locationは「Void Relic (Axi B1) (25.33%)」のようなレリック由来と、
+// 「Pluto/Fenton's Field (Skirmish), Rotation A」のような通常ミッション由来が混在している。
+// IsRelicがfalseの場合、Vaultedは常にfalse（意味を持たない）——以前はここを区別せず、
+// レリック名でない文字列に対してもIsRelicVaultedを呼んでいたため、「活性化中レリック一覧に
+// 単に載っていない」というだけの理由で通常ミッション産のパーツまで「Vault済み」と誤表示していた
+// バグがあった（2026-08-23発見・修正、フレーム個体でのっちが「文章が変」と指摘）。
 type RelicCandidate struct {
 	Name    string  `json:"name"`
 	Chance  float64 `json:"chance"`
+	IsRelic bool    `json:"isRelic"`
 	Vaulted bool    `json:"vaulted"`
 }
 
@@ -204,17 +213,19 @@ type SyndicateRankSuggestion struct {
 	Standing int         `json:"standing"` // 購入コスト（そのランクへの到達に必要な累計standingではない点に注意）
 }
 
-// relicNamePattern は Drop.Location からレリック名部分だけを拾う（例:
+// relicInLocationPattern は Drop.Location からレリック名部分だけを拾う（例:
 // "Void Relic (Axi A22) (25.33%)" のような表記から "Axi A22" を抜き出す）。
 // locationの正確なフォーマットはWFCDのバージョンで変わりうるため、緩めのパターンで
-// 部分一致させ、見つからない場合はlocation全体をそのまま候補名として扱う。
+// 部分一致させる。マッチしない場合はレリック由来ではない（通常ミッション/抹殺のドロップ）と
+// 判断し、location全体をそのまま候補名として返す——ここでisRelic=falseを返すことが重要
+// （呼び出し側でVault判定を行わないようにするため、上記RelicCandidateのコメント参照）。
 var relicInLocationPattern = regexp.MustCompile(`(Lith|Meso|Neo|Axi) [A-Z]\d{1,2}`)
 
-func extractRelicName(location string) string {
+func extractRelicName(location string) (name string, isRelic bool) {
 	if m := relicInLocationPattern.FindString(location); m != "" {
-		return m
+		return m, true
 	}
-	return location
+	return location, false
 }
 
 // BuildSuggestion は1アイテムからノード生成候補を組み立てる。activeRelicsが空/nilの場合は
@@ -260,12 +271,12 @@ func BuildSuggestion(item wfcd.Item, nodeType model.NodeType, activeRelics map[s
 
 		var candidates []RelicCandidate
 		for _, d := range c.Drops {
-			relicName := extractRelicName(d.Location)
-			candidates = append(candidates, RelicCandidate{
-				Name:    relicName,
-				Chance:  d.Chance,
-				Vaulted: activeRelics != nil && wfcd.IsRelicVaulted(activeRelics, relicName),
-			})
+			name, isRelic := extractRelicName(d.Location)
+			cand := RelicCandidate{Name: name, Chance: d.Chance, IsRelic: isRelic}
+			if isRelic {
+				cand.Vaulted = activeRelics != nil && wfcd.IsRelicVaulted(activeRelics, name)
+			}
+			candidates = append(candidates, cand)
 		}
 		sug.Parts = append(sug.Parts, PartSuggestion{Node: partNode, RelicCandidates: candidates})
 	}

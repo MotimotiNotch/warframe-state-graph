@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	frameSourceURL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Warframes.json"
-	questSourceURL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Quests.json"
+	frameSourceURL    = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Warframes.json"
+	questSourceURL    = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Quests.json"
+	modSourceURL      = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Mods.json"
+	archwingSourceURL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Archwing.json"
 )
 
 var weaponSourceURLs = []string{
@@ -79,8 +81,64 @@ func CachedNames(cacheDir, cacheFile string, fetch func() ([]string, error)) ([]
 	return names, nil
 }
 
+// FetchFrameNames はWarframes.json内のウォーフレーム本体のみ（productCategory=="Suits"）を
+// 返す。Warframes.jsonにはネクラメック（productCategory=="MechSuits"、Voidrig/Bonewidow）と
+// 特殊ユニット（"SpecialItems"、Orion & Sirius）が同居しているため、これらを混ぜないよう
+// 実データで確認の上フィルタする（2026-08-23、Loadouts側にArchwing/Necramech種別を追加した際に
+// 発見・修正。従来は全件無フィルタで返していた）。
 func FetchFrameNames() ([]string, error) {
-	return fetchNames(frameSourceURL)
+	items, err := FetchItemsFull(CategoryWarframes)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, it := range items {
+		if it.ProductCategory == "Suits" {
+			names = append(names, it.Name)
+		}
+	}
+	return names, nil
+}
+
+// FetchNecramechNames はWarframes.json内のネクラメック（productCategory=="MechSuits"）のみ。
+// Necramechs.json相当の単独カテゴリファイルはWFCD側に存在しない（実データで404を確認済み）。
+func FetchNecramechNames() ([]string, error) {
+	items, err := FetchItemsFull(CategoryWarframes)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, it := range items {
+		if it.ProductCategory == "MechSuits" {
+			names = append(names, it.Name)
+		}
+	}
+	return names, nil
+}
+
+// FetchArchwingNames はArchwing.json（5件、フィルタ不要な単一カテゴリ）。
+func FetchArchwingNames() ([]string, error) {
+	return fetchNames(archwingSourceURL)
+}
+
+// FetchModNames はMOD名全件（Mods.json、Warframe/武器/Archwing/Necramech等の全カテゴリ込み）
+// の名前一覧。Loadouts側のMOD入力欄の予測変換用（2026-08-23、他の名前系フィールドと同じ
+// fetchNames+CachedNamesのオンデマンド取得・軽量キャッシュ方式に統一）。レアリティ違い等で
+// 同名エントリが複数存在するため、FetchWeaponNamesと同じくseen mapで重複排除する。
+func FetchModNames() ([]string, error) {
+	names, err := fetchNames(modSourceURL)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool, len(names))
+	deduped := make([]string, 0, len(names))
+	for _, n := range names {
+		if !seen[n] {
+			seen[n] = true
+			deduped = append(deduped, n)
+		}
+	}
+	return deduped, nil
 }
 
 // FetchQuestNames はメイン/サブクエスト全件（Quests.json、46件、2026-08-22確認）の名前一覧。
