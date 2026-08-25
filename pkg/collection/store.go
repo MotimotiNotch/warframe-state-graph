@@ -42,6 +42,18 @@ func (s *FileStore) loadLocked() (*Data, error) {
 	if d.Frames == nil {
 		d.Frames = make(map[string]*FrameEntry)
 	}
+	if d.Weapons == nil {
+		d.Weapons = make(map[string]*WeaponEntry)
+	}
+	if d.Companions == nil {
+		d.Companions = make(map[string]*CompanionEntry)
+	}
+	if d.Archwings == nil {
+		d.Archwings = make(map[string]*ArchwingEntry)
+	}
+	if d.Necramechs == nil {
+		d.Necramechs = make(map[string]*NecramechEntry)
+	}
 	if d.Incarnons == nil {
 		d.Incarnons = make(map[string]*IncarnonEntry)
 	}
@@ -119,6 +131,94 @@ func (s *FileStore) DeleteFrame(id string) error {
 		return err
 	}
 	delete(d.Frames, id)
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) UpsertWeapon(entry *WeaponEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	d.Weapons[entry.ID] = entry
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) DeleteWeapon(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	delete(d.Weapons, id)
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) UpsertCompanion(entry *CompanionEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	d.Companions[entry.ID] = entry
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) DeleteCompanion(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	delete(d.Companions, id)
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) UpsertArchwing(entry *ArchwingEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	d.Archwings[entry.ID] = entry
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) DeleteArchwing(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	delete(d.Archwings, id)
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) UpsertNecramech(entry *NecramechEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	d.Necramechs[entry.ID] = entry
+	return s.saveLocked(d)
+}
+
+func (s *FileStore) DeleteNecramech(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	delete(d.Necramechs, id)
 	return s.saveLocked(d)
 }
 

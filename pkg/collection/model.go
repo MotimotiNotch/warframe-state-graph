@@ -59,10 +59,13 @@ type KuvaEntry struct {
 	// （2026-08-18 Collectionsページ詳細設計）。
 	Favorite bool `json:"favorite"`
 
-	// BonusStat はLich撃破時にランダム付与されるボーナス属性（例: "+58% Cold Damage"）。
-	// WFCD静的データからは取得不可（個体ごとのランダムロールのため）の手入力欄
-	// （03_Data_Source_Research.md 2.6/14節）。
-	BonusStat string `json:"bonusStat,omitempty"`
+	// BonusStat/BonusValue はLich変換時に付与されるボーナス属性（例: 属性名"Cold"＋数値58）。
+	// 属性の種類は変換に使ったウォーフレームで決まる（ランダムではない）が、数値自体は
+	// 個体ごとのランダムロールのためWFCD静的データからは取得不可（03_Data_Source_Research.md
+	// 2.6/14節）の手入力欄。RivenのNegativeStat/NegativeValueと同じく属性名と数値を分けて
+	// 持つ（2026-08-23、旧"+58% Cold Damage"形式の単一文字列から分離）。
+	BonusStat  string  `json:"bonusStat,omitempty"`
+	BonusValue float64 `json:"bonusValue,omitempty"`
 
 	Note            string `json:"note,omitempty"`
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
@@ -86,6 +89,63 @@ type FrameEntry struct {
 	// 受け取る側（アビリティ移植先）の記録は別物で、Loadouts.Item.Note（自由記述、
 	// 2026-08-20にHelminthNote専用フィールドから統合）が担う。
 	HelminthFed bool `json:"helminthFed"`
+
+	Note            string `json:"note,omitempty"`
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+}
+
+// WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry は、いずれもFrameEntryと同型の
+// 最小構成（2026-08-25、02_Requirements_and_Roadmap.md項目27）。Loadouts/Chain View登録時の
+// ページ横断リンク（Loadouts起点=強制登録owned:true、Chain View起点=強制登録owned:false、
+// いずれも名前重複なら作らない）の伝播先として新設。構造化フィールドは横断リンク・重複判定・
+// 集計に必要な最小限に絞り、Forma数のような個別要望は専用フィールド化せずNoteに書く方針
+// （「全部を記録する必要はない」という明示的な設計判断）。
+// Kuva/Tenet/Coda武器はKuvaEntry（個体差ありの複数登録許容）が引き続き担当し、対象外。
+
+// WeaponEntry は通常武器（Kuva/Tenet/Coda系除く）1件の入手状況記録。
+type WeaponEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"` // WFCD Primary/Secondary/Melee.jsonから選択
+
+	Owned bool `json:"owned"`
+	// RankedThirty はFrameEntryと同じ「ランク30済み」の二値。
+	RankedThirty bool `json:"rankedThirty"`
+
+	Note            string `json:"note,omitempty"`
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+}
+
+// CompanionEntry はコンパニオン（Kavat/Kubrow/MOA/Sentinel等）1件の入手状況記録。
+type CompanionEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"` // WFCD Pets.jsonから選択
+
+	Owned        bool `json:"owned"`
+	RankedThirty bool `json:"rankedThirty"`
+
+	Note            string `json:"note,omitempty"`
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+}
+
+// ArchwingEntry はArchwing1件の入手状況記録。
+type ArchwingEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+
+	Owned        bool `json:"owned"`
+	RankedThirty bool `json:"rankedThirty"`
+
+	Note            string `json:"note,omitempty"`
+	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+}
+
+// NecramechEntry はNecramech（Voidrig/Bonewidow等）1件の入手状況記録。
+type NecramechEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+
+	Owned        bool `json:"owned"`
+	RankedThirty bool `json:"rankedThirty"`
 
 	Note            string `json:"note,omitempty"`
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
@@ -121,11 +181,15 @@ type IncarnonEntry struct {
 const CurrentSchemaVersion = 1
 
 type Data struct {
-	SchemaVersion int                       `json:"schemaVersion"`
-	Rivens        map[string]*RivenEntry    `json:"rivens"`
-	Kuva          map[string]*KuvaEntry     `json:"kuva"`
-	Frames        map[string]*FrameEntry    `json:"frames"`
-	Incarnons     map[string]*IncarnonEntry `json:"incarnons"`
+	SchemaVersion int                        `json:"schemaVersion"`
+	Rivens        map[string]*RivenEntry     `json:"rivens"`
+	Kuva          map[string]*KuvaEntry      `json:"kuva"`
+	Frames        map[string]*FrameEntry     `json:"frames"`
+	Weapons       map[string]*WeaponEntry    `json:"weapons"`
+	Companions    map[string]*CompanionEntry `json:"companions"`
+	Archwings     map[string]*ArchwingEntry  `json:"archwings"`
+	Necramechs    map[string]*NecramechEntry `json:"necramechs"`
+	Incarnons     map[string]*IncarnonEntry  `json:"incarnons"`
 }
 
 func NewData() *Data {
@@ -134,6 +198,10 @@ func NewData() *Data {
 		Rivens:        make(map[string]*RivenEntry),
 		Kuva:          make(map[string]*KuvaEntry),
 		Frames:        make(map[string]*FrameEntry),
+		Weapons:       make(map[string]*WeaponEntry),
+		Companions:    make(map[string]*CompanionEntry),
+		Archwings:     make(map[string]*ArchwingEntry),
+		Necramechs:    make(map[string]*NecramechEntry),
 		Incarnons:     make(map[string]*IncarnonEntry),
 	}
 }

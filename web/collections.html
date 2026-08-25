@@ -23,7 +23,7 @@
     --bg: #12141a;
     --panel: rgba(27, 30, 39, 0.35);
     --popover-bg: rgba(20, 22, 28, 0.94);
-    --border: #2a2e3a;
+    --border: #454b5c;
     --text: #e4e6ec;
     --muted: #9aa0ab;
     --accent: #f6ddaa;
@@ -36,7 +36,7 @@
       --bg: #f5f6f8;
       --panel: rgba(255, 255, 255, 0.4);
       --popover-bg: rgba(255, 255, 255, 0.96);
-      --border: #d8dbe2;
+      --border: #aab0bd;
       --text: #1c1e24;
       --muted: #3c3f48;
       --accent: #a7750a;
@@ -49,7 +49,7 @@
     --bg: #f5f6f8;
     --panel: rgba(255, 255, 255, 0.4);
     --popover-bg: rgba(255, 255, 255, 0.96);
-    --border: #d8dbe2;
+    --border: #aab0bd;
     --text: #1c1e24;
     --muted: #3c3f48;
     --accent: #a7750a;
@@ -88,12 +88,30 @@
     cursor: pointer; line-height: 0;
   }
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.hidden { display: none; }
   @keyframes wfcd-spin { to { transform: rotate(360deg); } }
   #refresh-wfcd-btn.spinning { color: var(--actionable); border-color: var(--actionable); animation: wfcd-spin 0.8s linear infinite; }
   #refresh-wfcd-btn.success { color: var(--actionable); border-color: var(--actionable); }
   .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
   .icon-btn.on { border-color: var(--accent); color: var(--accent); }
   .icon-btn.copied { border-color: var(--actionable); color: var(--actionable); }
+  .icon-btn.add-btn {
+    border-color: var(--accent); color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .icon-btn.add-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+
+  .bulk-row {
+    display: flex; align-items: center; gap: 6px; margin: 0 0 10px;
+    font-size: 0.8rem; color: var(--muted); cursor: pointer;
+  }
+  .bulk-row input[type="checkbox"] { width: auto; }
+  .bulk-feedback { margin: 8px 0 0; font-size: 0.78rem; color: var(--actionable); }
+  .bulk-feedback.hidden { display: none; }
+  #frame-modal-optional.hidden, #riven-modal-optional.hidden, #incarnon-modal-optional.hidden,
+  #weapon-modal-optional.hidden, #companion-modal-optional.hidden, #archwing-modal-optional.hidden,
+  #necramech-modal-optional.hidden { display: none; }
+  #riven-fixed-row.hidden { display: none !important; }
 
   .star-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 0; color: var(--muted); }
   .star-btn.favorite { color: var(--accent); }
@@ -106,6 +124,7 @@
     background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 12px; padding: 10px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 300px;
+    overflow-wrap: break-word;
   }
   .popover.hidden { display: none; }
   .popover.left { right: auto; left: 0; }
@@ -141,7 +160,7 @@
 
   .combobox { position: relative; }
   .suggest-list {
-    position: absolute; top: calc(100% + 4px); left: 0; background: var(--panel);
+    position: absolute; top: calc(100% + 4px); left: 0; background: var(--popover-bg);
     backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 14px; max-height: 220px; overflow-y: auto;
     z-index: 60; min-width: 220px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
@@ -158,55 +177,55 @@
   .multiselect-popover label { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 400; }
 
   /* Riven/Kuva/フレームの一覧はStandingページの.syn-gridと同じグリッドに揃える（2026-08-21、
-     「LoadoutsのTOPレイアウトをStandingに合わせる」指示をCollectionsにも展開）。 */
-  .riven-grid, .kuva-grid, .frame-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+     「LoadoutsのTOPレイアウトをStandingに合わせる」指示をCollectionsにも展開）。
+     Riven/Kuva/フレーム/デュビリは横最大4枚まで広げる（2026-08-23）。 */
+  .riven-grid, .kuva-grid, .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
+  @media (max-width: 1200px) {
+    .riven-grid, .kuva-grid, .frame-grid { grid-template-columns: repeat(3, 1fr); }
+  }
   @media (max-width: 900px) {
     .riven-grid, .kuva-grid, .frame-grid { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 480px) {
     .riven-grid, .kuva-grid, .frame-grid { grid-template-columns: 1fr; }
   }
+  /* Kuva/Tenet/Coda系統ごとのサブセクション見出し（web/stats.htmlの.quest-group-titleと
+     同じ見た目、2026-08-23）。 */
+  .kind-group-title { color: var(--muted); font-size: 0.72rem; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .02em; }
+  .kind-group-title:first-child { margin-top: 0; }
   /* transitionはホバー3D傾き（web/card-tilt.js）の離脱時リセット用。 */
   .card-v2 { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: transform 0.1s ease-out, border-color 0.15s; will-change: transform; }
   .card-v2:hover { border-color: var(--accent); }
-  /* 新規登録用の「＋カード」（2026-08-21）。ヘッダーの新規登録ボタンを撤去し一覧グリッドに一本化。 */
-  .add-card {
-    border: 1px dashed var(--border);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 72px;
-    cursor: pointer;
-    color: var(--muted);
-    background: none;
-    transition: transform 0.1s ease-out, border-color 0.15s, color 0.15s;
-    will-change: transform;
-  }
-  .add-card:hover { border-color: var(--accent); color: var(--accent); }
-  .add-card svg { width: 32px; height: 32px; }
   .card-head { display: flex; align-items: flex-start; gap: 8px; }
   .card-title { font-weight: 600; flex: 1; min-width: 0; }
   .card-badges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
   .card-actions { display: flex; gap: 4px; flex-shrink: 0; }
   .card-row { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }
   .card-row b { color: var(--text); font-weight: 500; }
-  .card-memo { font-size: 0.78rem; color: var(--muted); margin-top: 4px; font-style: italic; }
+  .card-memo {
+    font-size: 0.78rem; color: var(--muted); margin-top: 4px; font-style: italic;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px;
+  }
   .card-memo .note-md-list { list-style: none; margin: 2px 0; padding: 0; font-style: normal; }
   .card-memo .note-md-check { padding: 1px 0; }
   .card-memo .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .card-memo .note-md-check input[type="checkbox"] { cursor: pointer; }
 
   .badge { display: inline-flex; align-items: center; gap: 3px; border-radius: 8px; padding: 1px 8px; font-size: 0.72rem; border: 1px solid; white-space: nowrap; }
-  .badge-fix { background: #7ee3a922; color: var(--actionable); border-color: var(--actionable); }
-  .badge-unfixed { background: #9aa0ab22; color: var(--muted); border-color: var(--muted); }
-  .badge-owned { background: #7ee3a922; color: var(--actionable); border-color: var(--actionable); }
-  .badge-notowned { background: #9aa0ab22; color: var(--muted); border-color: var(--muted); }
+  /* 状態表示は全種icon方式に統一（緑=on/灰=off）。9px程度のドットは複数並ぶと色相だけでの
+     判別が効かない（「全部緑だと分からん」→色分けしても「並ぶとコントラストがない」で
+     再指摘）ため、形（アイコン種別）でカテゴリを区別する方式に変更（2026-08-23）。
+     指標が1個だけのRiven/Kuvaも見た目統一のため同じicon方式にした。 */
+  .status-icon { display: inline-flex; align-items: center; }
+  .status-icon.on { color: var(--actionable); }
+  .status-icon.off { color: var(--muted); }
+  .status-legend { display: flex; align-items: center; gap: 12px; font-size: 0.72rem; color: var(--muted); }
+  .status-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .help-hint { color: var(--muted); vertical-align: -2px; cursor: help; }
   .badge-match { background: #7ee3a922; color: var(--actionable); border-color: var(--actionable); }
   .badge-nomatch { background: #9aa0ab22; color: var(--muted); border-color: var(--muted); }
   .badge-linked { background: #9bbeec22; color: var(--satisfied); border-color: var(--satisfied); }
   .badge-count { background: var(--bg); color: var(--muted); border-color: var(--border); }
-  .badge-kind { background: var(--bg); color: var(--muted); border-color: var(--border); }
 
   .empty { color: var(--muted); font-size: 0.85rem; }
 
@@ -217,7 +236,9 @@
   }
   .modal-backdrop.hidden { display: none; }
   .modal {
-    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    /* モーダルは背後のカード/文字が透けると読みにくいので、半透明の--panelでなく
+       ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由、2026-08-23）。 */
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 18px;
     padding: 16px; width: 100%; max-width: 520px;
   }
@@ -225,6 +246,21 @@
   .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .modal .sub-actions { display: flex; justify-content: flex-start; gap: 8px; margin: 10px 0; }
   .modal hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  /* デュビリ（インカーノン）パネル専用の折りたたみ機構（web/stats.htmlのネタバレゲート
+     付きセクションと同じ見た目に統一、2026-08-23）。 */
+  .section-chevron { transition: transform 0.15s ease; }
+  .section-chevron.expanded { transform: rotate(180deg); }
+  #incarnon-icon { display: inline-flex; color: var(--accent); }
+  .section-warning {
+    font-size: 0.78rem; color: var(--muted); margin: -4px 0 10px;
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  }
+  .collapsible-body.hidden { display: none; }
+  .modal-title-toggle { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 0.8rem; font-weight: normal; color: var(--muted); }
+  .modal-title-toggle.hidden { display: none; }
+  /* #kuva-modal-formのclass="hidden"はページ内に対応CSSが無く実質常時表示だった
+     （2026-08-23発見）。この機会に他の.hiddenトグルと同じ挙動になるよう明示的に隠す。 */
+  #kuva-modal-form.hidden { display: none; }
   .inline-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .group-entry { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
   .group-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
@@ -243,82 +279,162 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">Chain View / Loadoutsとは独立した、Riven/Kuva系武器の入手状況ログ。星マークは「今のビルドで使ってる/優先度高い」という主観マーカーで、RivenのFIX（ロール完成度）とは独立して立てられる。<br>⚠️ Kuva/Tenet/Coda等のリッチ系武器名は、未プレイのコンテンツ名を含むことがあります。</div>
+        <div class="empty">
+          <div style="margin-bottom:8px;">Chain View / Loadoutsとは独立した、フレーム/Riven/Kuvaの入手状況ログです。</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>緑のアイコンは「達成済み」、灰色は「未達成」。1枚に複数の指標がある場合はアイコンの形でカテゴリを区別しています</li>
+            <li>星マーク（★）は「今のビルドで使ってる/優先度高い」という主観マーカーで、状態アイコンとは独立して立てられます。お気に入りが先頭に並びます</li>
+          </ul>
+          <div>⚠️ 一部のセクションは前提クエストクリア後にのみ内容が明らかになります。</div>
+        </div>
       </div>
     </div>
   </nav>
 
-  <div class="panel" id="favorites-panel">
-    <div class="panel-head"><h2 id="favorites-title"></h2></div>
-    <div id="favorites-list"></div>
+  <div class="panel" id="frame-panel">
+    <div class="panel-head">
+      <h2>フレーム入手状況<button class="icon-btn add-btn" id="frame-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="frame-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="frame-legend-rank30"></span>ランク30済み</span><span><span class="status-icon on" id="frame-legend-helminth"></span>ヘルミンス済み</span></div>
+        <button class="icon-btn section-chevron" id="frame-chevron" title="開閉"></button>
+      </div>
+    </div>
+    <div id="frame-body" class="collapsible-body">
+      <div id="frame-list" class="frame-grid"></div>
+    </div>
+  </div>
+
+  <!-- 通常武器/コンパニオン/Archwing/Necramechの入手状況（FrameEntryと同型、helminthFed無し、
+       2026-08-25項目27）。パネルHTML自体は既存Frameパネルを踏襲した手書きだが、JS側は
+       renderEquipList/openEquipModal等の共通実装で4種まとめて動かす。 -->
+  <div class="panel" id="weapon-panel">
+    <div class="panel-head">
+      <h2>武器入手状況<button class="icon-btn add-btn" id="weapon-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="weapon-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="weapon-legend-rank30"></span>ランク30済み</span></div>
+        <button class="icon-btn section-chevron" id="weapon-chevron" title="開閉"></button>
+      </div>
+    </div>
+    <div id="weapon-body" class="collapsible-body">
+      <div id="weapon-list" class="frame-grid"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="companion-panel">
+    <div class="panel-head">
+      <h2>コンパニオン入手状況<button class="icon-btn add-btn" id="companion-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="companion-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="companion-legend-rank30"></span>ランク30済み</span></div>
+        <button class="icon-btn section-chevron" id="companion-chevron" title="開閉"></button>
+      </div>
+    </div>
+    <div id="companion-body" class="collapsible-body">
+      <div id="companion-list" class="frame-grid"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="archwing-panel">
+    <div class="panel-head">
+      <h2>Archwing入手状況<button class="icon-btn add-btn" id="archwing-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="archwing-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="archwing-legend-rank30"></span>ランク30済み</span></div>
+        <button class="icon-btn section-chevron" id="archwing-chevron" title="開閉"></button>
+      </div>
+    </div>
+    <div id="archwing-body" class="collapsible-body">
+      <div id="archwing-list" class="frame-grid"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="necramech-panel">
+    <div class="panel-head">
+      <h2>Necramech入手状況<button class="icon-btn add-btn" id="necramech-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="necramech-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="necramech-legend-rank30"></span>ランク30済み</span></div>
+        <button class="icon-btn section-chevron" id="necramech-chevron" title="開閉"></button>
+      </div>
+    </div>
+    <div id="necramech-body" class="collapsible-body">
+      <div id="necramech-list" class="frame-grid"></div>
+    </div>
   </div>
 
   <div class="panel" id="riven-panel">
     <div class="panel-head">
-      <h2>Riven Mods</h2>
+      <h2>Riven Mods<button class="icon-btn add-btn" id="riven-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="riven-legend-fixed"></span>確定</span></div>
+        <button class="icon-btn section-chevron" id="riven-chevron" title="開閉"></button>
+      </div>
     </div>
-    <div id="riven-list" class="riven-grid"></div>
+    <div id="riven-body" class="collapsible-body">
+      <div id="riven-list" class="riven-grid"></div>
+    </div>
   </div>
 
   <div class="panel" id="kuva-panel">
     <div class="panel-head">
-      <h2>Kuva / Tenet / Coda 武器</h2>
+      <h2>Kuva / Tenet / Coda 武器<button class="icon-btn add-btn" id="kuva-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend"><span><span class="status-icon on" id="kuva-legend-owned"></span>所持済み</span></div>
+        <button class="icon-btn section-chevron" id="kuva-chevron" title="開閉"></button>
+      </div>
     </div>
-    <div id="kuva-list" class="kuva-grid"></div>
-  </div>
-
-  <div class="panel" id="frame-panel">
-    <div class="panel-head">
-      <h2>フレーム入手状況</h2>
+    <div id="kuva-body" class="collapsible-body">
+      <div id="kuva-list"></div>
     </div>
-    <div id="frame-list" class="frame-grid"></div>
   </div>
 
   <div class="panel" id="incarnon-panel">
-    <div class="panel-head"><h2>デュビリ（インカーノン）</h2></div>
-    <div id="incarnon-list" class="frame-grid"></div>
+    <div class="panel-head">
+      <h2 id="incarnon-toggle"><span id="incarnon-icon"></span><span id="incarnon-title">未解放セクション</span><button class="icon-btn add-btn hidden" id="incarnon-add-btn" title="新規登録"></button></h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="icon-btn section-chevron" id="incarnon-chevron" title="開閉"></button>
+      </div>
+    </div>
+    <div class="section-warning">前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div id="incarnon-body" class="collapsible-body hidden">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <div class="status-legend"><span><span class="status-icon on" id="incarnon-legend-obtained"></span>取得済み</span><span><span class="status-icon on" id="incarnon-legend-completed"></span>インカーノン済み</span></div>
+      </div>
+      <div id="incarnon-list" class="frame-grid"></div>
+    </div>
   </div>
 
   <!-- Riven登録/編集モーダル -->
   <div id="riven-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
-      <h3 id="riven-modal-title">Riven 新規登録</h3>
-      <div class="form-grid">
-        <div>
-          <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
-          <div class="combobox">
-            <input type="text" id="riven-weapon-input" placeholder="例: Braton Prime" autocomplete="off">
-            <div id="riven-weapon-suggest" class="suggest-list hidden"></div>
-          </div>
-        </div>
-        <div>
-          <label class="field-label">ネガ値ステータス（任意）</label>
-          <div class="inline-form">
-            <select id="riven-negative-select" style="flex:1;"></select>
-            <input type="text" inputmode="decimal" id="riven-negative-value" placeholder="数値%" style="width:80px;">
-          </div>
-        </div>
+      <h3 style="justify-content:space-between;">
+        <span id="riven-modal-title">Riven 新規登録</span>
+        <label class="field-label" id="riven-fixed-row" style="display:flex;align-items:center;gap:6px;margin:0;font-size:0.8rem;font-weight:normal;">
+          <input type="checkbox" id="riven-fixed-check" style="width:auto;">ロール確定
+        </label>
+      </h3>
+      <label class="bulk-row" id="riven-bulk-row"><input type="checkbox" id="riven-bulk-check">連続登録（名前だけで追加を続ける）</label>
+      <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="riven-weapon-input" placeholder="例: Braton Prime" autocomplete="off">
+        <div id="riven-weapon-suggest" class="suggest-list hidden"></div>
       </div>
-      <label class="field-label">ポジ値ステータス（複数選択可）</label>
-      <div class="popover-wrap" style="display:block;margin-bottom:8px;">
-        <button class="multiselect-btn" id="riven-positive-btn" type="button"></button>
-        <div class="popover hidden multiselect-popover" id="riven-positive-popover"></div>
-      </div>
-      <div id="riven-positive-values" style="margin-bottom:8px;"></div>
-      <div class="form-grid">
-        <div>
-          <label class="field-label">Chain View連携（任意）</label>
-          <select id="riven-chainview-select"></select>
+      <div id="riven-modal-optional">
+        <label class="field-label" style="margin-top:8px;">ポジ値ステータス（複数選択可）</label>
+        <div class="popover-wrap" style="display:block;margin-bottom:8px;">
+          <button class="multiselect-btn" id="riven-positive-btn" type="button"></button>
+          <div class="popover hidden multiselect-popover" id="riven-positive-popover"></div>
         </div>
-        <div>
-          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="riven-favorite-check" style="width:auto;">お気に入り
-          </label>
+        <div id="riven-positive-values" style="margin-bottom:8px;"></div>
+        <label class="field-label">ネガ値ステータス（任意）</label>
+        <div class="inline-form" style="margin-bottom:8px;">
+          <select id="riven-negative-select" style="flex:1;"></select>
+          <input type="text" inputmode="decimal" id="riven-negative-value" placeholder="数値%" style="width:80px;">
         </div>
+        <label class="field-label">Chain View連携（任意）</label>
+        <select id="riven-chainview-select"></select>
+        <label class="field-label" style="margin-top:8px;">メモ <span class="help-hint" id="riven-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="riven-note-input" placeholder="任意"></textarea>
+        <div id="riven-live-check" style="margin-top:8px;"></div>
       </div>
-      <label class="field-label">メモ</label>
-      <textarea id="riven-note-input" placeholder="任意"></textarea>
-      <div id="riven-live-check" style="margin-top:8px;"></div>
+      <div id="riven-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
         <button id="riven-modal-cancel">キャンセル</button>
         <button class="primary" id="riven-modal-save">保存</button>
@@ -329,7 +445,12 @@
   <!-- Kuva/Tenet/Coda: 武器名でグループ化した一覧＋登録モーダル -->
   <div id="kuva-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
-      <h3 id="kuva-modal-title">Kuva / Tenet / Coda</h3>
+      <h3 style="justify-content:space-between;">
+        <span id="kuva-modal-title">Kuva / Tenet / Coda</span>
+        <label id="kuva-owned-check-wrap" class="modal-title-toggle hidden">
+          <input type="checkbox" id="kuva-owned-check" style="width:auto;">所持済み
+        </label>
+      </h3>
       <div id="kuva-modal-name-field"></div>
       <div id="kuva-modal-entries"></div>
       <div class="sub-actions">
@@ -337,35 +458,35 @@
       </div>
       <div id="kuva-modal-form" class="hidden">
         <hr>
+        <label class="field-label">系統</label>
+        <select id="kuva-kind-select" style="margin-bottom:8px;">
+          <option value="Kuva">Kuva</option>
+          <option value="Tenet">Tenet</option>
+          <option value="Coda">Coda</option>
+        </select>
         <div class="form-grid">
           <div>
-            <label class="field-label">系統</label>
-            <select id="kuva-kind-select">
-              <option value="Kuva">Kuva</option>
-              <option value="Tenet">Tenet</option>
-              <option value="Coda">Coda</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" style="display:flex;align-items:center;gap:6px;margin-top:20px;">
-              <input type="checkbox" id="kuva-owned-check" style="width:auto;">所持済み
-            </label>
-          </div>
-        </div>
-        <div class="form-grid">
-          <div>
-            <label class="field-label">ボーナス属性（Lich撃破時のランダムロール、任意）</label>
-            <input type="text" id="kuva-bonus-input" placeholder="例: +58% Cold Damage" style="width:100%;">
+            <label class="field-label">ボーナス属性（変換に使ったフレームで決まる、任意）</label>
+            <div class="inline-form">
+              <select id="kuva-bonus-stat-select" style="flex:1;">
+                <option value="">（なし）</option>
+                <option value="衝撃">衝撃</option>
+                <option value="火炎">火炎</option>
+                <option value="冷気">冷気</option>
+                <option value="電気">電気</option>
+                <option value="毒">毒</option>
+                <option value="磁気">磁気</option>
+                <option value="放射線">放射線</option>
+              </select>
+              <input type="text" inputmode="decimal" id="kuva-bonus-value-input" placeholder="数値%" style="width:80px;">
+            </div>
           </div>
           <div>
             <label class="field-label">Chain View連携（任意）</label>
             <select id="kuva-chainview-select"></select>
           </div>
         </div>
-        <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="kuva-favorite-check" style="width:auto;">お気に入り（本命の1丁）
-        </label>
-        <label class="field-label" style="margin-top:8px;">メモ</label>
+        <label class="field-label" style="margin-top:8px;">メモ <span class="help-hint" id="kuva-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="kuva-note-input" placeholder="任意"></textarea>
         <div class="actions">
           <button id="kuva-form-cancel">やめる</button>
@@ -382,39 +503,184 @@
   <div id="frame-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="frame-modal-title">フレーム 新規登録</h3>
+      <label class="bulk-row" id="frame-bulk-row"><input type="checkbox" id="frame-bulk-check">連続登録（名前だけで追加を続ける）</label>
       <label class="field-label">フレーム名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
         <input type="text" id="frame-name-input" placeholder="例: Ash Prime" autocomplete="off">
         <div id="frame-name-suggest" class="suggest-list hidden"></div>
       </div>
-      <div class="form-grid" style="margin-top:8px;">
-        <div>
-          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="frame-owned-check" style="width:auto;">入手済み
-          </label>
+      <div id="frame-modal-optional">
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="frame-owned-check" style="width:auto;">入手済み
+            </label>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="frame-ranked30-check" style="width:auto;">ランク30済み
+            </label>
+          </div>
         </div>
-        <div>
-          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="frame-ranked30-check" style="width:auto;">ランク30済み
-          </label>
+        <div class="form-grid">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="frame-helminth-check" style="width:auto;">ヘルミンス済み（捧げた）
+            </label>
+          </div>
+          <div>
+            <label class="field-label">Chain View連携（任意）</label>
+            <select id="frame-chainview-select"></select>
+          </div>
         </div>
+        <label class="field-label">メモ <span class="help-hint" id="frame-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="frame-note-input" placeholder="任意"></textarea>
       </div>
-      <div class="form-grid">
-        <div>
-          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="frame-helminth-check" style="width:auto;">ヘルミンス済み（捧げた）
-          </label>
-        </div>
-        <div>
-          <label class="field-label">Chain View連携（任意）</label>
-          <select id="frame-chainview-select"></select>
-        </div>
-      </div>
-      <label class="field-label">メモ</label>
-      <textarea id="frame-note-input" placeholder="任意"></textarea>
+      <div id="frame-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
         <button id="frame-modal-cancel">キャンセル</button>
         <button class="primary" id="frame-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 武器/コンパニオン/Archwing/Necramech登録・編集モーダル（フレームと同型、ヘルミンス項目無し）。 -->
+  <div id="weapon-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="weapon-modal-title">武器 新規登録</h3>
+      <label class="bulk-row" id="weapon-bulk-row"><input type="checkbox" id="weapon-bulk-check">連続登録（名前だけで追加を続ける）</label>
+      <label class="field-label">武器名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="weapon-name-input" placeholder="例: Braton Prime" autocomplete="off">
+        <div id="weapon-name-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div id="weapon-modal-optional">
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="weapon-owned-check" style="width:auto;">入手済み
+            </label>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="weapon-ranked30-check" style="width:auto;">ランク30済み
+            </label>
+          </div>
+        </div>
+        <label class="field-label">Chain View連携（任意）</label>
+        <select id="weapon-chainview-select"></select>
+        <label class="field-label">メモ <span class="help-hint" id="weapon-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="weapon-note-input" placeholder="任意"></textarea>
+      </div>
+      <div id="weapon-bulk-feedback" class="bulk-feedback hidden"></div>
+      <div class="actions">
+        <button id="weapon-modal-cancel">キャンセル</button>
+        <button class="primary" id="weapon-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="companion-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="companion-modal-title">コンパニオン 新規登録</h3>
+      <label class="bulk-row" id="companion-bulk-row"><input type="checkbox" id="companion-bulk-check">連続登録（名前だけで追加を続ける）</label>
+      <label class="field-label">コンパニオン名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="companion-name-input" placeholder="例: Chesa Kubrow" autocomplete="off">
+        <div id="companion-name-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div id="companion-modal-optional">
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="companion-owned-check" style="width:auto;">入手済み
+            </label>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="companion-ranked30-check" style="width:auto;">ランク30済み
+            </label>
+          </div>
+        </div>
+        <label class="field-label">Chain View連携（任意）</label>
+        <select id="companion-chainview-select"></select>
+        <label class="field-label">メモ <span class="help-hint" id="companion-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="companion-note-input" placeholder="任意"></textarea>
+      </div>
+      <div id="companion-bulk-feedback" class="bulk-feedback hidden"></div>
+      <div class="actions">
+        <button id="companion-modal-cancel">キャンセル</button>
+        <button class="primary" id="companion-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="archwing-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="archwing-modal-title">Archwing 新規登録</h3>
+      <label class="bulk-row" id="archwing-bulk-row"><input type="checkbox" id="archwing-bulk-check">連続登録（名前だけで追加を続ける）</label>
+      <label class="field-label">Archwing名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="archwing-name-input" placeholder="例: Itzal" autocomplete="off">
+        <div id="archwing-name-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div id="archwing-modal-optional">
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="archwing-owned-check" style="width:auto;">入手済み
+            </label>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="archwing-ranked30-check" style="width:auto;">ランク30済み
+            </label>
+          </div>
+        </div>
+        <label class="field-label">Chain View連携（任意）</label>
+        <select id="archwing-chainview-select"></select>
+        <label class="field-label">メモ <span class="help-hint" id="archwing-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="archwing-note-input" placeholder="任意"></textarea>
+      </div>
+      <div id="archwing-bulk-feedback" class="bulk-feedback hidden"></div>
+      <div class="actions">
+        <button id="archwing-modal-cancel">キャンセル</button>
+        <button class="primary" id="archwing-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="necramech-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="necramech-modal-title">Necramech 新規登録</h3>
+      <label class="bulk-row" id="necramech-bulk-row"><input type="checkbox" id="necramech-bulk-check">連続登録（名前だけで追加を続ける）</label>
+      <label class="field-label">Necramech名（WFCD実データ名と完全一致）</label>
+      <div class="combobox">
+        <input type="text" id="necramech-name-input" placeholder="例: Voidrig" autocomplete="off">
+        <div id="necramech-name-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div id="necramech-modal-optional">
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="necramech-owned-check" style="width:auto;">入手済み
+            </label>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="necramech-ranked30-check" style="width:auto;">ランク30済み
+            </label>
+          </div>
+        </div>
+        <label class="field-label">Chain View連携（任意）</label>
+        <select id="necramech-chainview-select"></select>
+        <label class="field-label">メモ <span class="help-hint" id="necramech-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="necramech-note-input" placeholder="任意"></textarea>
+      </div>
+      <div id="necramech-bulk-feedback" class="bulk-feedback hidden"></div>
+      <div class="actions">
+        <button id="necramech-modal-cancel">キャンセル</button>
+        <button class="primary" id="necramech-modal-save">保存</button>
       </div>
     </div>
   </div>
@@ -423,25 +689,29 @@
   <div id="incarnon-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="incarnon-modal-title">インカーノン 新規登録</h3>
+      <label class="bulk-row" id="incarnon-bulk-row"><input type="checkbox" id="incarnon-bulk-check">連続登録（名前だけで追加を続ける）</label>
       <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
         <input type="text" id="incarnon-weapon-input" placeholder="例: Braton" autocomplete="off">
         <div id="incarnon-weapon-suggest" class="suggest-list hidden"></div>
       </div>
-      <div class="form-grid" style="margin-top:8px;">
-        <div>
-          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="incarnon-obtained-check" style="width:auto;">インカーノン取得済み
-          </label>
+      <div id="incarnon-modal-optional">
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="incarnon-obtained-check" style="width:auto;">インカーノン取得済み
+            </label>
+          </div>
+          <div>
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="incarnon-completed-check" style="width:auto;">インカーノン済み
+            </label>
+          </div>
         </div>
-        <div>
-          <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="incarnon-completed-check" style="width:auto;">インカーノン済み
-          </label>
-        </div>
+        <label class="field-label">メモ <span class="help-hint" id="incarnon-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="incarnon-note-input" placeholder="任意"></textarea>
       </div>
-      <label class="field-label">メモ</label>
-      <textarea id="incarnon-note-input" placeholder="任意"></textarea>
+      <div id="incarnon-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
         <button id="incarnon-modal-cancel">キャンセル</button>
         <button class="primary" id="incarnon-modal-save">保存</button>
@@ -455,7 +725,80 @@
 <script src="/export.js"></script>
 <script src="/card-tilt.js"></script>
 <script>
-const state = { data: { rivens: {}, kuva: {}, frames: {}, incarnons: {} }, chainViewNodes: [], nodesById: {}, weaponNames: [], frameNames: [], rivenStatChoices: [] };
+const state = {
+  data: { rivens: {}, kuva: {}, frames: {}, weapons: {}, companions: {}, archwings: {}, necramechs: {}, incarnons: {} },
+  chainViewNodes: [], nodesById: {},
+  weaponNames: [], frameNames: [], companionNames: [], archwingNames: [], necramechNames: [],
+  rivenStatChoices: [], duviriCleared: false,
+};
+
+// デュビリ（インカーノン）パネルはThe Duviri Paradoxクリア前提のネタバレゲート対象
+// （web/stats.htmlのDrifter性能値パネルと同じ前提クエストなのに、こちらは無ゲートだった
+// 抜けを2026-08-23に発見・修正）。判定元はpkg/stats.QuestsCleared（Statsページ「クエスト
+// 進行状況」パネルの自己申告、Chain View非依存）。折りたたみ機構自体もweb/stats.htmlの
+// initCollapsiblePanel/revealPanelと同じ見た目・挙動に統一する（「格納されている状態にしよう」
+// との指摘、2026-08-23）: 未クリアの間は見出しがプレースホルダーのまま強制的に閉じ、
+// クリア済みなら本人が最後に選んだ開閉状態をlocalStorageから復元する。
+const COLLAPSE_KEY_PREFIX = "warframe-state-graph:collections:collapsed:";
+function getStoredCollapsed(prefix) {
+  try { return localStorage.getItem(COLLAPSE_KEY_PREFIX + prefix) === "1"; } catch (e) { return false; }
+}
+function setStoredCollapsed(prefix, collapsed) {
+  try { localStorage.setItem(COLLAPSE_KEY_PREFIX + prefix, collapsed ? "1" : "0"); } catch (e) {}
+}
+
+// ネタバレゲート無しの通常パネル（フレーム/Riven/Kuva）用。デュビリのようなクエスト連動の
+// 強制表示制御は持たず、開閉状態をlocalStorageに保存するだけ（web/stats.htmlの
+// initPlainCollapsibleと同じ、「各セクションごとに格納できるようにして」との指摘で追加、
+// 2026-08-23）。
+function initPlainCollapsible(prefix) {
+  const body = document.getElementById(`${prefix}-body`);
+  const chevron = document.getElementById(`${prefix}-chevron`);
+  chevron.innerHTML = icon("chevron-down");
+  const collapsed = getStoredCollapsed(prefix);
+  body.classList.toggle("hidden", collapsed);
+  chevron.classList.toggle("expanded", !collapsed);
+  function toggle() {
+    const nowHidden = body.classList.toggle("hidden");
+    chevron.classList.toggle("expanded", !nowHidden);
+    setStoredCollapsed(prefix, nowHidden);
+  }
+  chevron.addEventListener("click", toggle);
+}
+
+async function loadDuviriGate() {
+  try {
+    const res = await fetch("/api/stats");
+    const data = await res.json();
+    state.duviriCleared = !!(data.questsCleared && data.questsCleared["The Duviri Paradox"]);
+  } catch (e) { state.duviriCleared = false; }
+}
+
+function initIncarnonCollapse() {
+  document.getElementById("incarnon-icon").innerHTML = icon("triangle-alert", { size: 15 });
+  const chevron = document.getElementById("incarnon-chevron");
+  chevron.innerHTML = icon("chevron-down");
+
+  const body = document.getElementById("incarnon-body");
+  const titleEl = document.getElementById("incarnon-title");
+  const cleared = state.duviriCleared;
+  titleEl.textContent = cleared ? "デュビリ（インカーノン）" : "未解放セクション";
+  // 未クリアの間は登録ボタンごと隠す（機能の存在を示唆しないため、見出し名と同じ扱い）。
+  document.getElementById("incarnon-add-btn").classList.toggle("hidden", !cleared);
+  const collapsed = cleared ? getStoredCollapsed("incarnon") : true;
+  body.classList.toggle("hidden", collapsed);
+  chevron.classList.toggle("expanded", !collapsed);
+
+  function toggle() {
+    const nowHidden = body.classList.toggle("hidden");
+    chevron.classList.toggle("expanded", !nowHidden);
+    // 未クリアで強制的に閉じてる状態でのトグルはネタバレ防止のガード外なので保存しない
+    // （次回ロード時はどのみち強制で閉じ直す、web/stats.htmlと同じ理由）。
+    if (cleared) setStoredCollapsed("incarnon", nowHidden);
+  }
+  document.getElementById("incarnon-toggle").addEventListener("click", toggle);
+  chevron.addEventListener("click", toggle);
+}
 
 // wfcdgen.RivenStatChoices（pkg/wfcdgen/wfcdgen.go）と1:1対応する固定の英→日マッピング。
 // pkg/glossary（`/api/glossary`、ヘッダー設定モーダル「用語」タブ・web/glossary.htmlで確認可能）
@@ -511,12 +854,43 @@ document.getElementById("refresh-wfcd-btn").addEventListener("click", async () =
 
 document.getElementById("help-toggle").innerHTML = icon("info");
 
+// 新規登録ボタンをグリッド末尾の「＋カード」から見出し横のアイコンボタンへ移動した
+// （2026-08-23、「登録数が多くなると位置が微妙」との指摘）。見出しは常設なので、一覧の
+// 長さに関わらず常に同じ位置からすぐ登録できる。
+document.getElementById("frame-add-btn").innerHTML = icon("plus");
+document.getElementById("frame-add-btn").addEventListener("click", () => openFrameModal(null));
+document.getElementById("riven-add-btn").innerHTML = icon("plus");
+document.getElementById("riven-add-btn").addEventListener("click", () => openRivenModal(null));
+document.getElementById("kuva-add-btn").innerHTML = icon("plus");
+document.getElementById("kuva-add-btn").addEventListener("click", () => openKuvaModal(""));
+document.getElementById("incarnon-add-btn").innerHTML = icon("plus");
+document.getElementById("incarnon-add-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  openIncarnonModal(null);
+});
+
+document.getElementById("riven-legend-fixed").innerHTML = icon("check", { size: 14 });
+document.getElementById("kuva-legend-owned").innerHTML = icon("check", { size: 14 });
+document.getElementById("frame-legend-owned").innerHTML = icon("check", { size: 14 });
+document.getElementById("frame-legend-rank30").innerHTML = icon("zap", { size: 14 });
+document.getElementById("frame-legend-helminth").innerHTML = icon("archive", { size: 14 });
+document.getElementById("incarnon-legend-obtained").innerHTML = icon("check", { size: 14 });
+document.getElementById("incarnon-legend-completed").innerHTML = icon("zap", { size: 14 });
+
+["riven", "kuva", "frame", "incarnon"].forEach(prefix => {
+  document.getElementById(`${prefix}-note-help`).innerHTML = icon("circle-alert", { size: 13 });
+});
+
 async function loadAll() {
   const res = await fetch("/api/collections");
   state.data = await res.json();
   if (!state.data.rivens) state.data.rivens = {};
   if (!state.data.kuva) state.data.kuva = {};
   if (!state.data.frames) state.data.frames = {};
+  if (!state.data.weapons) state.data.weapons = {};
+  if (!state.data.companions) state.data.companions = {};
+  if (!state.data.archwings) state.data.archwings = {};
+  if (!state.data.necramechs) state.data.necramechs = {};
   if (!state.data.incarnons) state.data.incarnons = {};
   render();
 }
@@ -526,6 +900,25 @@ async function loadFrameNames() {
     const res = await fetch("/api/reference/frames");
     state.frameNames = res.ok ? await res.json() : [];
   } catch (e) { state.frameNames = []; }
+}
+
+async function loadCompanionNames() {
+  try {
+    const res = await fetch("/api/reference/companions");
+    state.companionNames = res.ok ? await res.json() : [];
+  } catch (e) { state.companionNames = []; }
+}
+async function loadArchwingNames() {
+  try {
+    const res = await fetch("/api/reference/archwings");
+    state.archwingNames = res.ok ? await res.json() : [];
+  } catch (e) { state.archwingNames = []; }
+}
+async function loadNecramechNames() {
+  try {
+    const res = await fetch("/api/reference/necramechs");
+    state.necramechNames = res.ok ? await res.json() : [];
+  } catch (e) { state.necramechNames = []; }
 }
 
 async function loadChainViewNodes() {
@@ -573,10 +966,10 @@ function starBtn(favorite, dataAttrs) {
 }
 
 function render() {
-  renderFavorites();
   renderRivenList();
   renderKuvaGroupedList();
   renderFrameList();
+  Object.keys(EQUIP_KINDS).forEach(kind => renderEquipList(kind));
   renderIncarnonList();
 }
 
@@ -593,35 +986,6 @@ function setupPopoverToggle(btnId, popId, opts) {
 }
 setupPopoverToggle("help-toggle", "help-popover");
 
-// ---------- 星付き横断一覧 ----------
-function renderFavorites() {
-  const rivenFavs = Object.values(state.data.rivens).filter(r => r.favorite);
-  const kuvaFavs = Object.values(state.data.kuva).filter(k => k.favorite);
-  document.getElementById("favorites-title").innerHTML = `${icon("star", { size: 16 })}お気に入り <span class="empty" style="font-weight:400;">(${rivenFavs.length + kuvaFavs.length})</span>`;
-  const el = document.getElementById("favorites-list");
-  const all = [
-    ...rivenFavs.map(r => ({ kind: "riven", entry: r })),
-    ...kuvaFavs.map(k => ({ kind: "kuva", entry: k })),
-  ];
-  if (!all.length) { el.innerHTML = `<div class="empty">まだお気に入りがありません</div>`; return; }
-  el.innerHTML = all.map(({ kind, entry }) => `
-    <div class="card-v2" data-fav-open="${kind}:${entry.id}" style="display:flex;align-items:center;gap:8px;">
-      ${starBtn(true, `data-fav-toggle="${kind}:${entry.id}"`)}
-      <span class="card-title">${escapeHtml(entry.weaponName)}</span>
-      <span class="badge badge-kind">${kind === "riven" ? "Riven" : (entry.kind || "Kuva")}</span>
-    </div>
-  `).join("");
-  el.querySelectorAll("[data-fav-toggle]").forEach(b => b.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const [kind, id] = b.dataset.favToggle.split(":");
-    toggleFavorite(kind, id);
-  }));
-  el.querySelectorAll("[data-fav-open]").forEach(card => card.addEventListener("click", () => {
-    const [kind, id] = card.dataset.favOpen.split(":");
-    if (kind === "riven") openRivenModal(id);
-    else openKuvaModal(state.data.kuva[id].weaponName);
-  }));
-}
 function toggleFavorite(kind, id) {
   if (kind === "riven") {
     const entry = { ...state.data.rivens[id], favorite: !state.data.rivens[id].favorite };
@@ -695,6 +1059,7 @@ function updateRivenLiveCheck() {
     const check = await res.json();
     resultEl.innerHTML = `
       <b>武器アーキタイプ:</b> ${check.archetype}
+      <span title="武器の素の会心/状態異常率からCrit/Status/Hybrid/Utilityを判定し、選んだポジ値ステータスがそのアーキタイプと噛み合っているかだけを表示します（Damage/Multishotは全アーキタイプ共通で一致扱い）。理論値レンジの計算はしていません。">${icon("circle-alert", { size: 14, class: "help-hint" })}</span>
       ${check.matches
         ? `<span class="badge badge-match">${icon("check")}ポジ値と一致（${(check.matchedStats || []).map(ja).join(", ")}）</span>`
         : `<span class="badge badge-nomatch">一致ステータスなし</span>`}`;
@@ -704,6 +1069,7 @@ document.getElementById("riven-weapon-input").addEventListener("input", updateRi
 
 // ---------- Riven: モーダル ----------
 let rivenEditingId = null;
+let rivenBulkCount = 0;
 function openRivenModal(editId) {
   rivenEditingId = editId || null;
   const entry = editId ? state.data.rivens[editId] : null;
@@ -711,7 +1077,7 @@ function openRivenModal(editId) {
   document.getElementById("riven-weapon-input").value = entry ? entry.weaponName : "";
   document.getElementById("riven-negative-select").value = entry ? (entry.negativeStat || "") : "";
   document.getElementById("riven-negative-value").value = entry && entry.negativeValue ? entry.negativeValue : "";
-  document.getElementById("riven-favorite-check").checked = entry ? !!entry.favorite : false;
+  document.getElementById("riven-fixed-check").checked = entry ? !!entry.fixed : false;
   document.getElementById("riven-note-input").value = entry ? (entry.note || "") : "";
   document.getElementById("riven-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : "");
   document.querySelectorAll("[data-riven-positive]").forEach(cb => {
@@ -728,13 +1094,44 @@ function openRivenModal(editId) {
   renderRivenPositiveValues();
   document.getElementById("riven-live-check").innerHTML = "";
   if (entry) updateRivenLiveCheck();
+  document.getElementById("riven-bulk-row").classList.toggle("hidden", !!editId);
+  document.getElementById("riven-bulk-check").checked = false;
+  document.getElementById("riven-modal-optional").classList.remove("hidden");
+  document.getElementById("riven-fixed-row").classList.remove("hidden");
+  rivenBulkCount = 0;
+  document.getElementById("riven-bulk-feedback").classList.add("hidden");
   document.getElementById("riven-modal-backdrop").classList.remove("hidden");
 }
 function closeRivenModal() { document.getElementById("riven-modal-backdrop").classList.add("hidden"); }
 document.getElementById("riven-modal-cancel").addEventListener("click", closeRivenModal);
+document.getElementById("riven-bulk-check").addEventListener("change", (e) => {
+  document.getElementById("riven-modal-optional").classList.toggle("hidden", e.target.checked);
+  document.getElementById("riven-fixed-row").classList.toggle("hidden", e.target.checked);
+});
+document.getElementById("riven-weapon-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.getElementById("riven-bulk-check").checked) {
+    e.preventDefault();
+    document.getElementById("riven-modal-save").click();
+  }
+});
 document.getElementById("riven-modal-save").addEventListener("click", () => {
   const weaponName = document.getElementById("riven-weapon-input").value.trim();
   if (!weaponName) { alert("対象武器名を入力して"); return; }
+  const bulk = !rivenEditingId && document.getElementById("riven-bulk-check").checked;
+  if (bulk) {
+    upsertRiven({
+      id: uid("riven"), weaponName, positiveStats: [], positiveValues: [],
+      negativeStat: "", negativeValue: 0, fixed: false, favorite: false, note: "",
+    });
+    rivenBulkCount++;
+    const fb = document.getElementById("riven-bulk-feedback");
+    fb.textContent = `${rivenBulkCount}件追加しました（最新: ${weaponName}）`;
+    fb.classList.remove("hidden");
+    const weaponInput = document.getElementById("riven-weapon-input");
+    weaponInput.value = "";
+    weaponInput.focus();
+    return;
+  }
   const entry = {
     id: rivenEditingId || uid("riven"),
     weaponName,
@@ -742,8 +1139,13 @@ document.getElementById("riven-modal-save").addEventListener("click", () => {
     positiveValues: selectedRivenPositiveValues(),
     negativeStat: document.getElementById("riven-negative-select").value,
     negativeValue: parseFloat(document.getElementById("riven-negative-value").value) || 0,
-    fixed: rivenEditingId ? state.data.rivens[rivenEditingId].fixed : false,
-    favorite: document.getElementById("riven-favorite-check").checked,
+    // FIX済みは実装当初からUIに一度も配線されておらず、新規作成時に常にfalseで固定される
+    // だけの死んだフィールドだった（2026-08-22発見・修正、チェックボックスを追加）。
+    fixed: document.getElementById("riven-fixed-check").checked,
+    // お気に入りはカードの★ボタン（data-toggle-fav）で直接切り替える方式に統一し、
+    // モーダルからは削除した（Loadouts Itemsの既存パターンと同じ、2026-08-22）。
+    // 編集時は既存値を保持し、新規作成時のみ既定値false。
+    favorite: rivenEditingId ? state.data.rivens[rivenEditingId].favorite : false,
     note: document.getElementById("riven-note-input").value.trim(),
     chainViewNodeId: document.getElementById("riven-chainview-select").value || undefined,
   };
@@ -762,16 +1164,16 @@ async function deleteRiven(id) {
 
 function renderRivenList() {
   const el = document.getElementById("riven-list");
-  const entries = Object.values(state.data.rivens).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
-  const addCardHtml = `<button class="add-card" id="add-riven-card" title="新規登録">${icon("plus")}</button>`;
+  const entries = Object.values(state.data.rivens).sort((a, b) => (b.favorite - a.favorite) || a.weaponName.localeCompare(b.weaponName));
 
+  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`; return; }
   el.innerHTML = entries.map(entry => `
     <div class="card-v2" data-open-riven="${entry.id}">
       <div class="card-head">
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
         <div class="card-title">${escapeHtml(entry.weaponName)}</div>
         <div class="card-badges">
-          <span class="badge ${entry.fixed ? "badge-fix" : "badge-unfixed"}">${entry.fixed ? icon("check") + "FIX" : "要リロール"}</span>
+          <span class="status-icon ${entry.fixed ? "on" : "off"}" title="${entry.fixed ? "確定" : "リロール中"}">${icon("check", { size: 14 })}</span>
         </div>
         <div class="card-actions">
           <button class="icon-btn" data-copy-riven="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
@@ -784,9 +1186,7 @@ function renderRivenList() {
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
-  `).join("") + addCardHtml;
-
-  document.getElementById("add-riven-card").addEventListener("click", () => openRivenModal(null));
+  `).join("");
 
   entries.forEach(entry => {
     if (!entry.note) return;
@@ -832,32 +1232,49 @@ function groupedKuva() {
   return groups;
 }
 
-function renderKuvaGroupedList() {
-  const el = document.getElementById("kuva-list");
-  const groups = groupedKuva();
-  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-  const addCardHtml = `<button class="add-card" id="add-kuva-card" title="新規登録">${icon("plus")}</button>`;
-
-  el.innerHTML = names.map(name => {
-    const entries = groups[name];
-    const anyFav = entries.some(e => e.favorite);
-    const anyOwned = entries.some(e => e.owned);
-    const kind = entries[0].kind || "";
-    return `
+// Kuva/Tenet/Codaは系統ごとにサブセクション分割する（2026-08-23、「Kuvaでサブセクション
+// みたいにできる？」との要望）。系統ごとに見出し＋専用グリッドを並べ、登録が無い系統の
+// 見出しは出さない。系統バッジは見出しと重複するためカードからは外した。
+function kuvaGroupCardHtml(name, entries) {
+  const anyFav = entries.some(e => e.favorite);
+  const anyOwned = entries.some(e => e.owned);
+  return `
     <div class="card-v2" data-open-kuva-group="${escapeHtml(name)}">
       <div class="card-head">
         ${starBtn(anyFav, `data-open-kuva-group-nav="${escapeHtml(name)}"`)}
         <div class="card-title">${escapeHtml(name)}</div>
         <div class="card-badges">
-          ${kind ? `<span class="badge badge-kind">${kind}</span>` : ""}
-          <span class="badge badge-count">${entries.length}丁</span>
-          <span class="badge ${anyOwned ? "badge-owned" : "badge-notowned"}">${anyOwned ? "所持済み" : "未所持"}</span>
+          <span class="badge badge-count">${entries.length}件</span>
+          <span class="status-icon ${anyOwned ? "on" : "off"}" title="${anyOwned ? "所持済み" : "未所持"}">${icon("check", { size: 14 })}</span>
         </div>
       </div>
     </div>`;
-  }).join("") + addCardHtml;
+}
 
-  document.getElementById("add-kuva-card").addEventListener("click", () => openKuvaModal(""));
+function renderKuvaGroupedList() {
+  const el = document.getElementById("kuva-list");
+  const groups = groupedKuva();
+  const names = Object.keys(groups).sort((a, b) => {
+    const favA = groups[a].some(e => e.favorite);
+    const favB = groups[b].some(e => e.favorite);
+    return (favB - favA) || a.localeCompare(b);
+  });
+  const byKind = { Kuva: [], Tenet: [], Coda: [] };
+  names.forEach(name => {
+    const kind = groups[name][0].kind || "Kuva";
+    (byKind[kind] || (byKind[kind] = [])).push(name);
+  });
+
+  if (!names.length) {
+    el.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+  } else {
+    el.innerHTML = ["Kuva", "Tenet", "Coda"].map(kind => {
+      const kindNames = byKind[kind] || [];
+      if (!kindNames.length) return "";
+      const cards = kindNames.map(name => kuvaGroupCardHtml(name, groups[name])).join("");
+      return `<div class="kind-group-title">${kind}</div><div class="kuva-grid">${cards}</div>`;
+    }).join("");
+  }
 
   el.querySelectorAll("[data-open-kuva-group]").forEach(card => card.addEventListener("click", () => {
     openKuvaModal(card.dataset.openKuvaGroup);
@@ -910,14 +1327,14 @@ function renderKuvaModal() {
     <div class="group-entry" data-kuva-entry="${entry.id}">
       <div class="group-entry-head">
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
-        <span class="badge ${entry.owned ? "badge-owned" : "badge-notowned"}">${entry.owned ? "所持済み" : "未所持"}</span>
+        <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "所持済み" : "未所持"}">${icon("check", { size: 14 })}</span>
         <span style="flex:1"></span>
         <button class="icon-btn" data-copy-kuva="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
         <button class="icon-btn" data-edit-kuva="${entry.id}" title="編集">${icon("pencil")}</button>
         <button class="icon-btn danger" data-del-kuva="${entry.id}" title="削除">${icon("trash-2")}</button>
       </div>
       ${entry.chainViewNodeId ? `<div id="minigraph-kuva-${entry.id}"></div>` : ""}
-      ${entry.bonusStat ? `<div class="card-row"><b>ボーナス属性:</b> ${escapeHtml(entry.bonusStat)}</div>` : ""}
+      ${entry.bonusStat ? `<div class="card-row"><b>ボーナス属性:</b> ${formatRivenStat(entry.bonusStat, entry.bonusValue, ja)}</div>` : ""}
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-kuva-${entry.id}"></div>` : ""}
     </div>
@@ -951,19 +1368,20 @@ function renderKuvaModal() {
   document.getElementById("kuva-chainview-select").innerHTML = chainViewOptions(editingId && state.data.kuva[editingId] ? state.data.kuva[editingId].chainViewNodeId : "");
 
   const addToggleBtn = document.getElementById("kuva-modal-add-toggle");
-  const addToggleLabel = entries.length ? "この武器をもう1丁追加" : "登録する";
+  const addToggleLabel = entries.length ? "この武器をもう1件追加" : "登録する";
   addToggleBtn.innerHTML = iconLabel("plus", addToggleLabel);
   addToggleBtn.title = addToggleLabel;
   addToggleBtn.classList.toggle("hidden", isNewWeapon || formOpen);
 
   const formEl = document.getElementById("kuva-modal-form");
   formEl.classList.toggle("hidden", !formOpen);
+  document.getElementById("kuva-owned-check-wrap").classList.toggle("hidden", !formOpen);
   if (formOpen) {
     const editingEntry = editingId ? state.data.kuva[editingId] : null;
     document.getElementById("kuva-kind-select").value = editingEntry ? (editingEntry.kind || "Kuva") : "Kuva";
     document.getElementById("kuva-owned-check").checked = editingEntry ? !!editingEntry.owned : false;
-    document.getElementById("kuva-bonus-input").value = editingEntry ? (editingEntry.bonusStat || "") : "";
-    document.getElementById("kuva-favorite-check").checked = editingEntry ? !!editingEntry.favorite : false;
+    document.getElementById("kuva-bonus-stat-select").value = editingEntry ? (editingEntry.bonusStat || "") : "";
+    document.getElementById("kuva-bonus-value-input").value = editingEntry && editingEntry.bonusValue ? editingEntry.bonusValue : "";
     document.getElementById("kuva-note-input").value = editingEntry ? (editingEntry.note || "") : "";
   }
 }
@@ -977,17 +1395,30 @@ document.getElementById("kuva-modal-add-toggle").addEventListener("click", () =>
 document.getElementById("kuva-form-save").addEventListener("click", () => {
   const weaponName = kuvaModalState.weaponName || document.getElementById("kuva-weapon-input").value.trim();
   if (!weaponName) { alert("武器名を入力して"); return; }
+  const isNewEntry = !kuvaModalState.editingId;
   const entry = {
     id: kuvaModalState.editingId || uid("kuva"),
     weaponName,
     kind: document.getElementById("kuva-kind-select").value,
     owned: document.getElementById("kuva-owned-check").checked,
-    bonusStat: document.getElementById("kuva-bonus-input").value.trim(),
-    favorite: document.getElementById("kuva-favorite-check").checked,
+    bonusStat: document.getElementById("kuva-bonus-stat-select").value,
+    bonusValue: parseFloat(document.getElementById("kuva-bonus-value-input").value) || 0,
+    // お気に入りは各個体行の★ボタン（data-toggle-fav）で直接切り替える方式に統一し、
+    // モーダルからは削除した（Rivenの既存パターンと同じ、2026-08-23）。編集時は既存値を保持。
+    favorite: kuvaModalState.editingId ? state.data.kuva[kuvaModalState.editingId].favorite : false,
     note: document.getElementById("kuva-note-input").value.trim(),
     chainViewNodeId: document.getElementById("kuva-chainview-select").value || undefined,
   };
   upsertKuva(entry).then(() => {
+    // その武器で初めての1件を登録した直後は、いきなり「一覧」画面へ切り替えず
+    // モーダルを閉じてグリッドへ戻す（登録操作の続きに一覧UIが割り込むと分かりにくい
+    // との指摘、2026-08-23）。「もう1丁追加」経由や既存武器名との重複で2件目以降に
+    // なった場合のみ、従来どおり一覧表示に切り替える。
+    const nowCount = (groupedKuva()[weaponName] || []).length;
+    if (isNewEntry && nowCount === 1) {
+      closeKuvaModal();
+      return;
+    }
     kuvaModalState = { weaponName, formOpen: false, editingId: null };
     renderKuvaModal();
   });
@@ -1037,16 +1468,16 @@ async function deleteFrame(id) {
 function renderFrameList() {
   const el = document.getElementById("frame-list");
   const entries = Object.values(state.data.frames).sort((a, b) => a.name.localeCompare(b.name));
-  const addCardHtml = `<button class="add-card" id="add-frame-card" title="新規登録">${icon("plus")}</button>`;
 
+  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`; return; }
   el.innerHTML = entries.map(entry => `
     <div class="card-v2" data-open-frame="${entry.id}">
       <div class="card-head">
         <div class="card-title">${escapeHtml(entry.name)}</div>
         <div class="card-badges">
-          <span class="badge ${entry.owned ? "badge-owned" : "badge-notowned"}">${entry.owned ? "入手済み" : "未入手"}</span>
-          ${entry.rankedThirty ? `<span class="badge badge-fix">${icon("check")}ランク30済み</span>` : ""}
-          ${entry.helminthFed ? `<span class="badge badge-count">ヘルミンス済み</span>` : ""}
+          <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "入手済み" : "未入手"}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? "ランク30済み" : "ランク30未達"}">${icon("zap", { size: 14 })}</span>
+          <span class="status-icon ${entry.helminthFed ? "on" : "off"}" title="${entry.helminthFed ? "ヘルミンス済み" : "ヘルミンス未実施"}">${icon("archive", { size: 14 })}</span>
         </div>
         <div class="card-actions">
           <button class="icon-btn" data-copy-frame="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
@@ -1057,9 +1488,7 @@ function renderFrameList() {
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-frame-${entry.id}"></div>` : ""}
     </div>
-  `).join("") + addCardHtml;
-
-  document.getElementById("add-frame-card").addEventListener("click", () => openFrameModal(null));
+  `).join("");
 
   entries.forEach(entry => {
     if (!entry.note) return;
@@ -1084,6 +1513,7 @@ function renderFrameList() {
 }
 
 let frameEditingId = null;
+let frameBulkCount = 0;
 function openFrameModal(editId) {
   frameEditingId = editId || null;
   const entry = editId ? state.data.frames[editId] : null;
@@ -1094,13 +1524,66 @@ function openFrameModal(editId) {
   document.getElementById("frame-helminth-check").checked = entry ? !!entry.helminthFed : false;
   document.getElementById("frame-note-input").value = entry ? (entry.note || "") : "";
   document.getElementById("frame-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : "");
+  document.getElementById("frame-bulk-row").classList.toggle("hidden", !!editId);
+  document.getElementById("frame-bulk-check").checked = false;
+  document.getElementById("frame-modal-optional").classList.remove("hidden");
+  frameBulkCount = 0;
+  document.getElementById("frame-bulk-feedback").classList.add("hidden");
   document.getElementById("frame-modal-backdrop").classList.remove("hidden");
 }
 function closeFrameModal() { document.getElementById("frame-modal-backdrop").classList.add("hidden"); }
 document.getElementById("frame-modal-cancel").addEventListener("click", closeFrameModal);
+document.getElementById("frame-bulk-check").addEventListener("change", (e) => {
+  document.getElementById("frame-modal-optional").classList.toggle("hidden", e.target.checked);
+});
+document.getElementById("frame-name-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.getElementById("frame-bulk-check").checked) {
+    e.preventDefault();
+    document.getElementById("frame-modal-save").click();
+  }
+});
+// フレームは「同名なら同一個体」という前提（Riven/Kuvaのような個体差を持たない）なので、
+// 名前ベースで重複登録を防ぐ。新規作成時（編集時は対象外）のみチェックする（2026-08-25項目27、
+// Loadouts/Chain View起点の強制登録がここに依存するための土台）。
+function findFrameByName(name) {
+  const q = name.trim().toLowerCase();
+  return Object.values(state.data.frames || {}).find(f => f.name.trim().toLowerCase() === q);
+}
+
 document.getElementById("frame-modal-save").addEventListener("click", () => {
   const name = document.getElementById("frame-name-input").value.trim();
   if (!name) { alert("フレーム名を入力して"); return; }
+  const bulk = !frameEditingId && document.getElementById("frame-bulk-check").checked;
+  const dup = !frameEditingId ? findFrameByName(name) : null;
+
+  if (dup && bulk) {
+    // 連続登録中に既存名とぶつかったら重複作成せずスキップし、次の入力を促す。
+    const fb = document.getElementById("frame-bulk-feedback");
+    fb.textContent = `既に登録済みのためスキップ: ${dup.name}`;
+    fb.classList.remove("hidden");
+    const nameInput = document.getElementById("frame-name-input");
+    nameInput.value = "";
+    nameInput.focus();
+    return;
+  }
+  if (dup && !bulk) {
+    // 通常登録で既存名と衝突したら新規作成せず、既存カードの編集画面をそのまま開く。
+    closeFrameModal();
+    openFrameModal(dup.id);
+    return;
+  }
+
+  if (bulk) {
+    upsertFrame({ id: uid("frame"), name, owned: false, rankedThirty: false, helminthFed: false, note: "" });
+    frameBulkCount++;
+    const fb = document.getElementById("frame-bulk-feedback");
+    fb.textContent = `${frameBulkCount}件追加しました（最新: ${name}）`;
+    fb.classList.remove("hidden");
+    const nameInput = document.getElementById("frame-name-input");
+    nameInput.value = "";
+    nameInput.focus();
+    return;
+  }
   const entry = {
     id: frameEditingId || uid("frame"),
     name,
@@ -1112,6 +1595,166 @@ document.getElementById("frame-modal-save").addEventListener("click", () => {
   };
   upsertFrame(entry);
   closeFrameModal();
+});
+
+// ---------- 武器/コンパニオン/Archwing/Necramech（FrameEntryと同型、helminthFed無し） ----------
+// 4種とも同じ形状（owned/rankedThirty/note/chainViewNodeId）なので、Frameのように個別に
+// 書かず1つの汎用実装で賄う（2026-08-25項目27）。KINDごとの差分（DOM ID接頭辞・APIパス・
+// 参照名リスト・ラベル文言）だけをEQUIP_KINDSに持たせる。
+const EQUIP_KINDS = {
+  weapon: { apiPath: "weapons", label: "武器", refNamesKey: "weaponNames" },
+  companion: { apiPath: "companions", label: "コンパニオン", refNamesKey: "companionNames" },
+  archwing: { apiPath: "archwings", label: "Archwing", refNamesKey: "archwingNames" },
+  necramech: { apiPath: "necramechs", label: "Necramech", refNamesKey: "necramechNames" },
+};
+let equipEditingId = {};
+let equipBulkCount = {};
+
+function findEquipByName(kind, name) {
+  const q = name.trim().toLowerCase();
+  return Object.values(state.data[EQUIP_KINDS[kind].apiPath] || {}).find(e => e.name.trim().toLowerCase() === q);
+}
+
+async function upsertEquip(kind, entry) {
+  await fetch(`/api/collections/${EQUIP_KINDS[kind].apiPath}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
+  await loadAll();
+}
+async function deleteEquip(kind, id) {
+  await fetch(`/api/collections/${EQUIP_KINDS[kind].apiPath}/${encodeURIComponent(id)}`, { method: "DELETE" });
+  await loadAll();
+}
+
+function renderEquipList(kind) {
+  const cfg = EQUIP_KINDS[kind];
+  const el = document.getElementById(`${kind}-list`);
+  const entries = Object.values(state.data[cfg.apiPath] || {}).sort((a, b) => a.name.localeCompare(b.name));
+
+  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`; return; }
+  el.innerHTML = entries.map(entry => `
+    <div class="card-v2" data-open-id="${entry.id}">
+      <div class="card-head">
+        <div class="card-title">${escapeHtml(entry.name)}</div>
+        <div class="card-badges">
+          <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "入手済み" : "未入手"}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? "ランク30済み" : "ランク30未達"}">${icon("zap", { size: 14 })}</span>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn" data-copy-id="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-id="${entry.id}" title="削除">${icon("trash-2")}</button>
+        </div>
+      </div>
+      ${entry.chainViewNodeId ? `<div id="minigraph-${kind}-${entry.id}"></div>` : ""}
+      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
+      ${entry.note ? `<div class="card-memo" id="notemd-${kind}-${entry.id}"></div>` : ""}
+    </div>
+  `).join("");
+
+  entries.forEach(entry => {
+    if (!entry.note) return;
+    const holder = document.getElementById(`notemd-${kind}-${entry.id}`);
+    if (holder) renderNoteMd(holder, entry.note, (newNote) => upsertEquip(kind, { ...entry, note: newNote }));
+  });
+  wireCopyButtons(el, "[data-copy-id]", (btn) => buildEquipExportText(cfg.label, state.data[cfg.apiPath][btn.dataset.copyId]));
+
+  el.querySelectorAll("[data-open-id]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("[data-del-id]")) return;
+    openEquipModal(kind, card.dataset.openId);
+  }));
+  el.querySelectorAll("[data-del-id]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (confirm(`「${state.data[cfg.apiPath][btn.dataset.delId].name}」を削除する？`)) deleteEquip(kind, btn.dataset.delId);
+  }));
+  entries.forEach(entry => {
+    if (!entry.chainViewNodeId) return;
+    const holder = document.getElementById(`minigraph-${kind}-${entry.id}`);
+    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
+  });
+}
+
+function openEquipModal(kind, editId) {
+  const cfg = EQUIP_KINDS[kind];
+  equipEditingId[kind] = editId || null;
+  const entry = editId ? state.data[cfg.apiPath][editId] : null;
+  document.getElementById(`${kind}-modal-title`).textContent = entry ? `${cfg.label} 編集` : `${cfg.label} 新規登録`;
+  document.getElementById(`${kind}-name-input`).value = entry ? entry.name : "";
+  document.getElementById(`${kind}-owned-check`).checked = entry ? !!entry.owned : false;
+  document.getElementById(`${kind}-ranked30-check`).checked = entry ? !!entry.rankedThirty : false;
+  document.getElementById(`${kind}-note-input`).value = entry ? (entry.note || "") : "";
+  document.getElementById(`${kind}-chainview-select`).innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : "");
+  document.getElementById(`${kind}-bulk-row`).classList.toggle("hidden", !!editId);
+  document.getElementById(`${kind}-bulk-check`).checked = false;
+  document.getElementById(`${kind}-modal-optional`).classList.remove("hidden");
+  equipBulkCount[kind] = 0;
+  document.getElementById(`${kind}-bulk-feedback`).classList.add("hidden");
+  document.getElementById(`${kind}-modal-backdrop`).classList.remove("hidden");
+}
+function closeEquipModal(kind) { document.getElementById(`${kind}-modal-backdrop`).classList.add("hidden"); }
+
+function equipSave(kind) {
+  const cfg = EQUIP_KINDS[kind];
+  const name = document.getElementById(`${kind}-name-input`).value.trim();
+  if (!name) { alert(`${cfg.label}名を入力して`); return; }
+  const editingId = equipEditingId[kind];
+  const bulk = !editingId && document.getElementById(`${kind}-bulk-check`).checked;
+  const dup = !editingId ? findEquipByName(kind, name) : null;
+
+  if (dup && bulk) {
+    // 連続登録中に既存名とぶつかったら重複作成せずスキップし、次の入力を促す。
+    const fb = document.getElementById(`${kind}-bulk-feedback`);
+    fb.textContent = `既に登録済みのためスキップ: ${dup.name}`;
+    fb.classList.remove("hidden");
+    const nameInput = document.getElementById(`${kind}-name-input`);
+    nameInput.value = "";
+    nameInput.focus();
+    return;
+  }
+  if (dup && !bulk) {
+    // 通常登録で既存名と衝突したら新規作成せず、既存カードの編集画面をそのまま開く。
+    closeEquipModal(kind);
+    openEquipModal(kind, dup.id);
+    return;
+  }
+
+  if (bulk) {
+    upsertEquip(kind, { id: uid(kind), name, owned: false, rankedThirty: false, note: "" });
+    equipBulkCount[kind] = (equipBulkCount[kind] || 0) + 1;
+    const fb = document.getElementById(`${kind}-bulk-feedback`);
+    fb.textContent = `${equipBulkCount[kind]}件追加しました（最新: ${name}）`;
+    fb.classList.remove("hidden");
+    const nameInput = document.getElementById(`${kind}-name-input`);
+    nameInput.value = "";
+    nameInput.focus();
+    return;
+  }
+  const entry = {
+    id: editingId || uid(kind),
+    name,
+    owned: document.getElementById(`${kind}-owned-check`).checked,
+    rankedThirty: document.getElementById(`${kind}-ranked30-check`).checked,
+    note: document.getElementById(`${kind}-note-input`).value.trim(),
+    chainViewNodeId: document.getElementById(`${kind}-chainview-select`).value || undefined,
+  };
+  upsertEquip(kind, entry);
+  closeEquipModal(kind);
+}
+
+Object.keys(EQUIP_KINDS).forEach(kind => {
+  document.getElementById(`${kind}-add-btn`).innerHTML = icon("plus");
+  document.getElementById(`${kind}-add-btn`).addEventListener("click", () => openEquipModal(kind, null));
+  document.getElementById(`${kind}-legend-owned`).innerHTML = icon("check", { size: 14 });
+  document.getElementById(`${kind}-legend-rank30`).innerHTML = icon("zap", { size: 14 });
+  document.getElementById(`${kind}-note-help`).innerHTML = icon("circle-alert", { size: 13 });
+  document.getElementById(`${kind}-modal-cancel`).addEventListener("click", () => closeEquipModal(kind));
+  document.getElementById(`${kind}-bulk-check`).addEventListener("change", (e) => {
+    document.getElementById(`${kind}-modal-optional`).classList.toggle("hidden", e.target.checked);
+  });
+  document.getElementById(`${kind}-name-input`).addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && document.getElementById(`${kind}-bulk-check`).checked) {
+      e.preventDefault();
+      document.getElementById(`${kind}-modal-save`).click();
+    }
+  });
+  document.getElementById(`${kind}-modal-save`).addEventListener("click", () => equipSave(kind));
 });
 
 // ---------- デュビリ・インカーノン ----------
@@ -1131,15 +1774,15 @@ async function deleteIncarnon(id) {
 function renderIncarnonList() {
   const el = document.getElementById("incarnon-list");
   const entries = Object.values(state.data.incarnons).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
-  const addCardHtml = `<button class="add-card" id="add-incarnon-card" title="新規登録">${icon("plus")}</button>`;
 
+  if (!entries.length) { el.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`; return; }
   el.innerHTML = entries.map(entry => `
     <div class="card-v2" data-open-incarnon="${entry.id}">
       <div class="card-head">
         <div class="card-title">${escapeHtml(entry.weaponName)}</div>
         <div class="card-badges">
-          <span class="badge ${entry.obtained ? "badge-owned" : "badge-notowned"}">${entry.obtained ? "取得済み" : "未取得"}</span>
-          ${entry.completed ? `<span class="badge badge-fix">${icon("check")}インカーノン済み</span>` : ""}
+          <span class="status-icon ${entry.obtained ? "on" : "off"}" title="${entry.obtained ? "取得済み" : "未取得"}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.completed ? "on" : "off"}" title="${entry.completed ? "インカーノン済み" : "未インカーノン"}">${icon("zap", { size: 14 })}</span>
         </div>
         <div class="card-actions">
           <button class="icon-btn" data-copy-incarnon="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
@@ -1150,9 +1793,7 @@ function renderIncarnonList() {
       ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-incarnon-${entry.id}"></div>` : ""}
     </div>
-  `).join("") + addCardHtml;
-
-  document.getElementById("add-incarnon-card").addEventListener("click", () => openIncarnonModal(null));
+  `).join("");
 
   entries.forEach(entry => {
     if (!entry.note) return;
@@ -1177,6 +1818,7 @@ function renderIncarnonList() {
 }
 
 let incarnonEditingId = null;
+let incarnonBulkCount = 0;
 function openIncarnonModal(editId) {
   incarnonEditingId = editId || null;
   const entry = editId ? state.data.incarnons[editId] : null;
@@ -1185,13 +1827,39 @@ function openIncarnonModal(editId) {
   document.getElementById("incarnon-obtained-check").checked = entry ? !!entry.obtained : false;
   document.getElementById("incarnon-completed-check").checked = entry ? !!entry.completed : false;
   document.getElementById("incarnon-note-input").value = entry ? (entry.note || "") : "";
+  document.getElementById("incarnon-bulk-row").classList.toggle("hidden", !!editId);
+  document.getElementById("incarnon-bulk-check").checked = false;
+  document.getElementById("incarnon-modal-optional").classList.remove("hidden");
+  incarnonBulkCount = 0;
+  document.getElementById("incarnon-bulk-feedback").classList.add("hidden");
   document.getElementById("incarnon-modal-backdrop").classList.remove("hidden");
 }
 function closeIncarnonModal() { document.getElementById("incarnon-modal-backdrop").classList.add("hidden"); }
 document.getElementById("incarnon-modal-cancel").addEventListener("click", closeIncarnonModal);
+document.getElementById("incarnon-bulk-check").addEventListener("change", (e) => {
+  document.getElementById("incarnon-modal-optional").classList.toggle("hidden", e.target.checked);
+});
+document.getElementById("incarnon-weapon-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.getElementById("incarnon-bulk-check").checked) {
+    e.preventDefault();
+    document.getElementById("incarnon-modal-save").click();
+  }
+});
 document.getElementById("incarnon-modal-save").addEventListener("click", () => {
   const weaponName = document.getElementById("incarnon-weapon-input").value.trim();
   if (!weaponName) { alert("武器名を入力して"); return; }
+  const bulk = !incarnonEditingId && document.getElementById("incarnon-bulk-check").checked;
+  if (bulk) {
+    upsertIncarnon({ id: uid("incarnon"), weaponName, obtained: false, completed: false, note: "" });
+    incarnonBulkCount++;
+    const fb = document.getElementById("incarnon-bulk-feedback");
+    fb.textContent = `${incarnonBulkCount}件追加しました（最新: ${weaponName}）`;
+    fb.classList.remove("hidden");
+    const weaponInput = document.getElementById("incarnon-weapon-input");
+    weaponInput.value = "";
+    weaponInput.focus();
+    return;
+  }
   const entry = {
     id: incarnonEditingId || uid("incarnon"),
     weaponName,
@@ -1206,7 +1874,11 @@ setupWeaponCombobox("incarnon-weapon-input", "incarnon-weapon-suggest");
 
 renderRivenPositivePopover();
 updateRivenPositiveBtnLabel();
-Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRivenStatChoices(), loadGlossary()]).then(() => {
+Promise.all([
+  loadChainViewNodes(), loadWeaponNames(), loadFrameNames(),
+  loadCompanionNames(), loadArchwingNames(), loadNecramechNames(),
+  loadRivenStatChoices(), loadGlossary(), loadDuviriGate(),
+]).then(() => {
   // loadRivenStatChoices()完了時点でstate.rivenStatChoicesが確定するため、空配列のまま
   // 描画済みだったポップオーバーをここで再描画する（2026-08-20発見・修正: 従来はこの
   // 再描画が漏れており、ポジ値チェックボックスが常に空のまま表示されていた既存バグ）。
@@ -1215,6 +1887,14 @@ Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRive
   renderRivenPositivePopover();
   renderRivenNegativeSelect();
   setupWeaponCombobox("frame-name-input", "frame-name-suggest", state.frameNames);
+  Object.keys(EQUIP_KINDS).forEach(kind => {
+    setupWeaponCombobox(`${kind}-name-input`, `${kind}-name-suggest`, state[EQUIP_KINDS[kind].refNamesKey] || []);
+    initPlainCollapsible(kind);
+  });
+  initIncarnonCollapse();
+  initPlainCollapsible("frame");
+  initPlainCollapsible("riven");
+  initPlainCollapsible("kuva");
   loadAll();
 });
 </script>
@@ -1222,6 +1902,7 @@ Promise.all([loadChainViewNodes(), loadWeaponNames(), loadFrameNames(), loadRive
 <script src="/scratch.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
+<script src="/scroll-top.js"></script>
 <script src="/spoiler-warning.js"></script>
 <script src="/quest-onboarding.js"></script>
 <script src="/debug-grid.js"></script>

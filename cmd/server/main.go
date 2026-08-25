@@ -402,6 +402,106 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
+	mux.HandleFunc("POST /api/collections/weapons", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.WeaponEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertWeapon(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/weapons/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteWeapon(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/collections/companions", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.CompanionEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertCompanion(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/companions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteCompanion(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/collections/archwings", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.ArchwingEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertArchwing(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/archwings/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteArchwing(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/collections/necramechs", func(w http.ResponseWriter, r *http.Request) {
+		var entry collection.NecramechEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if entry.ID == "" || entry.Name == "" {
+			http.Error(w, "id and name are required", http.StatusBadRequest)
+			return
+		}
+		if err := cs.UpsertNecramech(&entry); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, entry)
+	})
+
+	mux.HandleFunc("DELETE /api/collections/necramechs/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if err := cs.DeleteNecramech(r.PathValue("id")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	mux.HandleFunc("POST /api/collections/incarnons", func(w http.ResponseWriter, r *http.Request) {
 		var entry collection.IncarnonEntry
 		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
@@ -846,6 +946,25 @@ func main() {
 		writeJSON(w, names)
 	})
 
+	// Archwing/Necramech（2026-08-23、「アークウィング、Voidrigはどこに登録する想定だっけ」を
+	// 受けてItem種別に追加）。
+	mux.HandleFunc("GET /api/reference/archwings", func(w http.ResponseWriter, r *http.Request) {
+		names, err := wfcd.CachedNames(wfcdCacheDir, "archwings.json", wfcd.FetchArchwingNames)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+	mux.HandleFunc("GET /api/reference/necramechs", func(w http.ResponseWriter, r *http.Request) {
+		names, err := wfcd.CachedNames(wfcdCacheDir, "necramechs.json", wfcd.FetchNecramechNames)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+
 	mux.HandleFunc("GET /api/reference/weapons", func(w http.ResponseWriter, r *http.Request) {
 		names, err := wfcd.CachedNames(wfcdCacheDir, "weapons.json", wfcd.FetchWeaponNames)
 		if err != nil {
@@ -857,6 +976,16 @@ func main() {
 
 	mux.HandleFunc("GET /api/reference/companions", func(w http.ResponseWriter, r *http.Request) {
 		names, err := wfcd.CachedNames(wfcdCacheDir, "companions.json", wfcd.FetchCompanionNames)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		writeJSON(w, names)
+	})
+
+	// LoadoutsのMOD追加欄の予測変換用（2026-08-23）。
+	mux.HandleFunc("GET /api/reference/mods", func(w http.ResponseWriter, r *http.Request) {
+		names, err := wfcd.CachedNames(wfcdCacheDir, "mods.json", wfcd.FetchModNames)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return

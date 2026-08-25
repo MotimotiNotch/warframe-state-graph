@@ -52,7 +52,7 @@
       lines.push(`Positive: ${entry.positiveStats.map((s, i) => formatRivenStat(s, values[i], jaFn)).join(", ")}`);
     }
     if (entry.negativeStat) lines.push(`Negative: ${formatRivenStat(entry.negativeStat, entry.negativeValue, jaFn)}`);
-    lines.push(`状態: ${entry.fixed ? "FIX済み" : "要リロール"}`);
+    lines.push(`状態: ${entry.fixed ? "ロール確定" : "要リロール"}`);
     if (entry.note) lines.push("", "Note:", entry.note);
     return lines.join("\n");
   }
@@ -60,7 +60,7 @@
   function buildKuvaExportText(entry) {
     const lines = [`${entry.weaponName} (${entry.kind || "Kuva"})`];
     lines.push(`所持: ${entry.owned ? "済み" : "未所持"}`);
-    if (entry.bonusStat) lines.push(`ボーナス属性: ${entry.bonusStat}`);
+    if (entry.bonusStat) lines.push(`ボーナス属性: ${formatRivenStat(entry.bonusStat, entry.bonusValue)}`);
     if (entry.note) lines.push("", "Note:", entry.note);
     return lines.join("\n");
   }
@@ -71,6 +71,16 @@
     lines.push(`入手: ${entry.owned ? "済み" : "未入手"}`);
     lines.push(`ランク30: ${entry.rankedThirty ? "済み" : "未"}`);
     lines.push(`ヘルミンス: ${entry.helminthFed ? "済み" : "未"}`);
+    if (entry.note) lines.push("", "Note:", entry.note);
+    return lines.join("\n");
+  }
+
+  // Collections.WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry（FrameEntryと同型、
+  // helminthFed無し）共通用（2026-08-25項目27）。labelは呼び出し側が種別ラベルを渡す。
+  function buildEquipExportText(label, entry) {
+    const lines = [`${entry.name} (${label})`];
+    lines.push(`入手: ${entry.owned ? "済み" : "未入手"}`);
+    lines.push(`ランク30: ${entry.rankedThirty ? "済み" : "未"}`);
     if (entry.note) lines.push("", "Note:", entry.note);
     return lines.join("\n");
   }
@@ -119,6 +129,7 @@
   window.buildRivenExportText = buildRivenExportText;
   window.buildKuvaExportText = buildKuvaExportText;
   window.buildFrameEntryExportText = buildFrameEntryExportText;
+  window.buildEquipExportText = buildEquipExportText;
   window.buildIncarnonExportText = buildIncarnonExportText;
   window.copyTextToClipboard = copyTextToClipboard;
   window.wireCopyButtons = wireCopyButtons;
