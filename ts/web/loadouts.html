@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Warframe State Graph — Loadouts</title>
+<script>
+  // Flash prevention: sync the manual theme choice onto <html> before CSS paints (theme.js itself loads at page end).
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --panel-blur: 5px;
+    --bg: #12141a;
+    --panel: rgba(27, 30, 39, 0.35);
+    --popover-bg: rgba(20, 22, 28, 0.94);
+    --border: #454b5c;
+    --text: #e4e6ec;
+    --muted: #9aa0ab;
+    --accent: #f6ddaa;
+    --danger: #e88c93;
+    --actionable: #7ee3a9;
+    --satisfied: #9bbeec;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --popover-bg: rgba(255, 255, 255, 0.96);
+      --border: #aab0bd;
+      --text: #1c1e24;
+      --muted: #3c3f48;
+      --accent: #a7750a;
+      --danger: #992e37;
+      --actionable: #1a834d;
+      --satisfied: #2b65b1;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --popover-bg: rgba(255, 255, 255, 0.96);
+    --border: #aab0bd;
+    --text: #1c1e24;
+    --muted: #3c3f48;
+    --accent: #a7750a;
+    --danger: #992e37;
+    --actionable: #1a834d;
+    --satisfied: #2b65b1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    padding: 14px;
+  }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; }
+    .btn-label { display: none; }
+  }
+  nav { font-size: 0.85rem; margin-bottom: 14px; display: flex; align-items: center; gap: 4px; }
+  nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav a.current { color: var(--accent); }
+  nav a:hover { color: var(--accent); }
+
+  h2 { font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px; }
+
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+  input[type=text], select, textarea {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+  }
+  textarea { width: 100%; min-height: 40px; resize: vertical; }
+  button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.danger:hover { border-color: var(--danger); color: var(--danger); }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  @keyframes wfcd-spin { to { transform: rotate(360deg); } }
+  #refresh-wfcd-btn.spinning { color: var(--actionable); border-color: var(--actionable); animation: wfcd-spin 0.8s linear infinite; }
+  #refresh-wfcd-btn.success { color: var(--actionable); border-color: var(--actionable); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .icon-btn.copied { border-color: var(--actionable); color: var(--actionable); }
+  .icon-btn.add-btn {
+    border-color: var(--accent); color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .icon-btn.add-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+
+  .bulk-row {
+    display: flex; align-items: center; gap: 6px; margin: 0 0 10px;
+    font-size: 0.8rem; color: var(--muted); cursor: pointer;
+  }
+  .bulk-row input[type="checkbox"] { width: auto; }
+  .bulk-feedback { margin: 8px 0 0; font-size: 0.78rem; color: var(--actionable); }
+  .bulk-feedback.hidden { display: none; }
+  #item-modal-optional.hidden { display: none; }
+  #new-item-chainview-row.hidden { display: none; }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+    overflow-wrap: break-word;
+  }
+  .popover.hidden { display: none; }
+
+  /* Self-built keyword-filter combobox (same idea as Chain View's flyout). Native datalist's
+     filtering behavior is too browser-dependent, hence the custom implementation. */
+  .combobox { position: relative; }
+  .suggest-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: var(--popover-bg);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 60;
+    min-width: 220px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  }
+  .suggest-list.hidden { display: none; }
+  .suggest-item { padding: 5px 10px; cursor: pointer; font-size: 0.85rem; }
+  .suggest-item:hover { background: var(--border); color: var(--accent); }
+  .suggest-empty { padding: 5px 10px; color: var(--muted); font-size: 0.8rem; }
+  .help-hint { color: var(--muted); vertical-align: -2px; cursor: help; }
+
+  .items-grid, .buildsets-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
+  @media (max-width: 1200px) {
+    .items-grid, .buildsets-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .items-grid, .buildsets-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .items-grid, .buildsets-grid { grid-template-columns: 1fr; }
+  }
+  .kind-group-title { color: var(--muted); font-size: 0.72rem; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .02em; }
+  .kind-group-title:first-child { margin-top: 0; }
+  .section-chevron { transition: transform 0.15s ease; }
+  .section-chevron.expanded { transform: rotate(180deg); }
+  .collapsible-body.hidden { display: none; }
+  .item-card, .buildset-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    transition: transform 0.1s ease-out;
+    will-change: transform;
+  }
+  .item-card, .buildset-card { cursor: pointer; }
+  .show-more-card {
+    grid-column: 1 / -1;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text);
+    background: none;
+    font-size: 0.78rem;
+  }
+  .show-more-card:hover { border-color: var(--accent); color: var(--accent); }
+  .item-head, .buildset-head { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .item-head-left { display: flex; align-items: center; }
+  .item-name, .buildset-name { font-weight: 600; }
+  .star-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 0; color: var(--muted); }
+  .star-btn.favorite { color: var(--accent); }
+  .star-btn svg { display: block; }
+  .star-btn.favorite svg { fill: var(--accent); }
+  .card-memo {
+    font-size: 0.78rem; color: var(--muted); margin-top: 6px; font-style: italic;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px;
+  }
+  .card-memo .note-md-list { list-style: none; margin: 2px 0; padding: 0; font-style: normal; }
+  .card-memo .note-md-check { padding: 1px 0; }
+  .card-memo .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .card-memo .note-md-check input[type="checkbox"] { cursor: pointer; }
+
+  .tabs { display: flex; gap: 6px; margin: 8px 0; }
+  .tab {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .tab.active { color: var(--accent); border-color: var(--accent); }
+
+  .mod-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 24px; }
+  .mod-tag {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px 2px 10px;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .mod-tag .x { cursor: pointer; color: var(--muted); line-height: 0; }
+  .mod-tag .x:hover { color: var(--danger); }
+
+  .inline-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+  .buildset-row { font-size: 0.82rem; color: var(--muted); margin: 2px 0; }
+  .buildset-row b { color: var(--text); font-weight: 500; }
+
+  .weapon-ref-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+
+  .empty { color: var(--muted); font-size: 0.85rem; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 200;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 16px; width: 100%; max-width: 520px;
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 1rem; }
+  .modal .field-label { font-size: 0.78rem; color: var(--muted); display: block; margin: 8px 0 3px; }
+  .modal input[type=text], .modal select, .modal textarea { width: 100%; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Loadouts</span></h1>
+  <nav>
+    <a href="/">Chain View</a>
+    <a href="/loadouts.html" class="current">Loadouts</a>
+    <a href="/collections.html">Collections</a>
+    <a href="/standing.html">Standing</a>
+    <a href="/stats.html">Stats</a>
+    <span style="flex:1"></span>
+    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <div class="popover hidden" id="help-popover">
+        <div class="empty">
+          <div style="margin-bottom:8px;">フレーム/武器ごとのMODコンフィグ（A/B/C）とビルドセットの管理ページです。</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>Itemsは種別（Frame/Weapon/Companion/Archwing/Necramech）ごとにサブセクション分けされています</li>
+            <li>星マーク（★）は「今のビルドで使ってる/優先度高い」という主観マーカーで、お気に入りが各セクションの先頭に並びます（並び順は起動時点で固定され、編集中に急に順番が変わることはありません）</li>
+            <li>各セクションは右上のアイコンで開閉でき、状態は次回起動時も引き継がれます</li>
+            <li>名前で絞り込み検索ができます。8件を超える分は「もっと見る」で表示／折りたたみを切り替えられます</li>
+            <li>見出し横の＋アイコンから新規登録できます</li>
+          </ul>
+          <div>⚠️ フレーム/武器名やビルド名など、未プレイのコンテンツ名が表示されることがあります。</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理<button class="icon-btn add-btn" id="items-add-btn" title="新規登録"></button></h2>
+      <button class="icon-btn section-chevron" id="items-chevron" title="開閉"></button>
+    </div>
+    <div id="items-body" class="collapsible-body">
+      <div id="items-jump-nav" class="tabs" style="margin:0 0 8px;"></div>
+      <input type="text" id="items-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
+      <div id="items-list"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Build Sets（フレーム＋武器の組み合わせ）<button class="icon-btn add-btn" id="buildsets-add-btn" title="新規登録"></button></h2>
+      <button class="icon-btn section-chevron" id="buildsets-chevron" title="開閉"></button>
+    </div>
+    <div id="buildsets-body" class="collapsible-body">
+      <input type="text" id="buildsets-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
+      <div id="buildsets-list" class="buildsets-grid"></div>
+    </div>
+  </div>
+
+  <!-- Item registration modal -->
+  <div id="item-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>アイテムを追加</h3>
+      <label class="bulk-row"><input type="checkbox" id="item-bulk-check">連続登録（名前だけで追加を続ける）</label>
+      <label class="field-label">種別</label>
+      <select id="new-item-type">
+        <option value="Frame">Frame</option>
+        <option value="Weapon">Weapon</option>
+        <option value="Companion">Companion</option>
+        <option value="Archwing">Archwing</option>
+        <option value="Necramech">Necramech</option>
+      </select>
+      <label class="field-label">名前（キーワードで絞り込み）</label>
+      <div class="combobox">
+        <input type="text" id="new-item-name" placeholder="例: Ash" autocomplete="off">
+        <div id="new-item-suggest" class="suggest-list hidden"></div>
+      </div>
+      <div id="item-modal-optional">
+        <label class="field-label">MOD（Config A、任意）</label>
+        <div class="mod-tags" id="new-item-mod-tags"></div>
+        <div class="inline-form">
+          <input type="text" id="new-item-mod-input" placeholder="MOD名を追加してEnter" autocomplete="off">
+        </div>
+        <label class="field-label" style="display:flex;align-items:center;gap:6px;" id="new-item-chainview-row">
+          <input type="checkbox" id="new-item-chainview-check" style="width:auto;">Chain Viewにも追加する（未入手を追跡、Frame/Weaponのみ）
+        </label>
+        <label class="field-label">メモ <span class="help-hint" id="new-item-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="new-item-note" placeholder="任意"></textarea>
+      </div>
+      <div id="item-bulk-feedback" class="bulk-feedback hidden"></div>
+      <div class="actions">
+        <button id="item-modal-cancel">キャンセル</button>
+        <button class="primary" id="add-item-btn">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Item edit modal (link + note) -->
+  <div id="item-edit-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="item-edit-modal-title">アイテムを編集</h3>
+      <label class="field-label">Chain View連携（任意）</label>
+      <select id="item-edit-chainview"></select>
+      <label class="field-label">メモ <span class="help-hint" id="item-edit-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+      <textarea id="item-edit-note" placeholder="任意"></textarea>
+      <div class="actions">
+        <button id="item-edit-cancel">キャンセル</button>
+        <button class="primary" id="item-edit-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Build Set registration modal -->
+  <div id="buildset-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="buildset-modal-title">Build Set を作成</h3>
+      <div id="new-buildset-form"></div>
+    </div>
+  </div>
+
+  <!-- MOD autocomplete suggestion box, one shared instance positioned under the focused input via JS -->
+  <div id="mod-suggest" class="suggest-list hidden" style="position:fixed;z-index:250;"></div>
+
+<script type="module" src="/loadouts.js"></script>
+<script src="/booster.js"></script>
+<script src="/scratch.js"></script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
+<script src="/scroll-top.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/quest-onboarding.js"></script>
+<script src="/debug-grid.js"></script>
+</body>
+</html>

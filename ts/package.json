@@ -1,0 +1,22 @@
+{
+  "name": "warframe-state-graph-ts",
+  "module": "server/main.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "prebuild-embed": "bun run scripts/prebuild-embed.ts",
+    "dev": "bun run prebuild-embed && bun run --hot server/main.ts",
+    "typecheck": "bun run prebuild-embed && tsc --noEmit",
+    "test": "bun run prebuild-embed && bun test",
+    "compile": "bun run prebuild-embed && bun build --compile ./server/main.ts --outfile ./dist/warframe-state-graph"
+  },
+  "dependencies": {
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}

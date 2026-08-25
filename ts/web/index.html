@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Warframe State Graph — Chain View</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --panel-blur: 5px;
+    --bg: #12141a;
+    --panel: rgba(27, 30, 39, 0.08);
+    --popover-bg: rgba(20, 22, 28, 0.94);
+    --border: #454b5c;
+    --text: #e4e6ec;
+    --muted: #9aa0ab;
+    --actionable: #7ee3a9;
+    --blocked: #e88c93;
+    --satisfied: #9bbeec;
+    --root: #f6ddaa;
+    --accent: #f6ddaa;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.12);
+      --popover-bg: rgba(255, 255, 255, 0.96);
+      --border: #aab0bd;
+      --text: #1c1e24;
+      --muted: #3c3f48;
+      --actionable: #1a834d;
+      --blocked: #992e37;
+      --satisfied: #2b65b1;
+      --root: #a7750a;
+      --accent: #a7750a;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.12);
+    --popover-bg: rgba(255, 255, 255, 0.96);
+    --border: #aab0bd;
+    --text: #1c1e24;
+    --muted: #3c3f48;
+    --actionable: #1a834d;
+    --blocked: #992e37;
+    --satisfied: #2b65b1;
+    --root: #a7750a;
+    --accent: #a7750a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    padding: 14px;
+  }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 2px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。画面右上固定の#top-right-bar（ブースト/テーマ切替、
+     icons.jsのgetTopRightBar）は position:fixed で常にtop:10px/right:10pxに居座るため、
+     見出しが折り返して縦に伸びると重なる。重なり計算に頼らず、常に見出しをバーの下に
+     逃がす形（body上部を空ける）で解決する。300px幅まで動作確認済み。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; } /* すぐ下のnav行に現在地が出るため冗長 */
+    .btn-label { display: none; } /* icon()+テキストのボタンをアイコンのみに畳む、titleでラベルは保持 */
+  }
+
+  select {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 5px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  @keyframes wfcd-spin { to { transform: rotate(360deg); } }
+  #refresh-wfcd-btn.spinning { color: var(--actionable); border-color: var(--actionable); animation: wfcd-spin 0.8s linear infinite; }
+  #refresh-wfcd-btn.success { color: var(--actionable); border-color: var(--actionable); }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 240px;
+    overflow-wrap: break-word;
+  }
+  .popover.hidden { display: none; }
+
+  /* 凡例はポップオーバーに畳んで常時露出させない（UI/UX設計思想2026-08-18、情報の音量差原則）。 */
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  .progress-wrap { margin: 4px 0 10px; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--satisfied); transition: width 0.3s ease; }
+  .progress-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  .layout {
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+  }
+  @media (max-width: 800px) {
+    .layout { flex-direction: column; }
+  }
+
+  #graph-panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px;
+    flex: 3 1 0;
+    min-width: 0;
+    position: relative;
+  }
+
+  /* イラストソフトのレイヤーパネル的な、ホバーで出すショートカット一覧。
+     クリックは常に1段だけ進む基本ルールは変えず、これは複数段を一気に飛ぶための上乗せ。 */
+  .flyout {
+    position: absolute;
+    background: var(--popover-bg);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px;
+    font-size: 0.78rem;
+    z-index: 20;
+    max-height: 220px;
+    max-width: 260px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    min-width: 160px;
+  }
+  .flyout.hidden { display: none; }
+  .flyout .flyout-label {
+    color: var(--muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px 4px;
+  }
+  .flyout .item {
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .flyout .item:hover { background: var(--border); color: var(--accent); }
+  .flyout .item.not-clickable { color: var(--muted); cursor: default; }
+  .flyout .item.not-clickable:hover { background: none; color: var(--muted); }
+  .flyout .depth-tag {
+    font-size: 0.68rem;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+  .panel-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  nav { font-size: 0.85rem; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav a.current { color: var(--accent); }
+  nav a:hover { color: var(--accent); }
+  .breadcrumb {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: -6px 0 10px;
+    /* 深く潜って経路が長くなっても見切れないよう、暗黙の折り返しに頼らず明示的にwrapさせる */
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .breadcrumb .crumb {
+    cursor: pointer;
+    color: var(--text);
+  }
+  .breadcrumb .crumb:hover { color: var(--accent); }
+  .breadcrumb .crumb.current {
+    color: var(--muted);
+    cursor: default;
+    pointer-events: none;
+  }
+  .breadcrumb .sep { margin: 0 4px; opacity: 0.5; }
+  #graph-wrap {
+    overflow: auto;
+    height: 75vh;
+    min-height: 320px;
+  }
+  #graph-svg { display: block; }
+
+  circle.node { cursor: pointer; transition: stroke-width 0.15s ease; }
+  circle.node:hover { stroke-width: 4; }
+  circle.node.selected { stroke-width: 5; }
+  circle.node.drillable { cursor: zoom-in; }
+  text.node-label {
+    fill: var(--text);
+    font-size: 11px;
+    text-anchor: middle;
+    cursor: pointer;
+  }
+  text.node-label:hover { fill: var(--accent); }
+  text.node-label.drillable { cursor: zoom-in; }
+  line.edge-contains { stroke: var(--border); stroke-width: 1.5; }
+  line.edge-requires { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+  #resizer {
+    flex: 0 0 12px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: col-resize;
+  }
+  #resizer .grip {
+    width: 4px;
+    height: 44px;
+    background: var(--border);
+    border-radius: 3px;
+    transition: background 0.15s ease;
+  }
+  #resizer:hover .grip, #resizer.dragging .grip { background: var(--accent); }
+  @media (max-width: 800px) {
+    #resizer { display: none; }
+  }
+
+  #panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px;
+    flex: 1 1 260px;
+    min-width: 220px;
+    font-size: 0.85rem;
+    min-height: 200px;
+  }
+  #panel .ph-name { font-size: 1.02rem; font-weight: 600; margin-bottom: 6px; }
+  #panel .ph-row { color: var(--muted); margin: 3px 0; }
+  #panel .ph-state {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    margin-top: 8px;
+  }
+  #panel .empty { color: var(--muted); }
+
+  button.toggle {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  button.toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 200;
+  }
+  .modal-backdrop.hidden { display: none; }
+  #node-requires-section.hidden, #node-contains-section.hidden { display: none; }
+  .modal {
+    /* モーダルは背後のカード/文字が透けると読みにくいので、半透明の--panelでなく
+       ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由、2026-08-23）。 */
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 16px; width: 100%; max-width: 520px;
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 1rem; }
+  .modal label { display: block; font-size: 0.78rem; color: var(--muted); margin: 8px 0 3px; }
+  .modal input[type=text], .modal select, .modal textarea {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; font-family: inherit;
+  }
+  .modal textarea { min-height: 50px; resize: vertical; }
+  .modal .row { display: flex; gap: 8px; }
+  .modal .row > div { flex: 1; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .modal .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.82rem; }
+  .modal .checkbox-row input { width: auto; }
+  .wfcd-part { border: 1px solid var(--border); border-radius: 14px; padding: 8px; margin-top: 8px; }
+  .wfcd-part .part-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+  .badge-vaulted { display: inline-flex; align-items: center; gap: 3px; background: #e88c9322; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
+  .badge-resurgence { display: inline-flex; align-items: center; gap: 3px; background: #f6ddaa22; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
+
+  /* WFCD自動生成の入手先候補一覧。ネイティブ<select><option>だとVault済みバッジ（アイコン付き）
+     を差し込めないため、Inspector側と同じクリック選択式のカードリストにした（2026-08-25）。 */
+  .candidate-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+  .candidate-item { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+  .candidate-item:hover { border-color: var(--accent); }
+  .candidate-item.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+  /* キーワード入力で絞り込める自前のコンボボックス（Loadouts/Collectionsと同じパターン、
+     2026-08-23、WFCD自動生成の名前欄を種別で絞り込んだ予測変換にする要望で追加）。 */
+  .combobox { position: relative; }
+  .suggest-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: var(--popover-bg);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 60;
+    min-width: 220px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  }
+  .suggest-list.hidden { display: none; }
+  .suggest-item { padding: 5px 10px; cursor: pointer; font-size: 0.85rem; }
+  .suggest-item:hover { background: var(--border); color: var(--accent); }
+  .suggest-empty { padding: 5px 10px; color: var(--muted); font-size: 0.8rem; }
+
+  /* ノード編集モーダルのRequires/Contains用タグ表示（Loadouts ItemのMODタグと同じ見た目・
+     削除操作、2026-08-23、「プルダウンに出てこない」の指摘を受けてID直接入力から変更）。 */
+  .mod-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 24px; }
+  .mod-tag {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px 2px 10px;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .mod-tag .x { cursor: pointer; color: var(--muted); line-height: 0; }
+  .mod-tag .x:hover { color: var(--danger); }
+
+</style>
+</head>
+<body>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Chain View</span></h1>
+  <nav>
+    <a href="/" class="current">Chain View</a>
+    <a href="/loadouts.html">Loadouts</a>
+    <a href="/collections.html">Collections</a>
+    <a href="/standing.html">Standing</a>
+    <a href="/stats.html">Stats</a>
+  </nav>
+
+  <div class="toolbar">
+    <select id="build-select"></select>
+    <button class="toggle" id="new-node-btn"></button>
+    <button class="toggle" id="wfcd-import-btn"></button>
+    <span style="flex:1"></span>
+    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="legend-toggle" title="凡例"></button>
+      <div class="popover hidden" id="legend-popover">
+        <div class="legend">
+          <span><i class="dot" style="background:var(--root)"></i>Build（ビルド）</span>
+          <span><i class="dot" style="background:var(--actionable)"></i>Actionable（実行可能）</span>
+          <span><i class="dot" style="background:var(--blocked)"></i>Blocked（前提待ち）</span>
+          <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
+          <span>― contains（構成） / ┄ requires（前提）</span>
+          <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i>中身アリ（クリックでドリルダウン）</span>
+          <span style="opacity:.7;">⚠️ クエスト名・リッチ系武器名など未プレイのコンテンツ名が表示されることがあります</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label"></div>
+  </div>
+
+  <div class="layout">
+    <div id="graph-panel">
+      <div class="panel-title">Chain View</div>
+      <div id="breadcrumb" class="breadcrumb"></div>
+      <div id="graph-wrap"><svg id="graph-svg"></svg></div>
+      <div id="flyout" class="flyout hidden"></div>
+    </div>
+    <div id="resizer" title="ドラッグして比率を変更"><div class="grip"></div></div>
+    <div id="panel">
+      <div class="panel-title">詳細</div>
+      <div id="panel-body"><div class="empty">ノードを選択してください</div></div>
+    </div>
+  </div>
+
+  <!-- ノード新規作成・編集フォーム。data/graph.json直接編集だった状態を解消するための最小限のUI。 -->
+  <div id="node-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="node-modal-title">ノード追加</h3>
+      <label>ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
+      <input type="text" id="node-id">
+      <label>名前</label>
+      <input type="text" id="node-name">
+      <div class="row">
+        <div>
+          <label>種別</label>
+          <select id="node-type"></select>
+        </div>
+      </div>
+      <div id="node-requires-section">
+        <label>Requires（前提条件、名前で検索して追加）</label>
+        <div class="mod-tags" id="node-requires-tags"></div>
+        <div class="combobox">
+          <input type="text" id="node-requires-input" placeholder="ノード名で検索してEnter" autocomplete="off">
+          <div id="node-requires-suggest" class="suggest-list hidden"></div>
+        </div>
+      </div>
+      <div id="node-contains-section">
+        <label>Contains（構成要素、名前で検索して追加）</label>
+        <div class="mod-tags" id="node-contains-tags"></div>
+        <div class="combobox">
+          <input type="text" id="node-contains-input" placeholder="ノード名で検索してEnter" autocomplete="off">
+          <div id="node-contains-suggest" class="suggest-list hidden"></div>
+        </div>
+      </div>
+      <label>評価/メモ（自由記述）</label>
+      <textarea id="node-evaluation"></textarea>
+      <label>メモ</label>
+      <textarea id="node-note"></textarea>
+      <div class="checkbox-row"><input type="checkbox" id="node-mastery-track"><label style="margin:0" for="node-mastery-track">マスタリー担当パーツ（Zaw Strike/Kitgun Chamber/Amp Prism等、Gild必須）</label></div>
+
+      <div class="actions">
+        <button class="toggle" id="node-modal-delete" style="display:none;border-color:var(--blocked);color:var(--blocked);">削除</button>
+        <button class="toggle" id="node-modal-cancel">キャンセル</button>
+        <button class="toggle" id="node-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WFCD自動生成インポートウィザード。パーツ→レリック候補はOR関係なのでユーザーが1つ選ぶ。 -->
+  <div id="wfcd-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>WFCDから自動生成</h3>
+      <div class="row">
+        <div>
+          <label>種別</label>
+          <select id="wfcd-node-type"><option value="Frame">Frame</option><option value="Weapon">Weapon</option><option value="Quest">Quest</option></select>
+        </div>
+        <div>
+          <label>名前（キーワードで絞り込み）</label>
+          <div class="combobox">
+            <input type="text" id="wfcd-name" placeholder="例: Braton Prime" autocomplete="off">
+            <div id="wfcd-name-suggest" class="suggest-list hidden"></div>
+          </div>
+        </div>
+      </div>
+      <div class="actions" style="justify-content:flex-start;margin-top:8px;">
+        <button class="toggle" id="wfcd-fetch-btn">候補を取得</button>
+      </div>
+      <div id="wfcd-preview"></div>
+      <div class="actions">
+        <button class="toggle" id="wfcd-modal-cancel">閉じる</button>
+        <button class="toggle" id="wfcd-modal-import" style="display:none;">この内容でグラフに追加</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Chain View本体（8モジュール＋依存4本）はTSソースからバンドルした単一ESMファイル
+     （bun build web/index.ts --outdir=dist --target=browser --format=esm の出力）。
+     旧来の個別<script src>の並びの代わりにこれ1本を読み込む。 -->
+<script type="module" src="/index.js"></script>
+
+<!-- 以下はPhase 7でポート予定の共有スクリプト群（notemd/booster/scratch/wallpaper/theme等）。
+     ページ本体のドメインロジックと独立しているため、Phase 4時点では元のGoプロジェクト側の
+     web/*.jsをそのまま静的配信して見た目・挙動を保つ（server/main.tsのlegacyStaticルート参照）。 -->
+<script src="/notemd.js"></script>
+<script src="/booster.js"></script>
+<script src="/scratch.js"></script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
+<script src="/scroll-top.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/quest-onboarding.js"></script>
+<script src="/debug-grid.js"></script>
+</body>
+</html>

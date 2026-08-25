@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Warframe State Graph — Standing</title>
+<script>
+  // フラッシュ防止: CSS描画より前に手動テーマ選択をhtml要素へ同期反映する（theme.js本体はページ末尾で読み込む）。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --panel-blur: 5px;
+    --bg: #12141a;
+    --panel: rgba(27, 30, 39, 0.35);
+    --popover-bg: rgba(20, 22, 28, 0.94);
+    --border: #454b5c;
+    --text: #e4e6ec;
+    --muted: #9aa0ab;
+    --accent: #f6ddaa;
+    --danger: #e88c93;
+    --actionable: #7ee3a9;
+    --satisfied: #9bbeec;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --popover-bg: rgba(255, 255, 255, 0.96);
+      --border: #aab0bd;
+      --text: #1c1e24;
+      --muted: #3c3f48;
+      --accent: #a7750a;
+      --danger: #992e37;
+      --actionable: #1a834d;
+      --satisfied: #2b65b1;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --popover-bg: rgba(255, 255, 255, 0.96);
+    --border: #aab0bd;
+    --text: #1c1e24;
+    --muted: #3c3f48;
+    --accent: #a7750a;
+    --danger: #992e37;
+    --actionable: #1a834d;
+    --satisfied: #2b65b1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    padding: 14px;
+  }
+  h1 { font-size: 1.8rem; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+  .app-icon { width: 64px; height: 64px; flex-shrink: 0; }
+
+  /* 縮小ウィンドウ対応（2026-08-19）。詳細はindex.htmlの同名ブロックのコメント参照。 */
+  @media (max-width: 480px) {
+    body { padding-top: 54px; }
+    .app-icon { width: 36px; height: 36px; }
+    h1 { font-size: 1.05rem; gap: 8px; }
+    h1 .subtitle { display: none; }
+  }
+  h2 { font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px; }
+  nav { font-size: 0.85rem; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  nav a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav a.current { color: var(--accent); }
+  nav a:hover { color: var(--accent); }
+
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  @keyframes wfcd-spin { to { transform: rotate(360deg); } }
+  #refresh-wfcd-btn.spinning { color: var(--actionable); border-color: var(--actionable); animation: wfcd-spin 0.8s linear infinite; }
+  #refresh-wfcd-btn.success { color: var(--actionable); border-color: var(--actionable); }
+
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    /* パネル本体(--panel)は壁紙を透かす狙いでかなり薄いが、ポップオーバーは他の要素の上に
+       浮かぶ読み物なので専用の濃いめの背景(--popover-bg)を使う（2026-08-19、視認性向上）。 */
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+    overflow-wrap: break-word;
+  }
+  .popover.hidden { display: none; }
+
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
+    /* backdrop-filterは新しい重なりコンテキストを作るため、.panel同士はそれぞれ独立した
+       重なりの世界になる——中の.popover(z-index:40)は自分のパネルの外（次のパネルの上）には
+       出られず、後から描画される次の.panelにそのまま隠れてしまう。position+z-indexを明示し、
+       ポップオーバーが開いている間だけ.raisedでそのパネルごと前面に出す（下のJS参照）。 */
+    position: relative;
+    z-index: 1;
+  }
+  .panel.raised { z-index: 50; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+  select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; font-family: inherit; width: 100%;
+  }
+
+  /* シンジケートは6件固定なので、auto-fit/auto-fillの動的トラック数には委ねず3列固定にする
+     （auto-fitでも広い画面で列数が増えすぎてカード幅がminmaxの下限に張り付き、結局名前が
+     折り返される場合があったため、確実に幅を確保できる固定列数に変更）。 */
+  /* align-items:start がないと、グリッドの既定(stretch)で同じ行のカードが全部同じ高さに
+     揃えられる。捧げ物テーブルを開いた1枚だけが伸びるつもりが、同じ行の他カードまで
+     つられて伸縮して見える原因だったため、各カードは自分のコンテンツ分だけの高さにする。 */
+  .syn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+  .syn-grid.hidden { display: none; }
+  @media (max-width: 900px) {
+    .syn-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .syn-grid { grid-template-columns: 1fr; }
+  }
+  .syn-row { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .syn-row-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 6px; }
+  .syn-name { font-weight: 600; word-break: keep-all; overflow-wrap: normal; flex: 1; }
+  .syn-saved-flash { margin-left: auto; }
+  .syn-saved-flash { font-size: 0.75rem; color: var(--actionable); opacity: 0; transition: opacity 0.2s; }
+  .syn-saved-flash.show { opacity: 1; }
+
+  .syn-highest { font-size: 0.78rem; color: var(--muted); margin-top: 6px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 4px; word-break: keep-all; }
+  .syn-highest .val { color: var(--accent); }
+  .syn-highest-reset { flex-shrink: 0; padding: 2px; width: 20px; height: 20px; }
+  /* 捧げ物一覧は<details>のインライン展開だとカード自体が伸びて後続の行が押し出され、
+     一覧上のカードが上下に動く見た目になっていた。既存の.popover-wrap/.popoverパターン
+     （ヘルプボタン等と同じ、position:absoluteで浮かせる）に変え、レイアウトを一切動かさずに
+     開閉できるようにした（2026-08-19）。 */
+  .syn-sacrifice-wrap { position: relative; margin-top: 6px; font-size: 0.78rem; }
+  .syn-sacrifice-toggle {
+    background: none; border: none; padding: 0; cursor: pointer; color: var(--muted);
+    font-size: inherit; font-family: inherit; display: inline-flex; align-items: center; gap: 2px;
+  }
+  .syn-sacrifice-toggle:hover { color: var(--accent); }
+  .syn-sacrifice-pop { left: 0; right: auto; min-width: 260px; }
+  .syn-sacrifice-pop table { width: 100%; border-collapse: collapse; }
+  .syn-sacrifice-pop td { padding: 3px 4px; border-bottom: 1px solid var(--border); }
+  .syn-sacrifice-pop tr.paid td { color: var(--muted); }
+  .syn-sacrifice-pop tr.paid .sac-item { text-decoration: line-through; }
+  .syn-sacrifice-pop .sac-status { color: var(--actionable); white-space: nowrap; }
+  .syn-recovery { margin-top: 8px; color: var(--danger); }
+  .syn-note { margin-top: 8px; color: var(--muted); font-style: italic; }
+
+  #other-syn-toggle { cursor: pointer; user-select: none; }
+  #other-syn-toggle:hover { color: var(--accent); }
+  #other-syn-icon { display: inline-flex; color: var(--accent); }
+  #other-syn-chevron { transition: transform 0.15s ease; }
+  #other-syn-chevron.expanded { transform: rotate(180deg); }
+  .syn-warning {
+    font-size: 0.78rem; color: var(--muted); margin: -4px 0 10px;
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  }
+
+  .empty { color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+  <h1><img src="/favicon.svg" alt="" class="app-icon">Warframe State Graph <span class="subtitle" style="opacity:.55;font-weight:400;font-size:.75em">— Standing</span></h1>
+  <nav>
+    <a href="/">Chain View</a>
+    <a href="/loadouts.html">Loadouts</a>
+    <a href="/collections.html">Collections</a>
+    <a href="/standing.html" class="current">Standing</a>
+    <a href="/stats.html">Stats</a>
+    <span style="flex:1"></span>
+    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <div class="popover-wrap">
+      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <div class="popover hidden" id="help-popover">
+        <div class="empty">全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所。6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）だけは2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）ため、Chain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新する。他の10シンジケートは敵対relationshipを持たずランクは0以上のみ。貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがある。武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使う。<br>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="panel">
+    <div class="panel-head"><h2>6大シンジケート</h2></div>
+    <div id="major-syndicate-list" class="syn-grid"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="other-syn-toggle"><span id="other-syn-icon"></span>その他のシンジケート</h2>
+      <button class="icon-btn" id="other-syn-chevron" title="開閉"></button>
+    </div>
+    <div class="syn-warning">クエストやイベント進行で解放されるシンジケートです。ネタバレを含むため閲覧に注意してください。</div>
+    <div id="other-syndicate-list" class="syn-grid hidden"></div>
+  </div>
+
+<script type="module" src="/standing.js"></script>
+<script src="/notemd.js"></script>
+<script src="/booster.js"></script>
+<script src="/scratch.js"></script>
+<script src="/wallpaper.js"></script>
+<script src="/theme.js"></script>
+<script src="/scroll-top.js"></script>
+<script src="/spoiler-warning.js"></script>
+<script src="/quest-onboarding.js"></script>
+<script src="/debug-grid.js"></script>
+</body>
+</html>
