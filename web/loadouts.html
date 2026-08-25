@@ -23,7 +23,7 @@
     --bg: #12141a;
     --panel: rgba(27, 30, 39, 0.35);
     --popover-bg: rgba(20, 22, 28, 0.94);
-    --border: #2a2e3a;
+    --border: #454b5c;
     --text: #e4e6ec;
     --muted: #9aa0ab;
     --accent: #f6ddaa;
@@ -36,7 +36,7 @@
       --bg: #f5f6f8;
       --panel: rgba(255, 255, 255, 0.4);
       --popover-bg: rgba(255, 255, 255, 0.96);
-      --border: #d8dbe2;
+      --border: #aab0bd;
       --text: #1c1e24;
       --muted: #3c3f48;
       --accent: #a7750a;
@@ -49,7 +49,7 @@
     --bg: #f5f6f8;
     --panel: rgba(255, 255, 255, 0.4);
     --popover-bg: rgba(255, 255, 255, 0.96);
-    --border: #d8dbe2;
+    --border: #aab0bd;
     --text: #1c1e24;
     --muted: #3c3f48;
     --accent: #a7750a;
@@ -81,7 +81,7 @@
   nav a.current { color: var(--accent); }
   nav a:hover { color: var(--accent); }
 
-  h2 { font-size: 0.95rem; margin: 0; }
+  h2 { font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px; }
 
   .panel {
     background: var(--panel);
@@ -129,6 +129,21 @@
   #refresh-wfcd-btn.success { color: var(--actionable); border-color: var(--actionable); }
   .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
   .icon-btn.copied { border-color: var(--actionable); color: var(--actionable); }
+  .icon-btn.add-btn {
+    border-color: var(--accent); color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .icon-btn.add-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+
+  .bulk-row {
+    display: flex; align-items: center; gap: 6px; margin: 0 0 10px;
+    font-size: 0.8rem; color: var(--muted); cursor: pointer;
+  }
+  .bulk-row input[type="checkbox"] { width: auto; }
+  .bulk-feedback { margin: 8px 0 0; font-size: 0.78rem; color: var(--actionable); }
+  .bulk-feedback.hidden { display: none; }
+  #item-modal-optional.hidden { display: none; }
+  #new-item-chainview-row.hidden { display: none; }
 
   .popover-wrap { position: relative; display: inline-block; }
   .popover {
@@ -136,6 +151,7 @@
     background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 12px; padding: 10px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+    overflow-wrap: break-word;
   }
   .popover.hidden { display: none; }
 
@@ -146,7 +162,7 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    background: var(--panel);
+    background: var(--popover-bg);
     backdrop-filter: blur(var(--panel-blur));
     -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border);
@@ -161,18 +177,29 @@
   .suggest-item { padding: 5px 10px; cursor: pointer; font-size: 0.85rem; }
   .suggest-item:hover { background: var(--border); color: var(--accent); }
   .suggest-empty { padding: 5px 10px; color: var(--muted); font-size: 0.8rem; }
+  .help-hint { color: var(--muted); vertical-align: -2px; cursor: help; }
 
-  /* 一覧はStandingページの.syn-gridと同じグリッド（3列固定→900px以下2列→480px以下1列）に
-     揃える（2026-08-21、「LoadoutsのTOPレイアウトをStandingに合わせる」指示）。
-     align-items:startはStandingと同じ理由（カードごとの高さがバラバラなので、同じ行の
-     他カードまでstretchで伸びてしまうのを防ぐ）。 */
-  .items-grid, .buildsets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+  /* 一覧はStandingページの.syn-gridと同じグリッドに揃える。横最大4枚まで広げ、
+     Collectionsと同じ4段階のブレークポイントにする（2026-08-23、「今までのCollectionsの
+     仕組みからLoadouts改修して」を受けて展開）。align-items:startはStandingと同じ理由
+     （カードごとの高さがバラバラなので、同じ行の他カードまでstretchで伸びてしまうのを防ぐ）。 */
+  .items-grid, .buildsets-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
+  @media (max-width: 1200px) {
+    .items-grid, .buildsets-grid { grid-template-columns: repeat(3, 1fr); }
+  }
   @media (max-width: 900px) {
     .items-grid, .buildsets-grid { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 480px) {
     .items-grid, .buildsets-grid { grid-template-columns: 1fr; }
   }
+  /* Item種別（Frame/Weapon/Companion）ごとのサブセクション見出し、およびパネル折りたたみ
+     （Collectionsのkind-group-title/status-legend/section-chevronと同じ見た目に統一）。 */
+  .kind-group-title { color: var(--muted); font-size: 0.72rem; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .02em; }
+  .kind-group-title:first-child { margin-top: 0; }
+  .section-chevron { transition: transform 0.15s ease; }
+  .section-chevron.expanded { transform: rotate(180deg); }
+  .collapsible-body.hidden { display: none; }
   .item-card, .buildset-card {
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -182,23 +209,26 @@
     transition: transform 0.1s ease-out;
     will-change: transform;
   }
-  /* 新規登録用の「＋カード」（2026-08-21）。ヘッダーの新規登録ボタンを撤去し、一覧グリッド内の
-     このカードに一本化——Standingの「一覧を見れば全情報が分かる」構成に寄せる狙い。 */
-  .add-card {
+  /* カード押下で編集を開ける（2026-08-23、BuildSetにも編集モーダルを追加したためItemと
+     揃えた）。 */
+  .item-card, .buildset-card { cursor: pointer; }
+  /* 「もっと見る／折りたたむ」バー（2026-08-23）。カード1枚分の正方形セルではなく、
+     グリッド全幅にまたがる横長の薄いボタンにする（「カードを踏襲しない、縦幅は細く」との
+     指摘）。 */
+  .show-more-card {
+    grid-column: 1 / -1;
     border: 1px dashed var(--border);
-    border-radius: 12px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 72px;
+    padding: 6px;
     cursor: pointer;
-    color: var(--muted);
+    color: var(--text);
     background: none;
-    transition: transform 0.1s ease-out, border-color 0.15s, color 0.15s;
-    will-change: transform;
+    font-size: 0.78rem;
   }
-  .add-card:hover { border-color: var(--accent); color: var(--accent); }
-  .add-card svg { width: 32px; height: 32px; }
+  .show-more-card:hover { border-color: var(--accent); color: var(--accent); }
   .item-head, .buildset-head { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
   .item-head-left { display: flex; align-items: center; }
   .item-name, .buildset-name { font-weight: 600; }
@@ -206,8 +236,10 @@
   .star-btn.favorite { color: var(--accent); }
   .star-btn svg { display: block; }
   .star-btn.favorite svg { fill: var(--accent); }
-  .item-type { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
-  .card-memo { font-size: 0.78rem; color: var(--muted); margin-top: 6px; font-style: italic; }
+  .card-memo {
+    font-size: 0.78rem; color: var(--muted); margin-top: 6px; font-style: italic;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px;
+  }
   .card-memo .note-md-list { list-style: none; margin: 2px 0; padding: 0; font-style: normal; }
   .card-memo .note-md-check { padding: 1px 0; }
   .card-memo .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
@@ -254,7 +286,9 @@
   }
   .modal-backdrop.hidden { display: none; }
   .modal {
-    background: var(--panel); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    /* モーダルは背後のカード/文字が透けると読みにくいので、半透明の--panelでなく
+       ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由、2026-08-23）。 */
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 18px;
     padding: 16px; width: 100%; max-width: 520px;
   }
@@ -277,40 +311,75 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">フレーム/武器ごとのMODコンフィグ（A/B/C）とビルドセットの管理ページ。⚠️ フレーム/武器名やビルド名など、未プレイのコンテンツ名が表示されることがあります。</div>
+        <div class="empty">
+          <div style="margin-bottom:8px;">フレーム/武器ごとのMODコンフィグ（A/B/C）とビルドセットの管理ページです。</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>Itemsは種別（Frame/Weapon/Companion/Archwing/Necramech）ごとにサブセクション分けされています</li>
+            <li>星マーク（★）は「今のビルドで使ってる/優先度高い」という主観マーカーで、お気に入りが各セクションの先頭に並びます（並び順は起動時点で固定され、編集中に急に順番が変わることはありません）</li>
+            <li>各セクションは右上のアイコンで開閉でき、状態は次回起動時も引き継がれます</li>
+            <li>名前で絞り込み検索ができます。8件を超える分は「もっと見る」で表示／折りたたみを切り替えられます</li>
+            <li>見出し横の＋アイコンから新規登録できます</li>
+          </ul>
+          <div>⚠️ フレーム/武器名やビルド名など、未プレイのコンテンツ名が表示されることがあります。</div>
+        </div>
       </div>
     </div>
   </nav>
 
   <div class="panel">
     <div class="panel-head">
-      <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理</h2>
+      <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理<button class="icon-btn add-btn" id="items-add-btn" title="新規登録"></button></h2>
+      <button class="icon-btn section-chevron" id="items-chevron" title="開閉"></button>
     </div>
-    <div id="items-list" class="items-grid"></div>
+    <div id="items-body" class="collapsible-body">
+      <div id="items-jump-nav" class="tabs" style="margin:0 0 8px;"></div>
+      <input type="text" id="items-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
+      <div id="items-list"></div>
+    </div>
   </div>
 
   <div class="panel">
     <div class="panel-head">
-      <h2>Build Sets（フレーム＋武器の組み合わせ）</h2>
+      <h2>Build Sets（フレーム＋武器の組み合わせ）<button class="icon-btn add-btn" id="buildsets-add-btn" title="新規登録"></button></h2>
+      <button class="icon-btn section-chevron" id="buildsets-chevron" title="開閉"></button>
     </div>
-    <div id="buildsets-list" class="buildsets-grid"></div>
+    <div id="buildsets-body" class="collapsible-body">
+      <input type="text" id="buildsets-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
+      <div id="buildsets-list" class="buildsets-grid"></div>
+    </div>
   </div>
 
   <!-- Item新規登録モーダル -->
   <div id="item-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3>アイテムを追加</h3>
+      <label class="bulk-row"><input type="checkbox" id="item-bulk-check">連続登録（名前だけで追加を続ける）</label>
       <label class="field-label">種別</label>
       <select id="new-item-type">
         <option value="Frame">Frame</option>
         <option value="Weapon">Weapon</option>
         <option value="Companion">Companion</option>
+        <option value="Archwing">Archwing</option>
+        <option value="Necramech">Necramech</option>
       </select>
       <label class="field-label">名前（キーワードで絞り込み）</label>
       <div class="combobox">
         <input type="text" id="new-item-name" placeholder="例: Ash" autocomplete="off">
         <div id="new-item-suggest" class="suggest-list hidden"></div>
       </div>
+      <div id="item-modal-optional">
+        <label class="field-label">MOD（Config A、任意）</label>
+        <div class="mod-tags" id="new-item-mod-tags"></div>
+        <div class="inline-form">
+          <input type="text" id="new-item-mod-input" placeholder="MOD名を追加してEnter" autocomplete="off">
+        </div>
+        <label class="field-label" style="display:flex;align-items:center;gap:6px;" id="new-item-chainview-row">
+          <input type="checkbox" id="new-item-chainview-check" style="width:auto;">Chain Viewにも追加する（未入手を追跡、Frame/Weaponのみ）
+        </label>
+        <label class="field-label">メモ <span class="help-hint" id="new-item-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="new-item-note" placeholder="任意"></textarea>
+      </div>
+      <div id="item-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
         <button id="item-modal-cancel">キャンセル</button>
         <button class="primary" id="add-item-btn">追加</button>
@@ -318,21 +387,80 @@
     </div>
   </div>
 
+  <!-- Item編集モーダル（連携・メモ）。window.prompt()だとメモにMarkdownを書きづらいため、
+       登録モーダルと同じtextarea＋selectの形に統一（2026-08-23）。 -->
+  <div id="item-edit-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="item-edit-modal-title">アイテムを編集</h3>
+      <label class="field-label">Chain View連携（任意）</label>
+      <select id="item-edit-chainview"></select>
+      <label class="field-label">メモ <span class="help-hint" id="item-edit-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+      <textarea id="item-edit-note" placeholder="任意"></textarea>
+      <div class="actions">
+        <button id="item-edit-cancel">キャンセル</button>
+        <button class="primary" id="item-edit-save">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Build Set新規登録モーダル -->
   <div id="buildset-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
-      <h3>Build Set を作成</h3>
+      <h3 id="buildset-modal-title">Build Set を作成</h3>
       <div id="new-buildset-form"></div>
     </div>
   </div>
+
+  <!-- MOD予測変換の候補ボックス（アイテムカードごとに置くと.item-cardのwill-change:transformが
+       スタッキングコンテキストを作り、後続のBuild Setsパネルの下に潜り込んでしまうため、
+       body直下に1つだけ置いてJSでフォーカス中の入力欄の位置に合わせる、2026-08-23）。 -->
+  <!-- z-index:250はモーダル（.modal-backdrop、z-index:200）より上——追加モーダル内のMOD入力
+       欄でも候補が隠れないようにする（2026-08-23発見・修正）。 -->
+  <div id="mod-suggest" class="suggest-list hidden" style="position:fixed;z-index:250;"></div>
 
 <script src="/icons.js"></script>
 <script src="/minigraph.js"></script>
 <script src="/notemd.js"></script>
 <script src="/export.js"></script>
 <script src="/card-tilt.js"></script>
+<script src="/wfcd-autolink.js"></script>
 <script>
 const state = { data: { items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
+
+// パネルごとの開閉状態をlocalStorageに保存する（web/collections.htmlのinitPlainCollapsibleと
+// 同じ、2026-08-23、「今までのCollectionsの仕組みからLoadouts改修して」を受けて展開）。
+const COLLAPSE_KEY_PREFIX = "warframe-state-graph:loadouts:collapsed:";
+function getStoredCollapsed(prefix) {
+  try { return localStorage.getItem(COLLAPSE_KEY_PREFIX + prefix) === "1"; } catch (e) { return false; }
+}
+function setStoredCollapsed(prefix, collapsed) {
+  try { localStorage.setItem(COLLAPSE_KEY_PREFIX + prefix, collapsed ? "1" : "0"); } catch (e) {}
+}
+function initPlainCollapsible(prefix) {
+  const body = document.getElementById(`${prefix}-body`);
+  const chevron = document.getElementById(`${prefix}-chevron`);
+  chevron.innerHTML = icon("chevron-down");
+  const collapsed = getStoredCollapsed(prefix);
+  body.classList.toggle("hidden", collapsed);
+  chevron.classList.toggle("expanded", !collapsed);
+  function toggle() {
+    const nowHidden = body.classList.toggle("hidden");
+    chevron.classList.toggle("expanded", !nowHidden);
+    setStoredCollapsed(prefix, nowHidden);
+  }
+  chevron.addEventListener("click", toggle);
+}
+initPlainCollapsible("items");
+initPlainCollapsible("buildsets");
+
+document.getElementById("items-search").addEventListener("input", (e) => {
+  itemsSearchQuery = e.target.value;
+  renderItems();
+});
+document.getElementById("buildsets-search").addEventListener("input", (e) => {
+  buildsetsSearchQuery = e.target.value;
+  renderBuildSets();
+});
 
 document.getElementById("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
 document.getElementById("refresh-wfcd-btn").addEventListener("click", async () => {
@@ -355,6 +483,15 @@ document.getElementById("refresh-wfcd-btn").addEventListener("click", async () =
 });
 
 document.getElementById("help-toggle").innerHTML = icon("info");
+
+// 新規登録ボタンをグリッド末尾の「＋カード」から見出し横のアイコンボタンへ移動した
+// （2026-08-23、「登録数が多くなると位置が微妙」との指摘。web/collections.htmlと同じ対応）。
+document.getElementById("items-add-btn").innerHTML = icon("plus");
+document.getElementById("items-add-btn").addEventListener("click", openItemModal);
+document.getElementById("buildsets-add-btn").innerHTML = icon("plus");
+document.getElementById("buildsets-add-btn").addEventListener("click", () => openBuildSetModal());
+document.getElementById("new-item-note-help").innerHTML = icon("circle-alert", { size: 13 });
+document.getElementById("item-edit-note-help").innerHTML = icon("circle-alert", { size: 13 });
 document.getElementById("help-toggle").addEventListener("click", (e) => {
   e.stopPropagation();
   document.getElementById("help-popover").classList.toggle("hidden");
@@ -395,10 +532,11 @@ function chainViewOptions(selectedId) {
   ).join("");
 }
 
-async function createItem(name, type) {
-  const item = { id: uid("item"), name, type, configs: { A: [], B: [], C: [] } };
+async function createItem(name, type, mods, note) {
+  const item = { id: uid("item"), name, type, configs: { A: mods || [], B: [], C: [] }, note: note || "" };
   await fetch("/api/loadout-items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) });
   await loadAll();
+  return item;
 }
 async function updateItem(item) {
   await fetch("/api/loadout-items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) });
@@ -437,33 +575,27 @@ function toggleItemFavorite(id) {
   updateItem({ ...item, favorite: !item.favorite });
 }
 
-function renderItems() {
-  const el = document.getElementById("items-list");
-  const items = Object.values(state.data.items).sort((a, b) => a.name.localeCompare(b.name));
-  // ヘッダーの新規登録ボタンを撤去し、一覧グリッド末尾の「＋カード」に一本化（2026-08-21）。
-  // 0件のときもこのカードだけは常に出す（空メッセージより「ここから追加できる」ことが伝わる）。
-  const addCardHtml = `<button class="add-card" id="add-item-card" title="新規登録">${icon("plus")}</button>`;
+// Companionは同時運用1体のみで切り替え頻度も低いため単一構成のみ（常にConfig A、
+// タブ自体を出さない）。データ構造(configs)はFrame/Weaponと共通のまま、UI側だけの割り切り
+// （2026-08-20設計）。種別ラベルはサブセクション見出しと重複するためカードからは外した
+// （web/collections.htmlのKuva系統バッジ削除と同じ理由、2026-08-23）。
+function itemCardHtml(item) {
+  const isCompanion = item.type === "Companion";
+  const activeSlot = isCompanion ? "A" : (state.activeTab[item.id] || "A");
+  const mods = item.configs?.[activeSlot] || [];
+  const tabs = isCompanion ? "" : ["A", "B", "C"].map(slot =>
+    `<div class="tab ${slot === activeSlot ? "active" : ""}" data-item="${item.id}" data-slot="${slot}">Config ${slot}</div>`
+  ).join("");
+  const tags = mods.map((m, i) =>
+    `<span class="mod-tag">${escapeHtml(m)}<span class="x" data-item="${item.id}" data-slot="${activeSlot}" data-idx="${i}">${icon("x", { size: 12 })}</span></span>`
+  ).join("") || `<span class="empty">MODなし</span>`;
 
-  el.innerHTML = items.map(item => {
-    // Companionは同時運用1体のみで切り替え頻度も低いため単一構成のみ（常にConfig A、
-    // タブ自体を出さない）。データ構造(configs)はFrame/Weaponと共通のまま、UI側だけの割り切り
-    // （2026-08-20設計）。
-    const isCompanion = item.type === "Companion";
-    const activeSlot = isCompanion ? "A" : (state.activeTab[item.id] || "A");
-    const mods = item.configs?.[activeSlot] || [];
-    const tabs = isCompanion ? "" : ["A", "B", "C"].map(slot =>
-      `<div class="tab ${slot === activeSlot ? "active" : ""}" data-item="${item.id}" data-slot="${slot}">Config ${slot}</div>`
-    ).join("");
-    const tags = mods.map((m, i) =>
-      `<span class="mod-tag">${escapeHtml(m)}<span class="x" data-item="${item.id}" data-slot="${activeSlot}" data-idx="${i}">${icon("x", { size: 12 })}</span></span>`
-    ).join("") || `<span class="empty">MODなし</span>`;
-
-    return `
-      <div class="item-card">
+  return `
+      <div class="item-card" data-open-item="${item.id}">
         <div class="item-head">
           <div class="item-head-left">
             ${starBtn(item.favorite, `data-toggle-item-fav="${item.id}"`)}
-            <span class="item-name">${escapeHtml(item.name)}</span><span class="item-type">${item.type}</span>
+            <span class="item-name">${escapeHtml(item.name)}</span>
           </div>
           <div class="inline-form">
             <button class="icon-btn" data-copy-item="${item.id}" title="フレーム/MOD/メモをテキストでコピー">${icon("copy")}</button>
@@ -475,13 +607,86 @@ function renderItems() {
         <div class="tabs">${tabs}</div>
         <div class="mod-tags">${tags}</div>
         <div class="inline-form">
-          <input type="text" placeholder="MOD名を追加してEnter" data-add-mod="${item.id}" data-slot="${activeSlot}">
+          <input type="text" placeholder="MOD名を追加してEnter" data-add-mod="${item.id}" data-slot="${activeSlot}" class="mod-input" autocomplete="off">
         </div>
         ${item.note ? `<div class="card-memo" id="notemd-item-${item.id}"></div>` : ""}
       </div>`;
-  }).join("") + addCardHtml;
+}
 
-  document.getElementById("add-item-card").addEventListener("click", openItemModal);
+// Itemsは種別（Frame/Weapon/Companion）ごとにサブセクション分けする（web/collections.htmlの
+// Kuva/Tenet/Coda系統分割と同じ仕組み、2026-08-23）。登録が無い種別の見出しは出さない。
+// 種別ごとに既定8件までしか出さず「もっと見る」で全件展開する（2026-08-23、「登録量が
+// 多くなる気がする」との相談を受けて追加）。検索中は絞り込み結果を見つけやすくするため
+// 件数制限そのものを解除する。展開状態はページ内では保持するが、再読み込みでリセットされる
+// 軽量な割り切り（localStorage永続化まではしない）。
+const PAGE_SIZE = 8;
+// Archwing/Necramech追加（2026-08-23）に合わせて、種別一覧をここに集約する
+// （byTypeの初期化・サブセクション描画順・ジャンプナビの3箇所で共有）。
+const ITEM_TYPES = ["Frame", "Weapon", "Companion", "Archwing", "Necramech"];
+let itemsSearchQuery = "";
+let expandedItemTypes = new Set();
+
+// lastUsedAtは並び順スナップショットとして「このページを開いた時点」の値だけを使い、以後は
+// このセッション中ずっと固定する（stateのライブ値を毎回見ない）。MODを1個追加するたびに
+// 今いじってるカード自身が上位へワープして操作対象を見失う、という指摘（2026-08-23）を
+// 受けての対応——並び順への反映は次回のページ読み込みまで持ち越す。
+let itemsSortSnapshot = null;
+function captureItemsSortSnapshot() {
+  itemsSortSnapshot = {};
+  Object.values(state.data.items).forEach(i => { itemsSortSnapshot[i.id] = i.lastUsedAt || 0; });
+}
+
+function renderItems() {
+  if (!itemsSortSnapshot) captureItemsSortSnapshot();
+  const el = document.getElementById("items-list");
+  const query = itemsSearchQuery.trim().toLowerCase();
+  const items = Object.values(state.data.items).filter(i => !query || i.name.toLowerCase().includes(query));
+
+  const byType = {};
+  ITEM_TYPES.forEach(t => { byType[t] = []; });
+  items.forEach(item => (byType[item.type] || (byType[item.type] = [])).push(item));
+
+  // 種別が5つに増えた（Archwing/Necramech追加、2026-08-23）ので、該当セクションへ直接
+  // 飛べるジャンプナビを検索欄の上に置く。登録が無い種別のリンクは出さない
+  // （「上の方にそのセクションに飛べるようにジャンプボタンあるといいかも」との要望で追加）。
+  document.getElementById("items-jump-nav").innerHTML = ITEM_TYPES
+    .filter(t => byType[t].length)
+    .map(t => `<a href="#items-type-${t}" class="tab" style="text-decoration:none;">${t}（${byType[t].length}）</a>`)
+    .join("");
+
+  el.innerHTML = ITEM_TYPES.map(type => {
+    // お気に入り最優先→最近MODを触った順（スナップショット基準）→名前順。お気に入りにして
+    // なくても最近いじってる項目は上位に混ざるようにする（2026-08-23、「お気に入りが実質の
+    // 表示スイッチになる」懸念を受けて追加）。
+    const typeItems = (byType[type] || []).sort((a, b) => {
+      const aUsed = a.id in itemsSortSnapshot ? itemsSortSnapshot[a.id] : (a.lastUsedAt || 0);
+      const bUsed = b.id in itemsSortSnapshot ? itemsSortSnapshot[b.id] : (b.lastUsedAt || 0);
+      return (b.favorite - a.favorite) || (bUsed - aUsed) || a.name.localeCompare(b.name);
+    });
+    if (!typeItems.length) return "";
+    const userExpanded = expandedItemTypes.has(type);
+    const expanded = !!query || userExpanded;
+    const shown = expanded ? typeItems : typeItems.slice(0, PAGE_SIZE);
+    const moreCount = typeItems.length - shown.length;
+    // 検索中は件数制限そのものを外しているので、もっと見る/折りたたむの出し分けは対象外
+    // （2026-08-23、展開後に戻すボタンが無かった指摘で「折りたたむ」を追加）。
+    let toggleHtml = "";
+    if (!query && typeItems.length > PAGE_SIZE) {
+      toggleHtml = userExpanded
+        ? `<button class="show-more-card" data-collapse-items="${type}">${iconLabel("chevron-up", "折りたたむ")}</button>`
+        : `<button class="show-more-card" data-show-more-items="${type}" title="残り${moreCount}件を表示">${iconLabel("chevron-down", `もっと見る（+${moreCount}）`)}</button>`;
+    }
+    return `<div class="kind-group-title" id="items-type-${type}">${type}（${typeItems.length}）</div><div class="items-grid">${shown.map(itemCardHtml).join("")}${toggleHtml}</div>`;
+  }).join("") || `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+
+  el.querySelectorAll("[data-show-more-items]").forEach(btn => btn.addEventListener("click", () => {
+    expandedItemTypes.add(btn.dataset.showMoreItems);
+    renderItems();
+  }));
+  el.querySelectorAll("[data-collapse-items]").forEach(btn => btn.addEventListener("click", () => {
+    expandedItemTypes.delete(btn.dataset.collapseItems);
+    renderItems();
+  }));
 
   el.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
     state.activeTab[t.dataset.item] = t.dataset.slot;
@@ -495,16 +700,24 @@ function renderItems() {
   }));
   el.querySelectorAll("[data-add-mod]").forEach(inp => inp.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || !inp.value.trim()) return;
-    const item = state.data.items[inp.dataset.item];
+    const item = state.data.items[inp.dataset.addMod];
     const mods = [...(item.configs[inp.dataset.slot] || []), inp.value.trim()];
-    setConfig(inp.dataset.item, inp.dataset.slot, mods);
+    setConfig(inp.dataset.addMod, inp.dataset.slot, mods);
   }));
   el.querySelectorAll("[data-toggle-item-fav]").forEach(btn => btn.addEventListener("click", () => toggleItemFavorite(btn.dataset.toggleItemFav)));
   wireCopyButtons(el, "[data-copy-item]", (btn) => buildItemExportText(state.data.items[btn.dataset.copyItem]));
   el.querySelectorAll("[data-del-item]").forEach(btn => btn.addEventListener("click", () => {
     if (confirm(`「${state.data.items[btn.dataset.delItem].name}」を削除する？`)) deleteItem(btn.dataset.delItem);
   }));
-  el.querySelectorAll("[data-edit-item-meta]").forEach(btn => btn.addEventListener("click", () => openItemMetaPrompt(btn.dataset.editItemMeta)));
+  el.querySelectorAll("[data-edit-item-meta]").forEach(btn => btn.addEventListener("click", () => openItemEditModal(btn.dataset.editItemMeta)));
+
+  // カード押下で編集（連携・メモの編集プロンプト）を開く。タブ切替・MOD追加・削除等の
+  // 個別操作を巻き込まないよう、button/input/タブ/MODタグ上のクリックは除外する
+  // （web/collections.htmlのdata-open-riven等と同じ仕組み、2026-08-23）。
+  el.querySelectorAll("[data-open-item]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest(".tab") || e.target.closest(".mod-tag")) return;
+    openItemEditModal(card.dataset.openItem);
+  }));
 
   items.forEach(item => {
     if (!item.chainViewNodeId) return;
@@ -518,40 +731,172 @@ function renderItems() {
   });
 }
 
+// MOD追加欄の予測変換（web/collections.htmlのsetupWeaponComboboxと同じ仕組み、2026-08-23）。
+// カードごとに毎回再描画されるinput/suggest-listを都度こちらから配線する。選択しても
+// 即追加はせず値を埋めるだけ——Enter確定は既存のkeydownハンドラに委ねる（挙動を増やさない）。
+// 1個の共有ボックスをposition:fixedでフォーカス中の入力欄の直下に動かして使い回す
+// （position:fixedは.item-cardのwill-change:transformが作るスタッキングコンテキストの
+// 外に出るため、後続パネルの下に潜り込む問題が起きない）。カードは再描画のたびに作り直される
+// ため、入力欄1個ずつへの配線ではなく#items-listへのイベント委譲にした（2026-08-23）。
+const modSuggestEl = document.getElementById("mod-suggest");
+function hideModSuggest() { modSuggestEl.classList.add("hidden"); }
+function updateModSuggest(input) {
+  const q = input.value.trim().toLowerCase();
+  if (!q) { hideModSuggest(); return; }
+  const matches = refData.mods.filter(n => n.toLowerCase().includes(q)).slice(0, 30);
+  modSuggestEl.innerHTML = matches.length
+    ? matches.map(n => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("")
+    : `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+  modSuggestEl.querySelectorAll(".suggest-item").forEach(el => {
+    el.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      input.value = el.textContent;
+      hideModSuggest();
+      input.focus();
+    });
+  });
+  const rect = input.getBoundingClientRect();
+  modSuggestEl.style.left = `${rect.left}px`;
+  modSuggestEl.style.top = `${rect.bottom + 4}px`;
+  modSuggestEl.style.minWidth = `${rect.width}px`;
+  modSuggestEl.classList.remove("hidden");
+}
+document.getElementById("items-list").addEventListener("input", (e) => {
+  if (e.target.classList.contains("mod-input")) updateModSuggest(e.target);
+});
+document.getElementById("items-list").addEventListener("focusin", (e) => {
+  if (e.target.classList.contains("mod-input")) updateModSuggest(e.target);
+});
+document.getElementById("items-list").addEventListener("focusout", (e) => {
+  if (e.target.classList.contains("mod-input")) setTimeout(hideModSuggest, 150);
+});
+
 // Item.chainViewNodeId / note は使用頻度が低い付随フィールドなので、専用モーダルではなく
 // 簡易promptで編集する（登録フォーム自体は名前・種別のみのシンプルさを保つ、という割り切り）。
-function openItemMetaPrompt(itemId) {
+let itemEditId = null;
+function openItemEditModal(itemId) {
   const item = state.data.items[itemId];
-  const note = window.prompt("メモ（空欄で削除）", item.note || "");
-  if (note === null) return;
-  const chainViewNodeId = window.prompt(
-    "Chain View連携ノードID（空欄で連携なし）\n候補: " + Object.values(state.nodesById).map(n => n.id).slice(0, 20).join(", "),
-    item.chainViewNodeId || ""
-  );
-  if (chainViewNodeId === null) return;
-  updateItem({ ...item, note: note.trim(), chainViewNodeId: chainViewNodeId.trim() || undefined });
+  itemEditId = itemId;
+  document.getElementById("item-edit-modal-title").textContent = `${item.name} を編集`;
+  document.getElementById("item-edit-chainview").innerHTML = chainViewOptions(item.chainViewNodeId);
+  document.getElementById("item-edit-note").value = item.note || "";
+  document.getElementById("item-edit-modal-backdrop").classList.remove("hidden");
 }
+function closeItemEditModal() { document.getElementById("item-edit-modal-backdrop").classList.add("hidden"); }
+document.getElementById("item-edit-cancel").addEventListener("click", closeItemEditModal);
+document.getElementById("item-edit-save").addEventListener("click", () => {
+  const item = state.data.items[itemEditId];
+  const note = document.getElementById("item-edit-note").value.trim();
+  const chainViewNodeId = document.getElementById("item-edit-chainview").value;
+  updateItem({ ...item, note, chainViewNodeId: chainViewNodeId || undefined });
+  closeItemEditModal();
+});
 
 // ---------- Item追加モーダル ----------
+// 登録前のMOD（Config A）を追加モーダル自体に持たせる（2026-08-23、「MOD、メモも追加して」
+// との要望を受けて展開）。カード側のmod-tags/mod-tagと同じ見た目・削除操作を流用する。
+let newItemMods = [];
+function renderNewItemModTags() {
+  const el = document.getElementById("new-item-mod-tags");
+  el.innerHTML = newItemMods.map((m, i) =>
+    `<span class="mod-tag">${escapeHtml(m)}<span class="x" data-remove-new-mod="${i}">${icon("x", { size: 12 })}</span></span>`
+  ).join("") || `<span class="empty">MODなし</span>`;
+  el.querySelectorAll("[data-remove-new-mod]").forEach(x => x.addEventListener("click", () => {
+    newItemMods.splice(Number(x.dataset.removeNewMod), 1);
+    renderNewItemModTags();
+  }));
+}
+
+let itemBulkCount = 0;
 function openItemModal() {
   document.getElementById("new-item-name").value = "";
+  document.getElementById("new-item-mod-input").value = "";
+  document.getElementById("new-item-note").value = "";
+  document.getElementById("new-item-chainview-check").checked = false;
+  newItemMods = [];
+  renderNewItemModTags();
   hideSuggest();
+  hideModSuggest();
+  updateChainViewRowVisibility();
+  document.getElementById("item-bulk-check").checked = false;
+  document.getElementById("item-modal-optional").classList.remove("hidden");
+  itemBulkCount = 0;
+  document.getElementById("item-bulk-feedback").classList.add("hidden");
   document.getElementById("item-modal-backdrop").classList.remove("hidden");
 }
 function closeItemModal() { document.getElementById("item-modal-backdrop").classList.add("hidden"); }
 document.getElementById("item-modal-cancel").addEventListener("click", closeItemModal);
 
-document.getElementById("add-item-btn").addEventListener("click", () => {
+document.getElementById("item-bulk-check").addEventListener("change", (e) => {
+  document.getElementById("item-modal-optional").classList.toggle("hidden", e.target.checked);
+});
+document.getElementById("new-item-name").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.getElementById("item-bulk-check").checked) {
+    e.preventDefault();
+    document.getElementById("add-item-btn").click();
+  }
+});
+
+document.getElementById("add-item-btn").addEventListener("click", async () => {
   const name = document.getElementById("new-item-name").value.trim();
   const type = document.getElementById("new-item-type").value;
   if (!name) { alert("名前を入力して"); return; }
-  createItem(name, type);
+  const bulk = document.getElementById("item-bulk-check").checked;
+  if (bulk) {
+    createItem(name, type, [], "");
+    // Loadouts起点の登録はCollectionsへ常に強制登録する（同名なら作らない、owned:true）。
+    // 連続登録の速度を優先し、こちらもcreateItemと同じくawaitせず並行に流す（2026-08-25項目27）。
+    forcePushToCollections(type, name, true);
+    itemBulkCount++;
+    const fb = document.getElementById("item-bulk-feedback");
+    fb.textContent = `${itemBulkCount}件追加しました（最新: ${name}）`;
+    fb.classList.remove("hidden");
+    const nameInput = document.getElementById("new-item-name");
+    nameInput.value = "";
+    nameInput.focus();
+    return;
+  }
+  const note = document.getElementById("new-item-note").value.trim();
+  const wantsChainView = document.getElementById("new-item-chainview-check").checked;
+  const item = await createItem(name, type, newItemMods, note);
   closeItemModal();
+
+  // ページ横断自動リンク（2026-08-25項目27）: Chain View追加は任意（チェックボックス、
+  // Frame/Weaponのみ対応）、Collectionsへの登録は種別を問わず常に強制（同名なら作らない）。
+  // どちらもユーザーはID/名前を一切選ばない——生成・紐づけは裏側で自動的に行う。
+  let chainViewNodeId = null;
+  if (wantsChainView && (type === "Frame" || type === "Weapon")) {
+    chainViewNodeId = await autoGenerateChainViewNode(type, name);
+    if (chainViewNodeId) await updateItem({ ...item, chainViewNodeId });
+  }
+  await forcePushToCollections(type, name, true);
 });
 
+const newItemModInput = document.getElementById("new-item-mod-input");
+newItemModInput.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || !newItemModInput.value.trim()) return;
+  newItemMods.push(newItemModInput.value.trim());
+  newItemModInput.value = "";
+  hideModSuggest();
+  renderNewItemModTags();
+});
+newItemModInput.addEventListener("input", () => updateModSuggest(newItemModInput));
+newItemModInput.addEventListener("focus", () => updateModSuggest(newItemModInput));
+newItemModInput.addEventListener("blur", () => setTimeout(hideModSuggest, 150));
+
+function updateChainViewRowVisibility() {
+  const type = document.getElementById("new-item-type").value;
+  // WFCD自動生成はFrame/Weaponのみ対応（Chain ViewのNode種別にCompanion/Archwing/Necramech
+  // が無いため）。それ以外の種別選択時はチェックボックス自体を隠す（2026-08-25項目27）。
+  const supported = type === "Frame" || type === "Weapon";
+  const row = document.getElementById("new-item-chainview-row");
+  row.classList.toggle("hidden", !supported);
+  if (!supported) document.getElementById("new-item-chainview-check").checked = false;
+}
 document.getElementById("new-item-type").addEventListener("change", () => {
   document.getElementById("new-item-name").value = "";
   hideSuggest();
+  updateChainViewRowVisibility();
 });
 
 // ---------- Build Set ----------
@@ -578,8 +923,21 @@ function slotOptions(selected) {
   return ["A", "B", "C"].map(s => `<option value="${s}" ${s === selected ? "selected" : ""}>${s}</option>`).join("");
 }
 
-function openBuildSetModal() {
-  draft = { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "", note: "" };
+let draftEditingId = null;
+function openBuildSetModal(editId) {
+  const set = editId ? state.data.buildSets[editId] : null;
+  draftEditingId = editId || null;
+  draft = set
+    ? {
+        name: set.name,
+        frameId: set.frame ? set.frame.itemId : "",
+        frameSlot: set.frame ? set.frame.config : "A",
+        weapons: (set.weapons || []).map(w => ({ ...w })),
+        chainViewBuildId: set.chainViewBuildId || "",
+        note: set.note || "",
+      }
+    : { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "", note: "" };
+  document.getElementById("buildset-modal-title").textContent = set ? "Build Set を編集" : "Build Set を作成";
   renderBuildSetForm();
   document.getElementById("buildset-modal-backdrop").classList.remove("hidden");
 }
@@ -601,7 +959,7 @@ function renderBuildSetForm() {
     </div>
     <label class="field-label">Chain View連携（進捗を横断表示、任意）</label>
     <select id="draft-chainview-build">${chainViewBuildOptions(draft.chainViewBuildId)}</select>
-    <label class="field-label">メモ</label>
+    <label class="field-label">メモ <span class="help-hint" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）">${icon("circle-alert", { size: 13 })}</span></label>
     <textarea id="draft-note" placeholder="任意">${escapeHtml(draft.note)}</textarea>
     <div class="actions">
       <button id="draft-cancel">キャンセル</button>
@@ -639,7 +997,7 @@ function renderBuildSetForm() {
   document.getElementById("draft-save").addEventListener("click", async () => {
     if (!draft.name.trim()) { alert("ビルドセット名を入力して"); return; }
     const set = {
-      id: uid("buildset"),
+      id: draftEditingId || uid("buildset"),
       name: draft.name.trim(),
       frame: draft.frameId ? { itemId: draft.frameId, config: draft.frameSlot } : null,
       weapons: draft.weapons.filter(w => w.itemId).map(w => ({ itemId: w.itemId, config: w.config })),
@@ -658,19 +1016,37 @@ function itemLabel(itemId, config) {
   return `${escapeHtml(item.name)}（Config ${config}: ${mods.length ? mods.map(escapeHtml).join(", ") : "MODなし"}）`;
 }
 
+let buildsetsSearchQuery = "";
+let buildsetsExpanded = false;
+
 function renderBuildSets() {
   const el = document.getElementById("buildsets-list");
-  const sets = Object.values(state.data.buildSets).sort((a, b) => a.name.localeCompare(b.name));
-  const addCardHtml = `<button class="add-card" id="add-buildset-card" title="新規登録">${icon("plus")}</button>`;
+  const query = buildsetsSearchQuery.trim().toLowerCase();
+  const allSets = Object.values(state.data.buildSets)
+    .filter(s => !query || s.name.toLowerCase().includes(query))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  // Itemsと同じ8件キャップ＋もっと見る（2026-08-23、「この絞り込みってBuild Setsは
+  // 適応してる？」を受けて展開）。BuildSetはfavorite/lastUsedAtを持たないため名前順のみ。
+  const expanded = !!query || buildsetsExpanded;
+  const sets = expanded ? allSets : allSets.slice(0, PAGE_SIZE);
+  const moreCount = allSets.length - sets.length;
+  // 展開後に戻すボタンが無かった指摘（2026-08-23）で「折りたたむ」を追加。
+  let toggleHtml = "";
+  if (!query && allSets.length > PAGE_SIZE) {
+    toggleHtml = buildsetsExpanded
+      ? `<button class="show-more-card" id="buildsets-collapse">${iconLabel("chevron-up", "折りたたむ")}</button>`
+      : `<button class="show-more-card" id="buildsets-show-more" title="残り${moreCount}件を表示">${iconLabel("chevron-down", `もっと見る（+${moreCount}）`)}</button>`;
+  }
 
   el.innerHTML = sets.map(set => {
     const linkedBuild = set.chainViewBuildId ? state.chainViewBuilds.find(b => b.id === set.chainViewBuildId) : null;
     return `
-    <div class="buildset-card">
+    <div class="buildset-card" data-open-buildset="${set.id}">
       <div class="buildset-head">
         <div class="buildset-name">${escapeHtml(set.name)}</div>
         <div class="inline-form">
           <button class="icon-btn" data-copy-set="${set.id}" title="ビルドセットをテキストでコピー">${icon("copy")}</button>
+          <button class="icon-btn" data-edit-set="${set.id}" title="編集">${icon("pencil")}</button>
           <button class="icon-btn danger" data-del-set="${set.id}" title="削除">${icon("trash-2")}</button>
         </div>
       </div>
@@ -681,14 +1057,29 @@ function renderBuildSets() {
       ${set.note ? `<div class="card-memo" id="notemd-buildset-${set.id}"></div>` : ""}
     </div>
   `;
-  }).join("") + addCardHtml;
+  }).join("") + toggleHtml || `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
 
-  document.getElementById("add-buildset-card").addEventListener("click", openBuildSetModal);
+  const showMoreBtn = document.getElementById("buildsets-show-more");
+  if (showMoreBtn) showMoreBtn.addEventListener("click", () => { buildsetsExpanded = true; renderBuildSets(); });
+  const collapseBtn = document.getElementById("buildsets-collapse");
+  if (collapseBtn) collapseBtn.addEventListener("click", () => { buildsetsExpanded = false; renderBuildSets(); });
 
-  el.querySelectorAll("[data-del-set]").forEach(btn => btn.addEventListener("click", () => {
+  el.querySelectorAll("[data-del-set]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
     if (confirm(`「${state.data.buildSets[btn.dataset.delSet].name}」を削除する？`)) deleteBuildSet(btn.dataset.delSet);
   }));
+  el.querySelectorAll("[data-edit-set]").forEach(btn => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openBuildSetModal(btn.dataset.editSet);
+  }));
   wireCopyButtons(el, "[data-copy-set]", (btn) => buildBuildSetExportText(state.data.buildSets[btn.dataset.copySet], state.data.items));
+
+  // カード押下で編集を開く（web/loadouts.htmlのItemカードと同じ仕組み、2026-08-23、
+  // 「Build Setsは追加はできるけど編集ができない」との指摘で追加）。
+  el.querySelectorAll("[data-open-buildset]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return;
+    openBuildSetModal(card.dataset.openBuildset);
+  }));
 
   el.querySelectorAll("[data-progress-for]").forEach(row => {
     const buildId = row.dataset.progressFor;
@@ -716,18 +1107,24 @@ function renderBuildSets() {
   });
 }
 
-const refData = { frames: [], weapons: [], companions: [] };
+const refData = { frames: [], weapons: [], companions: [], mods: [], archwings: [], necramechs: [] };
 
 async function loadReferenceData() {
   try {
-    const [frames, weapons, companions] = await Promise.all([
+    const [frames, weapons, companions, mods, archwings, necramechs] = await Promise.all([
       fetch("/api/reference/frames").then(r => r.json()),
       fetch("/api/reference/weapons").then(r => r.json()),
       fetch("/api/reference/companions").then(r => r.json()),
+      fetch("/api/reference/mods").then(r => r.json()),
+      fetch("/api/reference/archwings").then(r => r.json()),
+      fetch("/api/reference/necramechs").then(r => r.json()),
     ]);
     refData.frames = frames;
     refData.weapons = weapons;
     refData.companions = companions;
+    refData.mods = mods;
+    refData.archwings = archwings;
+    refData.necramechs = necramechs;
   } catch (e) {
     console.warn("WFCD参照データの取得に失敗（自由入力は引き続き可能）", e);
   }
@@ -739,9 +1136,12 @@ const suggestEl = document.getElementById("new-item-suggest");
 
 function hideSuggest() { suggestEl.classList.add("hidden"); }
 
+const itemTypeRefPool = {
+  Frame: "frames", Weapon: "weapons", Companion: "companions", Archwing: "archwings", Necramech: "necramechs",
+};
 function updateSuggest() {
   const type = document.getElementById("new-item-type").value;
-  const pool = type === "Frame" ? refData.frames : type === "Companion" ? refData.companions : refData.weapons;
+  const pool = refData[itemTypeRefPool[type]] || refData.weapons;
   const q = nameInput.value.trim().toLowerCase();
   if (!q) { hideSuggest(); return; }
 
@@ -777,6 +1177,7 @@ loadChainViewGraph().then(loadAll);
 <script src="/scratch.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
+<script src="/scroll-top.js"></script>
 <script src="/spoiler-warning.js"></script>
 <script src="/quest-onboarding.js"></script>
 <script src="/debug-grid.js"></script>
