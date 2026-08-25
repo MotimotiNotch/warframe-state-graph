@@ -8,6 +8,7 @@ const ICON_PATHS = {
   minus: '<path d="M5 12h14" />',
   "trash-2": '<path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />',
   "chevron-down": '<path d="m6 9 6 6 6-6" />',
+  "chevron-up": '<path d="m18 15-6-6-6 6" />',
   "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" />',
   x: '<path d="M18 6 6 18" /><path d="m6 6 12 12" />',
   "link-2": '<path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><line x1="8" x2="16" y1="12" y2="12" />',
@@ -34,6 +35,23 @@ function icon(name, opts) {
   const cls = opts.class ? ` class="${opts.class}"` : "";
   const body = ICON_PATHS[name] || "";
   return `<svg${cls} width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+
+// game-icons.net由来のバッジアイコン（CC BY 3.0、出典はLICENSE参照）。Lucideとは
+// フォーマットが異なる（512x512 viewBox・fillベースの単一パス）ため、icon()とは
+// 別のマップ・ヘルパーで管理する（2026-08-23、Vault済み/Resurgenceバッジの目視選定を受けて追加）。
+const GAME_ICON_PATHS = {
+  "lorc-padlock": '<path fill="currentColor" d="M254.28 17.313c-81.048 0-146.624 65.484-146.624 146.406V236h49.594v-69.094c0-53.658 43.47-97.187 97.03-97.187 53.563 0 97.032 44.744 97.032 97.186V236h49.594v-72.28c0-78.856-65.717-146.407-146.625-146.407zM85.157 254.688c-14.61 22.827-22.844 49.148-22.844 76.78 0 88.358 84.97 161.5 191.97 161.5 106.998 0 191.968-73.142 191.968-161.5 0-27.635-8.26-53.95-22.875-76.78H85.155zM254 278.625c22.34 0 40.875 17.94 40.875 40.28 0 16.756-10.6 31.23-25.125 37.376l32.72 98.126h-96.376l32.125-98.125c-14.526-6.145-24.532-20.62-24.532-37.374 0-22.338 17.972-40.28 40.312-40.28z"/>',
+  "lorc-hourglass": '<path fill="currentColor" d="M92.656 19.188v41.5h331.72v-41.5H92.655zM119.5 79.374V433.53h22.28V79.376H119.5zm46.594 0c3.212 43.324 13.312 82.022 27.78 110.906 17.685 35.304 40.845 54.75 64.064 54.75 23.218 0 46.346-19.446 64.03-54.75 14.47-28.883 24.57-67.58 27.782-110.905H166.094zm209.156 0V433.53h22.28V79.376h-22.28zm-117.313 185.22c-23.218 0-46.378 19.415-64.062 54.717-14.835 29.614-25.098 69.562-28.03 114.22H350c-2.933-44.658-13.197-84.606-28.03-114.22-17.686-35.302-40.814-54.718-64.033-54.718zM92.657 452.218v41.467h331.718V452.22H92.655z"/>',
+};
+
+// name: GAME_ICON_PATHSのキー。opts.size: px（既定14、バッジ内埋め込み想定で小さめが既定）。
+function gameIcon(name, opts) {
+  opts = opts || {};
+  const size = opts.size || 14;
+  const cls = opts.class ? ` class="${opts.class}"` : "";
+  const body = GAME_ICON_PATHS[name] || "";
+  return `<svg${cls} width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">${body}</svg>`;
 }
 
 // icon()+ラベル文字列を組み合わせたボタン内容。ラベルを<span class="btn-label">で包むことで、
