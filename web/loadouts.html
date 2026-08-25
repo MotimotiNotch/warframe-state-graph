@@ -957,8 +957,12 @@ function renderBuildSetForm() {
     <div class="inline-form" style="margin-top:6px;">
       <button type="button" id="draft-add-weapon" title="武器を追加">${iconLabel("plus", "武器を追加")}</button>
     </div>
-    <label class="field-label">Chain View連携（進捗を横断表示、任意）</label>
-    <select id="draft-chainview-build">${chainViewBuildOptions(draft.chainViewBuildId)}</select>
+    ${draft.chainViewBuildId
+      ? `<label class="field-label">Chain View連携（進捗を横断表示、任意）</label>
+         <select id="draft-chainview-build">${chainViewBuildOptions(draft.chainViewBuildId)}</select>`
+      : `<label class="field-label" style="display:flex;align-items:center;gap:6px;">
+           <input type="checkbox" id="draft-chainview-check" style="width:auto;">Chain Viewにも追加する（Frameと武器から自動生成、任意）
+         </label>`}
     <label class="field-label">メモ <span class="help-hint" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）">${icon("circle-alert", { size: 13 })}</span></label>
     <textarea id="draft-note" placeholder="任意">${escapeHtml(draft.note)}</textarea>
     <div class="actions">
@@ -980,7 +984,9 @@ function renderBuildSetForm() {
   document.getElementById("draft-name").addEventListener("input", (e) => { draft.name = e.target.value; });
   document.getElementById("draft-frame-id").addEventListener("change", (e) => { draft.frameId = e.target.value; });
   document.getElementById("draft-frame-slot").addEventListener("change", (e) => { draft.frameSlot = e.target.value; });
-  document.getElementById("draft-chainview-build").addEventListener("change", (e) => { draft.chainViewBuildId = e.target.value; });
+  // 既にリンク済みの場合のみドロップダウンを出す（編集用の逃げ道として維持、node-modal.jsの
+  // 編集モードと同じ考え方）。未リンクの新規/既存BuildSetはチェックボックス経由の自動生成のみ。
+  document.getElementById("draft-chainview-build")?.addEventListener("change", (e) => { draft.chainViewBuildId = e.target.value; });
   document.getElementById("draft-note").addEventListener("input", (e) => { draft.note = e.target.value; });
   weaponsEl.querySelectorAll("select").forEach(sel => sel.addEventListener("change", (e) => {
     draft.weapons[Number(sel.dataset.wIdx)][sel.dataset.field] = e.target.value;
@@ -996,17 +1002,54 @@ function renderBuildSetForm() {
   document.getElementById("draft-cancel").addEventListener("click", closeBuildSetModal);
   document.getElementById("draft-save").addEventListener("click", async () => {
     if (!draft.name.trim()) { alert("ビルドセット名を入力して"); return; }
+    const wantsChainView = !draft.chainViewBuildId && document.getElementById("draft-chainview-check")?.checked;
+    let chainViewBuildId = draft.chainViewBuildId || undefined;
+    if (wantsChainView && draft.frameId) {
+      chainViewBuildId = await autoComposeBuildSetChainView(
+        draft.name.trim(), draft.frameId, draft.weapons.filter(w => w.itemId).map(w => w.itemId)
+      );
+    }
     const set = {
       id: draftEditingId || uid("buildset"),
       name: draft.name.trim(),
       frame: draft.frameId ? { itemId: draft.frameId, config: draft.frameSlot } : null,
       weapons: draft.weapons.filter(w => w.itemId).map(w => ({ itemId: w.itemId, config: w.config })),
-      chainViewBuildId: draft.chainViewBuildId || undefined,
+      chainViewBuildId,
       note: draft.note.trim(),
     };
     await saveBuildSet(set);
     closeBuildSetModal();
   });
+}
+
+// BuildSetのChain View連携をID選択なしで作る（2026-08-25項目27）。BuildはWFCD側に単一の
+// 名前を持たない複合概念なので直接自動生成はできないが、既存のItem単位の自動生成
+// （autoGenerateChainViewNode、web/wfcd-autolink.js）を構成要素ごとに呼んで束ねるだけで
+// 実現できる: ①Frame・各武器をそれぞれWFCD自動生成（既にchainViewNodeIdがあれば再利用、
+// Slug(name)+upsertのため何度呼んでも安全）→②それらのノードIDをcontainsに持つ新規
+// type:Goalノードを1個作成→③そのIDを返す。
+async function autoComposeBuildSetChainView(name, frameItemId, weaponItemIds) {
+  async function ensureNodeFor(itemId, nodeType) {
+    const item = state.data.items[itemId];
+    if (!item) return null;
+    if (item.chainViewNodeId) return item.chainViewNodeId;
+    const nodeId = await autoGenerateChainViewNode(nodeType, item.name);
+    if (nodeId) await updateItem({ ...item, chainViewNodeId: nodeId });
+    return nodeId;
+  }
+
+  const containsIds = [];
+  const frameNodeId = await ensureNodeFor(frameItemId, "Frame");
+  if (frameNodeId) containsIds.push(frameNodeId);
+  for (const wId of weaponItemIds) {
+    const wNodeId = await ensureNodeFor(wId, "Weapon");
+    if (wNodeId) containsIds.push(wNodeId);
+  }
+  if (!containsIds.length) return undefined;
+
+  const buildNode = { id: autoLinkId("goal"), name, type: "Goal", requires: [], contains: containsIds };
+  const res = await fetch("/api/nodes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildNode) });
+  return res.ok ? buildNode.id : undefined;
 }
 
 function itemLabel(itemId, config) {

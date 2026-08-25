@@ -143,12 +143,26 @@ function renderWfcdPreview() {
     </div>` : `
     <div class="wfcd-part"><div class="empty">現在選択中のBuildがないため、このまま追加すると種別がGoalになり、単独の探索起点として左上のプルダウンから辿れます</div></div>`;
 
+  // Loadoutsへの逆伝播（2026-08-25項目27）。Chain View側のNode種別にはCompanion/Archwing/
+  // Necramechが無い（WFCD自動生成もFrame/Weapon/Questの3種のみ）ため対象はFrame/Weaponに限る。
+  // 未入手を追跡する用途がChain Viewの主目的なので、既定はチェックなし（Loadouts=所有前提と
+  // 逆の初期値）。Collectionsへの登録はこのチェックボックスと無関係に常に強制（後述import側）。
+  const nodeType = document.getElementById("wfcd-node-type").value;
+  const loadoutsRow = (nodeType === "Frame" || nodeType === "Weapon") ? `
+    <div class="wfcd-part">
+      <label style="display:flex;align-items:flex-start;gap:6px;">
+        <input type="checkbox" id="wfcd-loadouts-check" style="margin-top:3px;">
+        <span>Loadoutsにも追加する（MOD構成の管理対象にする、任意）</span>
+      </label>
+    </div>` : "";
+
   preview.innerHTML = `
     <div class="ph-row" style="margin-top:10px;"><b>パラダイム:</b> ${s.paradigm}</div>
     ${s.richLich ? `<div class="ph-row"><b>リッチ系:</b> ${s.richLich}</div>` : ""}
     ${s.archetype ? `<div class="ph-row"><b>アーキタイプ:</b> ${s.archetype}</div>` : ""}
     <div class="ph-row"><b>本体ノード:</b> ${s.root.name}（${s.root.id}）</div>
     ${attachRow}
+    ${loadoutsRow}
     ${syndicateRow}
     ${questChain}
     ${parts}
@@ -221,6 +235,22 @@ document.getElementById("wfcd-modal-import").addEventListener("click", async () 
   });
 
   await fetch("/api/wfcd/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nodes }) });
+
+  // ページ横断リンク（2026-08-25項目27）: Loadoutsは任意（チェックボックス、Frame/Weaponのみ）、
+  // Collectionsは種別を問わず常に強制（同名なら作らない）。Chain View起点はowned:falseで作成
+  // ——「未入手を追跡する」がここでの主目的のため、Loadouts起点(owned:true)とは逆の初期値。
+  // どちらもユーザーはID/名前を一切選ばない。
+  const nodeType = document.getElementById("wfcd-node-type").value;
+  if (nodeType === "Frame" || nodeType === "Weapon") {
+    const loadoutsCheck = document.getElementById("wfcd-loadouts-check");
+    if (loadoutsCheck && loadoutsCheck.checked) {
+      await fetch("/api/loadout-items", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: autoLinkId("item"), name: root.name, type: nodeType, configs: { A: [], B: [], C: [] }, note: "", chainViewNodeId: root.id }),
+      });
+    }
+    await forcePushToCollections(nodeType, root.name, false);
+  }
 
   // 現在のBuildのcontainsへ追加（willAttachがtrueの場合のみ）。
   let attached = false;
