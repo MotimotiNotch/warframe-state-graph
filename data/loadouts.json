@@ -6,11 +6,66 @@
       "name": "Ash Prime",
       "type": "Frame",
       "configs": {
+        "A": [
+          "Amalgam Serration"
+        ],
+        "B": [],
+        "C": []
+      },
+      "note": "- [x] aaa\n- ddddd\n**ありがとう**",
+      "lastUsedAt": 1787472128234
+    },
+    "item-mt5gslv7tkz6": {
+      "id": "item-mt5gslv7tkz6",
+      "name": "Braton",
+      "type": "Weapon",
+      "configs": {
+        "A": [],
+        "B": [],
+        "C": []
+      }
+    },
+    "item-mt5i54h7k091": {
+      "id": "item-mt5i54h7k091",
+      "name": "Adarza Kavat",
+      "type": "Companion",
+      "configs": {
+        "A": [],
+        "B": [],
+        "C": []
+      }
+    },
+    "item-mt5i5czmkck6": {
+      "id": "item-mt5i5czmkck6",
+      "name": "Oberon",
+      "type": "Frame",
+      "configs": {
         "A": [],
         "B": [],
         "C": []
       }
     }
   },
-  "buildSets": {}
+  "buildSets": {
+    "buildset-mt5gsdssanr7": {
+      "id": "buildset-mt5gsdssanr7",
+      "name": "tesr",
+      "frame": {
+        "itemId": "item-mt3ogrilz6eq",
+        "config": "A"
+      },
+      "weapons": []
+    },
+    "buildset-mt5gtq4mcswu": {
+      "id": "buildset-mt5gtq4mcswu",
+      "name": "aaaa",
+      "weapons": [
+        {
+          "itemId": "item-mt5gslv7tkz6",
+          "config": "A"
+        }
+      ],
+      "note": "ddddd"
+    }
+  }
 }

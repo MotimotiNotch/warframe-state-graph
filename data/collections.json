@@ -1,8 +1,79 @@
 {
   "schemaVersion": 1,
-  "rivens": {},
-  "kuva": {},
-  "frames": {},
+  "rivens": {
+    "riven-mt4eec7lma1m": {
+      "id": "riven-mt4eec7lma1m",
+      "weaponName": "Dragon Nikana",
+      "positiveStats": [
+        "Critical Chance",
+        "Damage"
+      ],
+      "positiveValues": [
+        210.7,
+        202.6
+      ],
+      "fixed": true,
+      "favorite": true,
+      "note": "- [ ] dddddd\nつよい"
+    },
+    "riven-mt4zl2i7y1nj": {
+      "id": "riven-mt4zl2i7y1nj",
+      "weaponName": "Braton",
+      "positiveStats": [],
+      "fixed": false,
+      "favorite": true
+    },
+    "riven-mt4zlclrhoys": {
+      "id": "riven-mt4zlclrhoys",
+      "weaponName": "Braton",
+      "positiveStats": [],
+      "fixed": false,
+      "favorite": true
+    }
+  },
+  "kuva": {
+    "kuva-mt558rnhafw0": {
+      "id": "kuva-mt558rnhafw0",
+      "weaponName": "Kuva Brakk",
+      "kind": "Kuva",
+      "owned": false,
+      "favorite": false
+    },
+    "kuva-mt558wbw792v": {
+      "id": "kuva-mt558wbw792v",
+      "weaponName": "Coda Bassocyst",
+      "kind": "Coda",
+      "owned": false,
+      "favorite": false
+    },
+    "kuva-mt5590lw4c21": {
+      "id": "kuva-mt5590lw4c21",
+      "weaponName": "Tenet Agendus",
+      "kind": "Tenet",
+      "owned": false,
+      "favorite": false
+    },
+    "kuva-mt5598arg6j0": {
+      "id": "kuva-mt5598arg6j0",
+      "weaponName": "Kuva Bramma",
+      "kind": "Kuva",
+      "owned": false,
+      "favorite": false
+    }
+  },
+  "frames": {
+    "frame-mt5nzxffaouw": {
+      "id": "frame-mt5nzxffaouw",
+      "name": "Ash",
+      "owned": false,
+      "rankedThirty": false,
+      "helminthFed": false
+    }
+  },
+  "weapons": {},
+  "companions": {},
+  "archwings": {},
+  "necramechs": {},
   "incarnons": {
     "incarnon-mt45jcdz7l4f": {
       "id": "incarnon-mt45jcdz7l4f",

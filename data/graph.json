@@ -1,6 +1,14 @@
 {
   "schemaVersion": 1,
   "nodes": {
+    "aaa": {
+      "id": "aaa",
+      "name": "レリック",
+      "type": "Relic",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
     "apostasy-prologue": {
       "id": "apostasy-prologue",
       "name": "Apostasy Prologue",
@@ -23,6 +31,54 @@
       "contains": [],
       "note": "ボイドトレーダー来訪時に交換（Arcane）。"
     },
+    "ash": {
+      "id": "ash",
+      "name": "Ash",
+      "type": "Goal",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "ash-blueprint",
+        "ash-chassis",
+        "ash-neuroptics",
+        "ash-orokin-cell",
+        "ash-systems"
+      ],
+      "uniqueName": "/Lotus/Powersuits/Ninja/Ninja"
+    },
+    "ash-blueprint": {
+      "id": "ash-blueprint",
+      "name": "Blueprint",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "ash-chassis": {
+      "id": "ash-chassis",
+      "name": "Chassis",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "入手先: Pluto/Fenton's Field (Skirmish), Rotation A"
+    },
+    "ash-neuroptics": {
+      "id": "ash-neuroptics",
+      "name": "Neuroptics",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "ash-orokin-cell": {
+      "id": "ash-orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
     "ash-prime": {
       "id": "ash-prime",
       "name": "Ash Prime",
@@ -30,45 +86,61 @@
       "satisfied": true,
       "requires": [],
       "contains": [
-        "ash-prime-neuroptics",
+        "ash-prime-blueprint",
         "ash-prime-chassis",
+        "ash-prime-neuroptics",
+        "ash-prime-orokin-cell",
         "ash-prime-systems"
       ],
       "evaluation": "育成中（Forma 2/4, Helminth未）",
-      "note": "所持・レベリング済みだがForma待ち。"
+      "note": "所持・レベリング済みだがForma待ち。",
+      "uniqueName": "/Lotus/Powersuits/Ninja/AshPrime"
+    },
+    "ash-prime-blueprint": {
+      "id": "ash-prime-blueprint",
+      "name": "Blueprint",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [
+        "relic-meso-c1"
+      ],
+      "contains": []
     },
     "ash-prime-chassis": {
       "id": "ash-prime-chassis",
-      "name": "Ash Prime Chassis",
+      "name": "Chassis",
       "type": "Resource",
       "satisfied": false,
       "requires": [
-        "orokin-cell"
+        "relic-neo-n4"
       ],
-      "contains": [],
-      "note": "設計図クラフト待ち。"
+      "contains": []
     },
     "ash-prime-neuroptics": {
       "id": "ash-prime-neuroptics",
-      "name": "Ash Prime Neuroptics",
+      "name": "Neuroptics",
       "type": "Resource",
       "satisfied": false,
-      "requires": [
-        "orokin-cell"
-      ],
+      "requires": [],
       "contains": [],
-      "note": "設計図クラフト待ち。"
+      "note": "入手先: Vanguard P1 Relic (Radiant)"
+    },
+    "ash-prime-orokin-cell": {
+      "id": "ash-prime-orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
     },
     "ash-prime-systems": {
       "id": "ash-prime-systems",
-      "name": "Ash Prime Systems",
+      "name": "Systems",
       "type": "Resource",
       "satisfied": false,
-      "requires": [
-        "orokin-cell"
-      ],
+      "requires": [],
       "contains": [],
-      "note": "設計図クラフト待ち。"
+      "note": "入手先: Vanguard C1 Relic (Radiant)"
     },
     "ash-stealth-build": {
       "id": "ash-stealth-build",
@@ -87,9 +159,20 @@
         "handspring",
         "nest-test-a",
         "stress-0",
-        "deep-1"
+        "deep-1",
+        "kuva-brakk",
+        "lavos"
       ],
       "note": "Ash Prime + Dragon Nikana によるステルス特化ビルド（横幅・深さ確認用に拡張）"
+    },
+    "ash-systems": {
+      "id": "ash-systems",
+      "name": "Systems",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "入手先: Venus/Bifrost Echo (Skirmish)"
     },
     "baro-kiteer-visit": {
       "id": "baro-kiteer-visit",
@@ -99,6 +182,15 @@
       "requires": [],
       "contains": [],
       "note": "次回来訪待ち。"
+    },
+    "braton": {
+      "id": "braton",
+      "name": "Braton",
+      "type": "Weapon",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "uniqueName": "/Lotus/Weapons/Tenno/Rifle/Rifle"
     },
     "chains-of-harrow": {
       "id": "chains-of-harrow",
@@ -299,6 +391,74 @@
       "contains": [],
       "note": "未所持だが前提なし、いつでも入手可能。"
     },
+    "kuva-brakk": {
+      "id": "kuva-brakk",
+      "name": "Kuva Brakk",
+      "type": "Weapon",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "uniqueName": "/Lotus/Weapons/Grineer/KuvaLich/Secondaries/Brakk/KuvaBrakk"
+    },
+    "lavos": {
+      "id": "lavos",
+      "name": "Lavos",
+      "type": "Frame",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "lavos-blueprint",
+        "lavos-chassis",
+        "lavos-neuroptics",
+        "lavos-orokin-cell",
+        "lavos-systems"
+      ],
+      "uniqueName": "/Lotus/Powersuits/Alchemist/Alchemist"
+    },
+    "lavos-blueprint": {
+      "id": "lavos-blueprint",
+      "name": "Blueprint",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "入手先: Entrati (Father), Acquaintance"
+    },
+    "lavos-chassis": {
+      "id": "lavos-chassis",
+      "name": "Chassis",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "入手先: Operation: Orphix Venom, Rotation A"
+    },
+    "lavos-neuroptics": {
+      "id": "lavos-neuroptics",
+      "name": "Neuroptics",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "入手先: Entrati (Father), Associate"
+    },
+    "lavos-orokin-cell": {
+      "id": "lavos-orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "lavos-systems": {
+      "id": "lavos-systems",
+      "name": "Systems",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "入手先: Entrati (Father), Associate"
+    },
     "natah": {
       "id": "natah",
       "name": "Natah",
@@ -398,6 +558,22 @@
       "requires": [],
       "contains": [],
       "note": "現在Rank3。Standing周回でRank5到達を目指す。"
+    },
+    "relic-meso-c1": {
+      "id": "relic-meso-c1",
+      "name": "Meso C1",
+      "type": "Relic",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "relic-neo-n4": {
+      "id": "relic-neo-n4",
+      "name": "Neo N4",
+      "type": "Relic",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
     },
     "rising-tide": {
       "id": "rising-tide",
