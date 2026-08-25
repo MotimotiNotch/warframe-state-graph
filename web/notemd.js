@@ -24,12 +24,12 @@
     let html = "";
     let inList = false;
     lines.forEach((raw, i) => {
-      const checkMatch = raw.match(/^- \[([ xX])\] (.*)$/);
+      const checkMatch = raw.match(/^- \[([ xX])\](?: (.*))?$/);
       const bulletMatch = raw.match(/^- (.*)$/);
       if (checkMatch) {
         if (!inList) { html += '<ul class="note-md-list">'; inList = true; }
         const checked = checkMatch[1].toLowerCase() === "x";
-        const label = applyInline(escapeHtml(checkMatch[2]));
+        const label = applyInline(escapeHtml(checkMatch[2] || ""));
         html += `<li class="note-md-check"><label><input type="checkbox" data-note-line="${i}" ${checked ? "checked" : ""}><span>${label}</span></label></li>`;
       } else if (bulletMatch) {
         if (!inList) { html += '<ul class="note-md-list">'; inList = true; }
@@ -52,10 +52,10 @@
         e.stopPropagation();
         const lineIdx = Number(cb.dataset.noteLine);
         const lines = String(text).split("\n");
-        const m = lines[lineIdx].match(/^- \[([ xX])\] (.*)$/);
+        const m = lines[lineIdx].match(/^- \[([ xX])\](?: (.*))?$/);
         if (!m) return;
         const newChecked = m[1].toLowerCase() !== "x";
-        lines[lineIdx] = `- [${newChecked ? "x" : " "}] ${m[2]}`;
+        lines[lineIdx] = `- [${newChecked ? "x" : " "}]${m[2] ? " " + m[2] : ""}`;
         onToggle(lines.join("\n"));
       });
     });
@@ -73,11 +73,11 @@
     return `<div class="note-line note-line-active" data-line="${idx}">${line ? escapeHtml(line) : "<br>"}</div>`;
   }
   function lineToRenderedDiv(line, idx) {
-    const checkMatch = line.match(/^- \[([ xX])\] (.*)$/);
+    const checkMatch = line.match(/^- \[([ xX])\](?: (.*))?$/);
     const bulletMatch = line.match(/^- (.*)$/);
     if (checkMatch) {
       const checked = checkMatch[1].toLowerCase() === "x";
-      const label = applyInline(escapeHtml(checkMatch[2]));
+      const label = applyInline(escapeHtml(checkMatch[2] || ""));
       return `<div class="note-line note-md-check" data-line="${idx}"><label><input type="checkbox" data-line-checkbox ${checked ? "checked" : ""}><span>${label}</span></label></div>`;
     }
     if (bulletMatch) {
@@ -178,9 +178,9 @@
       if (cb) {
         const lineEl = e.target.closest("[data-line]");
         const idx = Number(lineEl.dataset.line);
-        const m = lines[idx].match(/^- \[([ xX])\] (.*)$/);
+        const m = lines[idx].match(/^- \[([ xX])\](?: (.*))?$/);
         if (m) {
-          lines[idx] = `- [${m[1].toLowerCase() === "x" ? " " : "x"}] ${m[2]}`;
+          lines[idx] = `- [${m[1].toLowerCase() === "x" ? " " : "x"}]${m[2] ? " " + m[2] : ""}`;
           render();
           emitChange();
         }

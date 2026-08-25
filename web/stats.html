@@ -23,7 +23,7 @@
     --bg: #12141a;
     --panel: rgba(27, 30, 39, 0.35);
     --popover-bg: rgba(20, 22, 28, 0.94);
-    --border: #2a2e3a;
+    --border: #454b5c;
     --text: #e4e6ec;
     --muted: #9aa0ab;
     --accent: #f6ddaa;
@@ -36,7 +36,7 @@
       --bg: #f5f6f8;
       --panel: rgba(255, 255, 255, 0.4);
       --popover-bg: rgba(255, 255, 255, 0.96);
-      --border: #d8dbe2;
+      --border: #aab0bd;
       --text: #1c1e24;
       --muted: #3c3f48;
       --accent: #a7750a;
@@ -49,7 +49,7 @@
     --bg: #f5f6f8;
     --panel: rgba(255, 255, 255, 0.4);
     --popover-bg: rgba(255, 255, 255, 0.96);
-    --border: #d8dbe2;
+    --border: #aab0bd;
     --text: #1c1e24;
     --muted: #3c3f48;
     --accent: #a7750a;
@@ -104,6 +104,7 @@
     background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 12px; padding: 10px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+    overflow-wrap: break-word;
   }
   .popover.hidden { display: none; }
 
@@ -354,6 +355,7 @@
   </div>
 
 <script src="/icons.js"></script>
+<script src="/quest-i18n.js"></script>
 <script>
 const state = {
   nodesById: {},
@@ -366,57 +368,6 @@ const state = {
   allQuests: [],
   mainQuestNames: [],
 };
-
-// クエスト日本語名対応表（wikiwiki.jp/warframe「クエスト」ページ、2026-08-22確認）。
-// キーは/api/reference/quests（WFCD Quests.json）の英語表記そのまま。3件（Clan Key/
-// Mutalist Alad V Assassinate/The Hex Finale）はページ内に対応する記載が見つからず、
-// 未確認のまま英語表記を採用（不確かな訳を確定情報として書かない方針）。
-const QUEST_JA = {
-  "Awakening": "目覚め",
-  "Vor's Prize": "Vorの秘宝",
-  "The Teacher": "師範",
-  "Vox Solaris": "Vox Solaris",
-  "Once Awake": "博士の計略",
-  "Heart Of Deimos": "ダイモスの心臓",
-  "The Archwing": "アークウイング",
-  "Natah": "Natah",
-  "The Second Dream": "二番目の夢",
-  "The War Within": "内なる紛争",
-  "Rising Tide": "流転する形勢",
-  "Chains Of Harrow": "HARROWの鎖",
-  "Apostasy Prologue": "背信のプロローグ",
-  "The Sacrifice": "サクリファイス",
-  "Chimera Prologue": "争いの序曲",
-  "Erra": "ERRA",
-  "The New War": "新たな大戦",
-  "The Duviri Paradox": "デュヴィリ・パラドックス",
-  "Whispers In The Walls": "壁の中の囁き",
-  "The Lotus Eaters": "ロートパゴス",
-  "The Hex": "ヘックス",
-  "The Old Peace": "古の同盟",
-  "Angels Of The Zariman": "Zarimanの天使",
-  "Jade Shadows": "翡翠の影",
-  "Jade Shadows: Constellations": "翡翠の影：星座",
-  "Saya's Vigil": "Sayaの眼",
-  "Stolen Dreams": "奪われた野望",
-  "Howl Of The Kubrow": "クブロウ獲得",
-  "A Man Of Few Words": "寡黙な人物",
-  "Patient Zero": "感染起源は誰",
-  "Veilbreaker": "ベールブレイカー",
-  "Hidden Messages": "隠されたメッセージ",
-  "The Limbo Theorem": "LIMBO セオリム",
-  "The Jordas Precept": "Jordasの教訓",
-  "The New Strange": "新たな怪奇",
-  "Sands Of Inaros": "INAROSの砂嵐",
-  "The Silver Grove": "銀の果樹園",
-  "The Glast Gambit": "グラスト・ギャンビット",
-  "Octavia's Anthem": "Octaviaの賛美歌",
-  "Mask Of The Revenant": "Revenantの仮面",
-  "The Deadlock Protocol": "デッドロック・プロトコル",
-  "Call Of The Tempestarii": "嵐を呼ぶ者テンペスタリ",
-  "The Waverider": "ウェーブライダー",
-};
-function questJa(name) { return QUEST_JA[name] || name; }
 
 document.getElementById("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
 document.getElementById("refresh-wfcd-btn").addEventListener("click", async () => {
@@ -1072,6 +1023,7 @@ Promise.all([loadChainViewNodes(), loadLoadouts(), loadCollections(), loadStandi
 <script src="/scratch.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
+<script src="/scroll-top.js"></script>
 <script src="/spoiler-warning.js"></script>
 <script src="/quest-onboarding.js"></script>
 <script src="/debug-grid.js"></script>

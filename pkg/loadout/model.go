@@ -6,6 +6,10 @@ const (
 	TypeFrame     ItemType = "Frame"
 	TypeWeapon    ItemType = "Weapon"
 	TypeCompanion ItemType = "Companion"
+	// TypeArchwing/TypeNecramechは2026-08-23追加（「アークウィング、Voidrigはどこに登録する
+	// 想定だっけ」を受けて）。通常のウォーフレームとは別枠のパイロット可能装備。
+	TypeArchwing  ItemType = "Archwing"
+	TypeNecramech ItemType = "Necramech"
 )
 
 type ConfigSlot string
@@ -43,6 +47,13 @@ type Item struct {
 	// （2026-08-18 装備カード化 & Gitグラフ風ミニ進捗表示設計）。BuildSet.ChainViewBuildIDと同じ
 	// 「緩い参照」パターンだが、Itemは個別の武器/フレーム単位でも紐付けられるようにする。
 	ChainViewNodeID string `json:"chainViewNodeId,omitempty"`
+
+	// LastUsedAt はMODコンフィグを変更した時刻（Unixミリ秒）。お気に入りだけで一覧の並びを
+	// 決めると「お気に入りにしてない項目は8件超で見えなくなる」ため、実際に触ってる項目を
+	// 一覧の上位に混ぜて拾い上げる目的で追加（2026-08-23、「最近使った順いれて」との要望）。
+	// SetConfig（MOD追加/削除）のたびにサーバー側で更新する——お気に入り切替やメモ編集は
+	// 「使った」に含めない（対象操作を絞る判断）。
+	LastUsedAt int64 `json:"lastUsedAt,omitempty"`
 }
 
 // ItemRef はBuildSetがフレーム/武器のどのコンフィグ（A/B/C）を使うかを指す参照。

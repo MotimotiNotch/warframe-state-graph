@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"warframe-state-graph/pkg/persist"
 )
@@ -81,6 +82,7 @@ func (s *FileStore) SetConfig(itemID string, slot ConfigSlot, mods []string) (*I
 		item.Configs = map[ConfigSlot][]string{}
 	}
 	item.Configs[slot] = mods
+	item.LastUsedAt = time.Now().UnixMilli()
 	if err := s.saveLocked(d); err != nil {
 		return nil, err
 	}

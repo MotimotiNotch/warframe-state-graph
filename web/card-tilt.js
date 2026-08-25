@@ -30,6 +30,14 @@
   document.addEventListener("mousemove", (e) => {
     const card = e.target.closest(SELECTOR);
     if (!card) return;
+    // メモ欄（チェックボックス操作・文字選択がある）はカードが傾くと読みづらい/操作しづらい
+    // ため対象外にする（クイックメモの編集エリアがそもそもカードの外にあり傾きの対象に
+    // 入らないのと同じ結果を、カード内蔵のメモ欄にも揃える。2026-08-23）。
+    if (e.target.closest(".card-memo")) {
+      pending = null;
+      resetTilt(card);
+      return;
+    }
     pending = { card, x: e.clientX, y: e.clientY };
     if (rafId) return;
     rafId = requestAnimationFrame(() => {
