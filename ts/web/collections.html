@@ -117,6 +117,8 @@
   #weapon-modal-optional.hidden, #companion-modal-optional.hidden, #archwing-modal-optional.hidden,
   #necramech-modal-optional.hidden { display: none; }
   #riven-fixed-row.hidden { display: none !important; }
+  #frame-chainview-row.hidden, #weapon-chainview-row.hidden, #companion-chainview-row.hidden,
+  #archwing-chainview-row.hidden, #necramech-chainview-row.hidden { display: none; }
 
   .star-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 0; color: var(--muted); }
   .star-btn.favorite { color: var(--accent); }
@@ -435,8 +437,6 @@
           <select id="riven-negative-select" style="flex:1;"></select>
           <input type="text" inputmode="decimal" id="riven-negative-value" placeholder="数値%" style="width:80px;">
         </div>
-        <label class="field-label">Chain View連携（任意）</label>
-        <select id="riven-chainview-select"></select>
         <label class="field-label" style="margin-top:8px;">メモ <span class="help-hint" id="riven-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="riven-note-input" placeholder="任意"></textarea>
         <div id="riven-live-check" style="margin-top:8px;"></div>
@@ -488,10 +488,6 @@
               <input type="text" inputmode="decimal" id="kuva-bonus-value-input" placeholder="数値%" style="width:80px;">
             </div>
           </div>
-          <div>
-            <label class="field-label">Chain View連携（任意）</label>
-            <select id="kuva-chainview-select"></select>
-          </div>
         </div>
         <label class="field-label" style="margin-top:8px;">メモ <span class="help-hint" id="kuva-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="kuva-note-input" placeholder="任意"></textarea>
@@ -535,9 +531,10 @@
               <input type="checkbox" id="frame-helminth-check" style="width:auto;">ヘルミンス済み（捧げた）
             </label>
           </div>
-          <div>
-            <label class="field-label">Chain View連携（任意）</label>
-            <select id="frame-chainview-select"></select>
+          <div id="frame-chainview-row">
+            <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="frame-chainview-check" style="width:auto;">Chain Viewに追加する
+            </label>
           </div>
         </div>
         <label class="field-label">メモ <span class="help-hint" id="frame-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
@@ -574,8 +571,9 @@
             </label>
           </div>
         </div>
-        <label class="field-label">Chain View連携（任意）</label>
-        <select id="weapon-chainview-select"></select>
+        <label class="field-label" id="weapon-chainview-row" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="weapon-chainview-check" style="width:auto;">Chain Viewに追加する
+        </label>
         <label class="field-label">メモ <span class="help-hint" id="weapon-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="weapon-note-input" placeholder="任意"></textarea>
       </div>
@@ -609,8 +607,9 @@
             </label>
           </div>
         </div>
-        <label class="field-label">Chain View連携（任意）</label>
-        <select id="companion-chainview-select"></select>
+        <label class="field-label" id="companion-chainview-row" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="companion-chainview-check" style="width:auto;">Chain Viewに追加する
+        </label>
         <label class="field-label">メモ <span class="help-hint" id="companion-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="companion-note-input" placeholder="任意"></textarea>
       </div>
@@ -644,8 +643,9 @@
             </label>
           </div>
         </div>
-        <label class="field-label">Chain View連携（任意）</label>
-        <select id="archwing-chainview-select"></select>
+        <label class="field-label" id="archwing-chainview-row" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="archwing-chainview-check" style="width:auto;">Chain Viewに追加する
+        </label>
         <label class="field-label">メモ <span class="help-hint" id="archwing-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="archwing-note-input" placeholder="任意"></textarea>
       </div>
@@ -679,8 +679,9 @@
             </label>
           </div>
         </div>
-        <label class="field-label">Chain View連携（任意）</label>
-        <select id="necramech-chainview-select"></select>
+        <label class="field-label" id="necramech-chainview-row" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="necramech-chainview-check" style="width:auto;">Chain Viewに追加する
+        </label>
         <label class="field-label">メモ <span class="help-hint" id="necramech-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
         <textarea id="necramech-note-input" placeholder="任意"></textarea>
       </div>
@@ -722,19 +723,6 @@
       <div class="actions">
         <button id="incarnon-modal-cancel">キャンセル</button>
         <button class="primary" id="incarnon-modal-save">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Riven/Kuva/フレーム/武器種のChain View連携を後から変更するための共通モーダル -->
-  <div id="chainview-edit-modal-backdrop" class="modal-backdrop hidden">
-    <div class="modal">
-      <h3>Chain View連携を編集</h3>
-      <label class="field-label">Chain View連携（任意）</label>
-      <select id="chainview-edit-select"></select>
-      <div class="actions">
-        <button id="chainview-edit-cancel">キャンセル</button>
-        <button class="primary" id="chainview-edit-save">保存</button>
       </div>
     </div>
   </div>

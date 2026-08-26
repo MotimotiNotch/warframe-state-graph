@@ -24,6 +24,7 @@ import {
   formatRivenStat,
   wireCopyButtons,
 } from "./export.ts";
+import { autoGenerateChainViewNode } from "./wfcd-autolink.ts";
 import "./card-tilt.ts";
 import "./booster.ts";
 import "./scratch.ts";
@@ -347,41 +348,25 @@ function escapeHtml(s: unknown): string {
     .replace(/"/g, "&quot;");
 }
 
-function chainViewOptions(selectedId: string | undefined): string {
-  return (
-    `<option value="">（連携なし）</option>` +
-    state.chainViewNodes
-      .map((n) => `<option value="${n.id}" ${n.id === selectedId ? "selected" : ""}>${escapeHtml(n.name)}（${n.type}）</option>`)
-      .join("")
-  );
-}
 function chainViewLinkBadge(nodeId: string | undefined): string {
   const node = nodeId ? state.nodesById[nodeId] : undefined;
   if (!node) return "";
   return `<span class="badge badge-linked">${icon("link-2")}${escapeHtml(node.name)}: ${node.satisfied ? "達成済み" : "未達成"}</span>`;
 }
 
-// Chain View連携の変更は登録後は不可（各カテゴリの登録/編集モーダルでは編集時disabled）。
-// 既存entryのリンクを変更したい場合はこの共通モーダル経由にする(2026-08-26、Loadoutsの
-// 「連携・メモを編集」と同じ分離パターンをCollectionsにも移植)。
-let chainViewEditSave: ((nodeId: string | undefined) => Promise<void>) | null = null;
-function openChainViewEditModal(currentNodeId: string | undefined, onSave: (nodeId: string | undefined) => Promise<void>): void {
-  chainViewEditSave = onSave;
-  el<HTMLSelectElement>("chainview-edit-select").innerHTML = chainViewOptions(currentNodeId);
-  el("chainview-edit-modal-backdrop").classList.remove("hidden");
+// Chain View連携はLoadouts(Item.chainViewNodeId)と同じ設計に統一(2026-08-26、のっちの
+// 判断): 既存ノードを手動選択するUIは持たず、登録時のみのチェックボックスでWFCDデータから
+// 新規ノードを自動生成して繋ぐ。登録後にリンクを変更する手段は用意しない。Frame/Weaponは
+// autoGenerateChainViewNodeの対象(実際のWFCD取得チェーンを生成)、Companion/Archwing/
+// Necramechは対象外(Chain View側にnodeTypeが無い)なので、代わりに空のGoalノードを1つ
+// 作るだけの簡易版(createSimpleGoalNode)を使う。Riven/Kuvaは実体を持つ武器そのものでは
+// なくMOD個体なので、この機能自体を持たない。
+async function createSimpleGoalNode(name: string): Promise<string | null> {
+  const id = uid("goal");
+  const node = { id, name, type: "Goal", requires: [], contains: [] };
+  const res = await fetch("/api/nodes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(node) });
+  return res.ok ? id : null;
 }
-function closeChainViewEditModal(): void {
-  el("chainview-edit-modal-backdrop").classList.add("hidden");
-  chainViewEditSave = null;
-}
-el("chainview-edit-cancel").addEventListener("click", closeChainViewEditModal);
-el("chainview-edit-save").addEventListener("click", () => {
-  const save = chainViewEditSave;
-  if (!save) return;
-  const value = el<HTMLSelectElement>("chainview-edit-select").value || undefined;
-  closeChainViewEditModal();
-  void save(value);
-});
 function starBtn(favorite: boolean | undefined, dataAttrs: string): string {
   return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? "お気に入り解除" : "お気に入りにする"}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
 }
@@ -520,8 +505,6 @@ function openRivenModal(editId: string | null): void {
   el<HTMLInputElement>("riven-negative-value").value = entry && entry.negativeValue ? String(entry.negativeValue) : "";
   el<HTMLInputElement>("riven-fixed-check").checked = entry ? !!entry.fixed : false;
   el<HTMLTextAreaElement>("riven-note-input").value = entry ? entry.note || "" : "";
-  el<HTMLSelectElement>("riven-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : undefined);
-  el<HTMLSelectElement>("riven-chainview-select").disabled = !!entry;
   document.querySelectorAll<HTMLInputElement>("[data-riven-positive]").forEach((cb) => {
     cb.checked = entry ? (entry.positiveStats || []).includes(cb.value) : false;
   });
@@ -602,7 +585,6 @@ el("riven-modal-save").addEventListener("click", () => {
     // Editing preserves the existing value; new entries default false.
     favorite: rivenEditingId ? state.data.rivens[rivenEditingId]!.favorite : false,
     note: el<HTMLTextAreaElement>("riven-note-input").value.trim(),
-    chainViewNodeId: el<HTMLSelectElement>("riven-chainview-select").value || undefined,
   };
   void upsertRiven(entry);
   closeRivenModal();
@@ -636,15 +618,12 @@ function renderRivenList(): void {
           <span class="status-icon ${entry.fixed ? "on" : "off"}" title="${entry.fixed ? "確定" : "リロール中"}">${icon("check", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-chainview-riven="${entry.id}" title="連携を編集">${icon("link-2")}</button>
           <button class="icon-btn" data-copy-riven="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-riven="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
       </div>
-      ${entry.chainViewNodeId ? `<div id="minigraph-riven-${entry.id}"></div>` : ""}
       ${(entry.positiveStats || []).length ? `<div class="card-row"><b>ポジ値:</b> ${entry.positiveStats!.map((s, i) => formatRivenStat(s, (entry.positiveValues || [])[i], ja)).join(", ")}</div>` : ""}
       ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${formatRivenStat(entry.negativeStat, entry.negativeValue, ja)}</div>` : ""}
-      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
   `,
@@ -677,20 +656,6 @@ function renderRivenList(): void {
       toggleFavorite("riven", btn.dataset.toggleFav!);
     }),
   );
-  container.querySelectorAll<HTMLElement>("[data-chainview-riven]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const entry = state.data.rivens[btn.dataset.chainviewRiven!]!;
-      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
-        await upsertRiven({ ...entry, chainViewNodeId: nodeId });
-      });
-    }),
-  );
-  entries.forEach((entry) => {
-    if (!entry.chainViewNodeId) return;
-    const holder = maybeEl(`minigraph-riven-${entry.id}`);
-    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
-  });
 }
 
 // ---------- Kuva/Tenet/Coda: grouped by weapon name ----------
@@ -823,14 +788,11 @@ function renderKuvaModal(): void {
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
         <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "所持済み" : "未所持"}">${icon("check", { size: 14 })}</span>
         <span style="flex:1"></span>
-        <button class="icon-btn" data-chainview-kuva="${entry.id}" title="連携を編集">${icon("link-2")}</button>
         <button class="icon-btn" data-copy-kuva="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
         <button class="icon-btn" data-edit-kuva="${entry.id}" title="編集">${icon("pencil")}</button>
         <button class="icon-btn danger" data-del-kuva="${entry.id}" title="削除">${icon("trash-2")}</button>
       </div>
-      ${entry.chainViewNodeId ? `<div id="minigraph-kuva-${entry.id}"></div>` : ""}
       ${entry.bonusStat ? `<div class="card-row"><b>ボーナス属性:</b> ${formatRivenStat(entry.bonusStat, entry.bonusValue, ja)}</div>` : ""}
-      ${entry.chainViewNodeId ? `<div class="card-row">${chainViewLinkBadge(entry.chainViewNodeId)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-kuva-${entry.id}"></div>` : ""}
     </div>
   `,
@@ -838,15 +800,6 @@ function renderKuvaModal(): void {
       .join("") || (isNewWeapon ? "" : `<div class="empty" style="margin-bottom:8px;">まだこの武器は登録されていません</div>`);
 
   entriesEl.querySelectorAll<HTMLElement>("[data-toggle-fav]").forEach((b) => b.addEventListener("click", () => toggleFavorite("kuva", b.dataset.toggleFav!)));
-  entriesEl.querySelectorAll<HTMLElement>("[data-chainview-kuva]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const entry = state.data.kuva[b.dataset.chainviewKuva!]!;
-      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
-        await upsertKuva({ ...entry, chainViewNodeId: nodeId });
-        renderKuvaModal();
-      });
-    }),
-  );
   entriesEl.querySelectorAll<HTMLElement>("[data-del-kuva]").forEach((b) =>
     b.addEventListener("click", async () => {
       if (confirm("この個体を削除する？")) {
@@ -865,21 +818,11 @@ function renderKuvaModal(): void {
     }),
   );
   entries.forEach((entry) => {
-    if (!entry.chainViewNodeId) return;
-    const holder = maybeEl(`minigraph-kuva-${entry.id}`);
-    if (holder) renderMiniGraph(holder, entry.chainViewNodeId, state.nodesById);
-  });
-  entries.forEach((entry) => {
     if (!entry.note) return;
     const holder = maybeEl(`notemd-kuva-${entry.id}`);
     if (holder) renderNoteMd(holder, entry.note, (newNote) => void upsertKuva({ ...entry, note: newNote }));
   });
   wireCopyButtons(entriesEl, "[data-copy-kuva]", (btn) => buildKuvaExportText(state.data.kuva[btn.dataset.copyKuva!]!));
-
-  el<HTMLSelectElement>("kuva-chainview-select").innerHTML = chainViewOptions(
-    editingId && state.data.kuva[editingId] ? state.data.kuva[editingId]!.chainViewNodeId : undefined,
-  );
-  el<HTMLSelectElement>("kuva-chainview-select").disabled = !!editingId;
 
   const addToggleBtn = el("kuva-modal-add-toggle");
   const addToggleLabel = entries.length ? "この武器をもう1件追加" : "登録する";
@@ -925,7 +868,6 @@ el("kuva-form-save").addEventListener("click", () => {
     // preserves the existing value.
     favorite: kuvaModalState.editingId ? state.data.kuva[kuvaModalState.editingId]!.favorite : false,
     note: el<HTMLTextAreaElement>("kuva-note-input").value.trim(),
-    chainViewNodeId: el<HTMLSelectElement>("kuva-chainview-select").value || undefined,
   };
   void upsertKuva(entry).then(() => {
     // Right after registering the first entry for a weapon, don't jump
@@ -1010,7 +952,6 @@ function renderFrameList(): void {
           <span class="status-icon ${entry.helminthFed ? "on" : "off"}" title="${entry.helminthFed ? "ヘルミンス済み" : "ヘルミンス未実施"}">${icon("archive", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-chainview-frame="${entry.id}" title="連携を編集">${icon("link-2")}</button>
           <button class="icon-btn" data-copy-frame="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-frame="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
@@ -1043,15 +984,6 @@ function renderFrameList(): void {
       if (confirm(`「${state.data.frames[id]!.name}」を削除する？`)) void deleteFrame(id);
     }),
   );
-  container.querySelectorAll<HTMLElement>("[data-chainview-frame]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const entry = state.data.frames[btn.dataset.chainviewFrame!]!;
-      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
-        await upsertFrame({ ...entry, chainViewNodeId: nodeId });
-      });
-    }),
-  );
   entries.forEach((entry) => {
     if (!entry.chainViewNodeId) return;
     const holder = maybeEl(`minigraph-frame-${entry.id}`);
@@ -1072,8 +1004,8 @@ function openFrameModal(editId: string | null): void {
   el<HTMLInputElement>("frame-ranked30-check").checked = entry ? !!entry.rankedThirty : false;
   el<HTMLInputElement>("frame-helminth-check").checked = entry ? !!entry.helminthFed : false;
   el<HTMLTextAreaElement>("frame-note-input").value = entry ? entry.note || "" : "";
-  el<HTMLSelectElement>("frame-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : undefined);
-  el<HTMLSelectElement>("frame-chainview-select").disabled = !!entry;
+  el<HTMLInputElement>("frame-chainview-check").checked = false;
+  el("frame-chainview-row").classList.toggle("hidden", !!entry);
   el("frame-bulk-row").classList.toggle("hidden", !!editId);
   el<HTMLInputElement>("frame-bulk-check").checked = false;
   el("frame-modal-optional").classList.remove("hidden");
@@ -1142,6 +1074,8 @@ el("frame-modal-save").addEventListener("click", () => {
     nameInput.focus();
     return;
   }
+  const existing = frameEditingId ? state.data.frames[frameEditingId] : null;
+  const wantsChainView = !frameEditingId && el<HTMLInputElement>("frame-chainview-check").checked;
   const entry: FrameEntry = {
     id: frameEditingId || uid("frame"),
     name,
@@ -1149,10 +1083,17 @@ el("frame-modal-save").addEventListener("click", () => {
     rankedThirty: el<HTMLInputElement>("frame-ranked30-check").checked,
     helminthFed: el<HTMLInputElement>("frame-helminth-check").checked,
     note: el<HTMLTextAreaElement>("frame-note-input").value.trim(),
-    chainViewNodeId: el<HTMLSelectElement>("frame-chainview-select").value || undefined,
+    chainViewNodeId: existing?.chainViewNodeId,
   };
   void upsertFrame(entry);
   closeFrameModal();
+  // Chain View連携はLoadoutsと同じく登録時のみのopt-in（後から変更する手段は無い、
+  // 2026-08-26）。作成自体をブロックしないよう、生成は登録後にバックグラウンドで行う。
+  if (wantsChainView) {
+    void autoGenerateChainViewNode("Frame", name).then((chainViewNodeId) => {
+      if (chainViewNodeId) void upsertFrame({ ...entry, chainViewNodeId });
+    });
+  }
 });
 
 // ---------- Weapon/Companion/Archwing/Necramech (FrameEntry-shaped, no helminthFed) ----------
@@ -1207,7 +1148,6 @@ function renderEquipList(kind: EquipKind): void {
           <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? "ランク30済み" : "ランク30未達"}">${icon("zap", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-chainview-id="${entry.id}" title="連携を編集">${icon("link-2")}</button>
           <button class="icon-btn" data-copy-id="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-id="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
@@ -1240,15 +1180,6 @@ function renderEquipList(kind: EquipKind): void {
       if (confirm(`「${equipBucket(kind)[id]!.name}」を削除する？`)) void deleteEquip(kind, id);
     }),
   );
-  container.querySelectorAll<HTMLElement>("[data-chainview-id]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const entry = equipBucket(kind)[btn.dataset.chainviewId!]!;
-      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
-        await upsertEquip(kind, { ...entry, chainViewNodeId: nodeId });
-      });
-    }),
-  );
   entries.forEach((entry) => {
     if (!entry.chainViewNodeId) return;
     const holder = maybeEl(`minigraph-${kind}-${entry.id}`);
@@ -1265,8 +1196,8 @@ function openEquipModal(kind: EquipKind, editId: string | null): void {
   el<HTMLInputElement>(`${kind}-owned-check`).checked = entry ? !!entry.owned : false;
   el<HTMLInputElement>(`${kind}-ranked30-check`).checked = entry ? !!entry.rankedThirty : false;
   el<HTMLTextAreaElement>(`${kind}-note-input`).value = entry ? entry.note || "" : "";
-  el<HTMLSelectElement>(`${kind}-chainview-select`).innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : undefined);
-  el<HTMLSelectElement>(`${kind}-chainview-select`).disabled = !!entry;
+  el<HTMLInputElement>(`${kind}-chainview-check`).checked = false;
+  el(`${kind}-chainview-row`).classList.toggle("hidden", !!entry);
   el(`${kind}-bulk-row`).classList.toggle("hidden", !!editId);
   el<HTMLInputElement>(`${kind}-bulk-check`).checked = false;
   el(`${kind}-modal-optional`).classList.remove("hidden");
@@ -1315,16 +1246,26 @@ function equipSave(kind: EquipKind): void {
     nameInput.focus();
     return;
   }
+  const existing = editingId ? equipBucket(kind)[editingId] : null;
+  const wantsChainView = !editingId && el<HTMLInputElement>(`${kind}-chainview-check`).checked;
   const entry: EquipEntry = {
     id: editingId || uid(kind),
     name,
     owned: el<HTMLInputElement>(`${kind}-owned-check`).checked,
     rankedThirty: el<HTMLInputElement>(`${kind}-ranked30-check`).checked,
     note: el<HTMLTextAreaElement>(`${kind}-note-input`).value.trim(),
-    chainViewNodeId: el<HTMLSelectElement>(`${kind}-chainview-select`).value || undefined,
+    chainViewNodeId: existing?.chainViewNodeId,
   };
   void upsertEquip(kind, entry);
   closeEquipModal(kind);
+  // WeaponはLoadoutsと同じWFCD取得チェーン自動生成、Companion/Archwing/NecramechはChain
+  // View側にnodeTypeが無いので空のGoalノードを1つ作るだけの簡易版(2026-08-26)。
+  if (wantsChainView) {
+    const generate = kind === "weapon" ? autoGenerateChainViewNode("Weapon", name) : createSimpleGoalNode(name);
+    void generate.then((chainViewNodeId) => {
+      if (chainViewNodeId) void upsertEquip(kind, { ...entry, chainViewNodeId });
+    });
+  }
 }
 
 (Object.keys(EQUIP_KINDS) as EquipKind[]).forEach((kind) => {
