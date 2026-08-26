@@ -136,11 +136,14 @@
     background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
   .icon-btn.add-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+  /* セクション折りたたみ中は、追加ボタン・凡例とも意味を持たないので隠す（2026-08-26指摘）。 */
+  .icon-btn.add-btn.hidden { display: none; }
 
   /* Collectionsのセクション見出し横凡例（.status-legend）と同じ置き方・見た目。
      ミニグラフの3色（達成済み/実行可能/前提待ち）をヘルプポップオーバーの文章に埋めるより、
      Itemsの見出し横に常時出しておく方が「見た時に意味が分かる」（2026-08-26指摘）。 */
   .status-legend { display: flex; align-items: center; gap: 12px; font-size: 0.72rem; color: var(--muted); }
+  .status-legend.hidden { display: none; }
   .status-legend span { display: inline-flex; align-items: center; gap: 4px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 

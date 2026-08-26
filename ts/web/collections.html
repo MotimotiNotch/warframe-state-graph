@@ -103,6 +103,8 @@
     background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
   .icon-btn.add-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+  /* セクション折りたたみ中は、追加ボタン・凡例とも意味を持たないので隠す（2026-08-26指摘）。 */
+  .icon-btn.add-btn.hidden { display: none; }
 
   .bulk-row {
     display: flex; align-items: center; gap: 6px; margin: 0 0 10px;
@@ -223,6 +225,7 @@
   .status-icon.on { color: var(--actionable); }
   .status-icon.off { color: var(--muted); }
   .status-legend { display: flex; align-items: center; gap: 12px; font-size: 0.72rem; color: var(--muted); }
+  .status-legend.hidden { display: none; }
   .status-legend span { display: inline-flex; align-items: center; gap: 4px; }
   .help-hint { color: var(--muted); vertical-align: -2px; cursor: help; }
   .badge-match { background: #7ee3a922; color: var(--actionable); border-color: var(--actionable); }

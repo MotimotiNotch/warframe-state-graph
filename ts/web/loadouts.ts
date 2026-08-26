@@ -40,12 +40,24 @@ function initPlainCollapsible(prefix: string): void {
   const body = el(`${prefix}-body`);
   const chevron = el(`${prefix}-chevron`);
   chevron.innerHTML = icon("chevron-down");
-  const collapsed = getStoredCollapsed(prefix);
-  body.classList.toggle("hidden", collapsed);
-  chevron.classList.toggle("expanded", !collapsed);
+  // The +add button and the minigraph color legend both live in the same
+  // .panel-head as the chevron — neither means anything while the section
+  // itself is collapsed (nothing to add into a hidden list; no dots to
+  // explain), so hide them together with the body rather than leaving them
+  // stranded next to a closed section (2026-08-26, のっち's call).
+  const panelHead = chevron.closest<HTMLElement>(".panel-head");
+  const addBtn = panelHead?.querySelector<HTMLElement>(".add-btn");
+  const legend = panelHead?.querySelector<HTMLElement>(".status-legend");
+  function applyCollapsed(collapsed: boolean): void {
+    body.classList.toggle("hidden", collapsed);
+    chevron.classList.toggle("expanded", !collapsed);
+    addBtn?.classList.toggle("hidden", collapsed);
+    legend?.classList.toggle("hidden", collapsed);
+  }
+  applyCollapsed(getStoredCollapsed(prefix));
   function toggle(): void {
-    const nowHidden = body.classList.toggle("hidden");
-    chevron.classList.toggle("expanded", !nowHidden);
+    const nowHidden = !body.classList.contains("hidden");
+    applyCollapsed(nowHidden);
     setStoredCollapsed(prefix, nowHidden);
   }
   chevron.addEventListener("click", toggle);

@@ -103,12 +103,24 @@ function initPlainCollapsible(prefix: string): void {
   const body = el(`${prefix}-body`);
   const chevron = el(`${prefix}-chevron`);
   chevron.innerHTML = icon("chevron-down");
-  const collapsed = getStoredCollapsed(prefix);
-  body.classList.toggle("hidden", collapsed);
-  chevron.classList.toggle("expanded", !collapsed);
+  // The +add button and the minigraph color legend both live in the same
+  // .panel-head as the chevron — neither means anything while the section
+  // itself is collapsed (nothing to add into a hidden list; no dots to
+  // explain), so hide them together with the body rather than leaving them
+  // stranded next to a closed section (2026-08-26, のっち's call).
+  const panelHead = chevron.closest<HTMLElement>(".panel-head");
+  const addBtn = panelHead?.querySelector<HTMLElement>(".add-btn");
+  const legend = panelHead?.querySelector<HTMLElement>(".status-legend");
+  function applyCollapsed(collapsed: boolean): void {
+    body.classList.toggle("hidden", collapsed);
+    chevron.classList.toggle("expanded", !collapsed);
+    addBtn?.classList.toggle("hidden", collapsed);
+    legend?.classList.toggle("hidden", collapsed);
+  }
+  applyCollapsed(getStoredCollapsed(prefix));
   function toggle(): void {
-    const nowHidden = body.classList.toggle("hidden");
-    chevron.classList.toggle("expanded", !nowHidden);
+    const nowHidden = !body.classList.contains("hidden");
+    applyCollapsed(nowHidden);
     setStoredCollapsed(prefix, nowHidden);
   }
   chevron.addEventListener("click", toggle);
@@ -131,18 +143,24 @@ function initIncarnonCollapse(): void {
 
   const body = el("incarnon-body");
   const titleEl = el("incarnon-title");
+  const addBtn = el("incarnon-add-btn");
   const cleared = state.duviriCleared;
   titleEl.textContent = cleared ? "デュビリ（インカーノン）" : "未解放セクション";
-  // Hide the add button too while uncleared (don't hint the feature exists,
-  // same treatment as the heading text).
-  el("incarnon-add-btn").classList.toggle("hidden", !cleared);
-  const collapsed = cleared ? getStoredCollapsed("incarnon") : true;
-  body.classList.toggle("hidden", collapsed);
-  chevron.classList.toggle("expanded", !collapsed);
+
+  // The add button is hidden for two independent reasons here: the spoiler
+  // gate (don't hint the feature exists before Duviri is cleared) and,
+  // same as every other section's addBtn/legend (2026-08-26, のっち's
+  // call), being collapsed. Either reason alone is enough to hide it.
+  function applyCollapsed(collapsed: boolean): void {
+    body.classList.toggle("hidden", collapsed);
+    chevron.classList.toggle("expanded", !collapsed);
+    addBtn.classList.toggle("hidden", collapsed || !cleared);
+  }
+  applyCollapsed(cleared ? getStoredCollapsed("incarnon") : true);
 
   function toggle(): void {
-    const nowHidden = body.classList.toggle("hidden");
-    chevron.classList.toggle("expanded", !nowHidden);
+    const nowHidden = !body.classList.contains("hidden");
+    applyCollapsed(nowHidden);
     // A toggle while force-closed-for-uncleared doesn't persist (next load
     // force-closes it again regardless, same reasoning as web/stats.html).
     if (cleared) setStoredCollapsed("incarnon", nowHidden);
