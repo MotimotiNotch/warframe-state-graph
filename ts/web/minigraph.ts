@@ -180,15 +180,20 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
 
   // The dots themselves stay small by design — but a 5px-radius circle is a
   // narrow target to actually hit (2026-08-26, のっち's call). Rather than
-  // enlarging the dots, an invisible rect underneath catches clicks/hover
-  // across a fixed area sized for the common MAX_LAYERS=3 case, regardless
-  // of how few dots this particular instance actually renders — so even a
+  // enlarging the dots, a rect underneath catches clicks/hover across a
+  // fixed area sized for the common MAX_LAYERS=3 case, regardless of how
+  // few dots this particular instance actually renders — so even a
   // single-dot minigraph (the common case: an item with no fan-out) gets
   // the same generous, consistent click target as a full 3-dot one.
   const hitW = padX * 2 + step * (MAX_LAYERS - 1);
   const svgWFinal = Math.max(svgW, hitW);
 
-  let lines = `<rect class="minigraph-hit" x="0" y="0" width="${hitW}" height="${h}" fill="transparent"/>`;
+  // Always-visible, deliberately faint outline (2026-08-26, のっち's call,
+  // after confirming a fully invisible hit area gave no visual cue this
+  // whole box is clickable) — thin, low-opacity, rounded, so it reads as
+  // "there's a bit more here" without competing with the dots/lines for
+  // attention.
+  let lines = `<rect class="minigraph-hit" x="1" y="1" width="${hitW - 2}" height="${h - 2}" rx="4" fill="transparent" stroke="var(--border)" stroke-opacity="0.5" stroke-width="1"/>`;
   for (let i = 0; i < order.length - 1; i++) {
     const x1 = padX + i * step;
     const x2 = padX + (i + 1) * step;
