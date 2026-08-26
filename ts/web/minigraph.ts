@@ -192,8 +192,11 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
   // after confirming a fully invisible hit area gave no visual cue this
   // whole box is clickable) — thin, low-opacity, rounded, so it reads as
   // "there's a bit more here" without competing with the dots/lines for
-  // attention.
-  let lines = `<rect class="minigraph-hit" x="1" y="1" width="${hitW - 2}" height="${h - 2}" rx="4" fill="transparent" stroke="var(--border)" stroke-opacity="0.5" stroke-width="1"/>`;
+  // attention. Sized to svgWFinal, not the fixed hitW — a truncated chain's
+  // dashed stub extends past hitW (confirmed live: the frame clipped the
+  // stub short), so the frame must cover whatever actually got drawn, with
+  // hitW only setting the *minimum*.
+  let lines = `<rect class="minigraph-hit" x="1" y="1" width="${svgWFinal - 2}" height="${h - 2}" rx="4" fill="transparent" stroke="var(--border)" stroke-opacity="0.5" stroke-width="1"/>`;
   for (let i = 0; i < order.length - 1; i++) {
     const x1 = padX + i * step;
     const x2 = padX + (i + 1) * step;
