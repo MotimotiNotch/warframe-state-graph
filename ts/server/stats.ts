@@ -151,18 +151,29 @@ export class StatsStore {
     });
   }
 
-  /** "全部クリア"/"全部未クリア" bulk action: sets `field` to each planet's own nodeCount (cleared) or 0 (uncleared), one lock/save. */
-  async setAllPlanetsField(planets: { key: string; nodeCount: number }[], field: "cleared" | "steelPathCleared", cleared: boolean): Promise<Data> {
+  /** "全部クリア"/"全部未クリア" bulk action: sets `field` to each item's own nodeCount (cleared) or 0 (uncleared), one lock/save. */
+  async #setAllProgressField(
+    dataMapKey: "planets" | "railjackProxima",
+    items: { key: string; nodeCount: number }[],
+    field: "cleared" | "steelPathCleared",
+    cleared: boolean,
+  ): Promise<Data> {
     return this.#mutex.run(async () => {
       const d = await this.#loadLocked();
-      for (const p of planets) {
-        const progress = { ...(d.planets[p.key] || { cleared: 0, steelPathCleared: 0 }) };
-        progress[field] = cleared ? p.nodeCount : 0;
-        d.planets[p.key] = progress;
+      for (const item of items) {
+        const progress = { ...(d[dataMapKey][item.key] || { cleared: 0, steelPathCleared: 0 }) };
+        progress[field] = cleared ? item.nodeCount : 0;
+        d[dataMapKey][item.key] = progress;
       }
       await this.#saveLocked(d);
       return d;
     });
+  }
+  async setAllPlanetsField(planets: { key: string; nodeCount: number }[], field: "cleared" | "steelPathCleared", cleared: boolean): Promise<Data> {
+    return this.#setAllProgressField("planets", planets, field, cleared);
+  }
+  async setAllProximaField(proxima: { key: string; nodeCount: number }[], field: "cleared" | "steelPathCleared", cleared: boolean): Promise<Data> {
+    return this.#setAllProgressField("railjackProxima", proxima, field, cleared);
   }
 
   async setProximaProgress(proximaKey: string, progress: PlanetProgress): Promise<Data> {

@@ -668,6 +668,47 @@ const server = Bun.serve({
       },
     },
 
+    // "通常全部クリア/未クリア" / "鋼の道のり全部クリア/未クリア" for Proxima
+    // (2026-08-26) — same rule and URL-per-field convention as the star
+    // chart's mark-all routes above; no steelPathApplicable filter needed
+    // since every Proxima supports Steel Path.
+    "/api/stats/railjack-proxima/mark-all-normal": {
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const cleared = (body as { cleared?: unknown } | null)?.cleared;
+        if (typeof cleared !== "boolean") return new Response("cleared must be a boolean", { status: 400 });
+        try {
+          const proxima = await cachedJSON(wfcdCacheDir, "starchart-proxima.json", FetchProxima);
+          return json(await statsStore.setAllProximaField(proxima, "cleared", cleared));
+        } catch (err) {
+          return errorResponse(err, 500);
+        }
+      },
+    },
+    "/api/stats/railjack-proxima/mark-all-steel-path": {
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const cleared = (body as { cleared?: unknown } | null)?.cleared;
+        if (typeof cleared !== "boolean") return new Response("cleared must be a boolean", { status: 400 });
+        try {
+          const proxima = await cachedJSON(wfcdCacheDir, "starchart-proxima.json", FetchProxima);
+          return json(await statsStore.setAllProximaField(proxima, "steelPathCleared", cleared));
+        } catch (err) {
+          return errorResponse(err, 500);
+        }
+      },
+    },
+
     "/api/stats/railjack/:category": {
       POST: async (req) => {
         let body: unknown;

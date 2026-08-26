@@ -592,6 +592,19 @@ function renderProxima(): void {
   });
 }
 
+// 星図/鋼の道のりと同じ「全部クリア/全部未クリア」をProxima進捗にも
+// (2026-08-26、のっちの要望)。
+async function markAllProxima(field: "cleared" | "steelPathCleared", cleared: boolean): Promise<void> {
+  const endpoint = field === "cleared" ? "/api/stats/railjack-proxima/mark-all-normal" : "/api/stats/railjack-proxima/mark-all-steel-path";
+  const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cleared }) });
+  state.statsData = await res.json();
+  renderProxima();
+}
+el("proxima-mark-all-cleared").addEventListener("click", () => void markAllProxima("cleared", true));
+el("proxima-mark-all-uncleared").addEventListener("click", () => void markAllProxima("cleared", false));
+el("proxima-mark-all-steelpath-cleared").addEventListener("click", () => void markAllProxima("steelPathCleared", true));
+el("proxima-mark-all-steelpath-uncleared").addEventListener("click", () => void markAllProxima("steelPathCleared", false));
+
 // ---------- Focus/Railjack panel collapse control ----------
 // The Stats-owned "did I actually clear this" fact (state layer) is
 // independent of Chain View node registration (build-management convenience,
