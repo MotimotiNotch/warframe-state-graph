@@ -374,17 +374,19 @@ function renderStarchart(): void {
   });
 }
 
-// 星図/鋼の道のり別の「全部クリア」(2026-08-26、のっちの要望) — quests/main
-// 等と同じく、対象一覧はサーバー側で再導出させる（クライアントの
-// state.planetsが古い可能性を信用しない）。
-async function markAllPlanetsCleared(field: "cleared" | "steelPathCleared"): Promise<void> {
-  const endpoint = field === "cleared" ? "/api/stats/planets/mark-all-cleared" : "/api/stats/planets/mark-all-steelpath-cleared";
-  const res = await fetch(endpoint, { method: "POST" });
+// 星図/鋼の道のり別の「全部クリア/全部未クリア」(2026-08-26、のっちの要望)
+// — quests/main等と同じく、対象一覧はサーバー側で再導出させる（クライア
+// ントのstate.planetsが古い可能性を信用しない）。
+async function markAllPlanets(field: "cleared" | "steelPathCleared", cleared: boolean): Promise<void> {
+  const endpoint = field === "cleared" ? "/api/stats/planets/mark-all-star-chart" : "/api/stats/planets/mark-all-steel-path";
+  const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cleared }) });
   state.statsData = await res.json();
   renderStarchart();
 }
-el("starchart-mark-all-cleared").addEventListener("click", () => void markAllPlanetsCleared("cleared"));
-el("starchart-mark-all-steelpath-cleared").addEventListener("click", () => void markAllPlanetsCleared("steelPathCleared"));
+el("starchart-mark-all-cleared").addEventListener("click", () => void markAllPlanets("cleared", true));
+el("starchart-mark-all-uncleared").addEventListener("click", () => void markAllPlanets("cleared", false));
+el("starchart-mark-all-steelpath-cleared").addEventListener("click", () => void markAllPlanets("steelPathCleared", true));
+el("starchart-mark-all-steelpath-uncleared").addEventListener("click", () => void markAllPlanets("steelPathCleared", false));
 
 // ---------- Intrinsics ----------
 // Verified against wikiwiki.jp/warframe's "レールジャック/性能値" and

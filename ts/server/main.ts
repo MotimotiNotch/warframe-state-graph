@@ -612,24 +612,40 @@ const server = Bun.serve({
       },
     },
 
-    // "星図全部クリア" / "鋼の道のり全部クリア" (2026-08-26) — mirrors
-    // /api/stats/quests/main's "re-derive the authoritative list
+    // "星図全部クリア/未クリア" / "鋼の道のり全部クリア/未クリア" (2026-08-26)
+    // — mirrors /api/stats/quests/main's "re-derive the authoritative list
     // server-side" rule rather than trusting a client-submitted planet list.
-    "/api/stats/planets/mark-all-cleared": {
-      POST: async () => {
+    "/api/stats/planets/mark-all-star-chart": {
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const cleared = (body as { cleared?: unknown } | null)?.cleared;
+        if (typeof cleared !== "boolean") return new Response("cleared must be a boolean", { status: 400 });
         try {
           const planets = await cachedJSON(wfcdCacheDir, "starchart-planets.json", FetchPlanets);
-          return json(await statsStore.markAllPlanetsCleared(planets, "cleared"));
+          return json(await statsStore.setAllPlanetsField(planets, "cleared", cleared));
         } catch (err) {
           return errorResponse(err, 500);
         }
       },
     },
-    "/api/stats/planets/mark-all-steelpath-cleared": {
-      POST: async () => {
+    "/api/stats/planets/mark-all-steel-path": {
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const cleared = (body as { cleared?: unknown } | null)?.cleared;
+        if (typeof cleared !== "boolean") return new Response("cleared must be a boolean", { status: 400 });
         try {
           const planets = await cachedJSON(wfcdCacheDir, "starchart-planets.json", FetchPlanets);
-          return json(await statsStore.markAllPlanetsCleared(planets.filter((p) => p.steelPathApplicable), "steelPathCleared"));
+          return json(await statsStore.setAllPlanetsField(planets.filter((p) => p.steelPathApplicable), "steelPathCleared", cleared));
         } catch (err) {
           return errorResponse(err, 500);
         }
