@@ -360,6 +360,28 @@ function chainViewLinkBadge(nodeId: string | undefined): string {
   if (!node) return "";
   return `<span class="badge badge-linked">${icon("link-2")}${escapeHtml(node.name)}: ${node.satisfied ? "達成済み" : "未達成"}</span>`;
 }
+
+// Chain View連携の変更は登録後は不可（各カテゴリの登録/編集モーダルでは編集時disabled）。
+// 既存entryのリンクを変更したい場合はこの共通モーダル経由にする(2026-08-26、Loadoutsの
+// 「連携・メモを編集」と同じ分離パターンをCollectionsにも移植)。
+let chainViewEditSave: ((nodeId: string | undefined) => Promise<void>) | null = null;
+function openChainViewEditModal(currentNodeId: string | undefined, onSave: (nodeId: string | undefined) => Promise<void>): void {
+  chainViewEditSave = onSave;
+  el<HTMLSelectElement>("chainview-edit-select").innerHTML = chainViewOptions(currentNodeId);
+  el("chainview-edit-modal-backdrop").classList.remove("hidden");
+}
+function closeChainViewEditModal(): void {
+  el("chainview-edit-modal-backdrop").classList.add("hidden");
+  chainViewEditSave = null;
+}
+el("chainview-edit-cancel").addEventListener("click", closeChainViewEditModal);
+el("chainview-edit-save").addEventListener("click", () => {
+  const save = chainViewEditSave;
+  if (!save) return;
+  const value = el<HTMLSelectElement>("chainview-edit-select").value || undefined;
+  closeChainViewEditModal();
+  void save(value);
+});
 function starBtn(favorite: boolean | undefined, dataAttrs: string): string {
   return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? "お気に入り解除" : "お気に入りにする"}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
 }
@@ -614,6 +636,7 @@ function renderRivenList(): void {
           <span class="status-icon ${entry.fixed ? "on" : "off"}" title="${entry.fixed ? "確定" : "リロール中"}">${icon("check", { size: 14 })}</span>
         </div>
         <div class="card-actions">
+          <button class="icon-btn" data-chainview-riven="${entry.id}" title="連携を編集">${icon("link-2")}</button>
           <button class="icon-btn" data-copy-riven="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-riven="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
@@ -652,6 +675,15 @@ function renderRivenList(): void {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleFavorite("riven", btn.dataset.toggleFav!);
+    }),
+  );
+  container.querySelectorAll<HTMLElement>("[data-chainview-riven]").forEach((btn) =>
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const entry = state.data.rivens[btn.dataset.chainviewRiven!]!;
+      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
+        await upsertRiven({ ...entry, chainViewNodeId: nodeId });
+      });
     }),
   );
   entries.forEach((entry) => {
@@ -791,6 +823,7 @@ function renderKuvaModal(): void {
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
         <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "所持済み" : "未所持"}">${icon("check", { size: 14 })}</span>
         <span style="flex:1"></span>
+        <button class="icon-btn" data-chainview-kuva="${entry.id}" title="連携を編集">${icon("link-2")}</button>
         <button class="icon-btn" data-copy-kuva="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
         <button class="icon-btn" data-edit-kuva="${entry.id}" title="編集">${icon("pencil")}</button>
         <button class="icon-btn danger" data-del-kuva="${entry.id}" title="削除">${icon("trash-2")}</button>
@@ -805,6 +838,15 @@ function renderKuvaModal(): void {
       .join("") || (isNewWeapon ? "" : `<div class="empty" style="margin-bottom:8px;">まだこの武器は登録されていません</div>`);
 
   entriesEl.querySelectorAll<HTMLElement>("[data-toggle-fav]").forEach((b) => b.addEventListener("click", () => toggleFavorite("kuva", b.dataset.toggleFav!)));
+  entriesEl.querySelectorAll<HTMLElement>("[data-chainview-kuva]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const entry = state.data.kuva[b.dataset.chainviewKuva!]!;
+      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
+        await upsertKuva({ ...entry, chainViewNodeId: nodeId });
+        renderKuvaModal();
+      });
+    }),
+  );
   entriesEl.querySelectorAll<HTMLElement>("[data-del-kuva]").forEach((b) =>
     b.addEventListener("click", async () => {
       if (confirm("この個体を削除する？")) {
@@ -968,6 +1010,7 @@ function renderFrameList(): void {
           <span class="status-icon ${entry.helminthFed ? "on" : "off"}" title="${entry.helminthFed ? "ヘルミンス済み" : "ヘルミンス未実施"}">${icon("archive", { size: 14 })}</span>
         </div>
         <div class="card-actions">
+          <button class="icon-btn" data-chainview-frame="${entry.id}" title="連携を編集">${icon("link-2")}</button>
           <button class="icon-btn" data-copy-frame="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-frame="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
@@ -998,6 +1041,15 @@ function renderFrameList(): void {
       e.stopPropagation();
       const id = btn.dataset.delFrame!;
       if (confirm(`「${state.data.frames[id]!.name}」を削除する？`)) void deleteFrame(id);
+    }),
+  );
+  container.querySelectorAll<HTMLElement>("[data-chainview-frame]").forEach((btn) =>
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const entry = state.data.frames[btn.dataset.chainviewFrame!]!;
+      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
+        await upsertFrame({ ...entry, chainViewNodeId: nodeId });
+      });
     }),
   );
   entries.forEach((entry) => {
@@ -1155,6 +1207,7 @@ function renderEquipList(kind: EquipKind): void {
           <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? "ランク30済み" : "ランク30未達"}">${icon("zap", { size: 14 })}</span>
         </div>
         <div class="card-actions">
+          <button class="icon-btn" data-chainview-id="${entry.id}" title="連携を編集">${icon("link-2")}</button>
           <button class="icon-btn" data-copy-id="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
           <button class="icon-btn danger" data-del-id="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
@@ -1185,6 +1238,15 @@ function renderEquipList(kind: EquipKind): void {
       e.stopPropagation();
       const id = btn.dataset.delId!;
       if (confirm(`「${equipBucket(kind)[id]!.name}」を削除する？`)) void deleteEquip(kind, id);
+    }),
+  );
+  container.querySelectorAll<HTMLElement>("[data-chainview-id]").forEach((btn) =>
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const entry = equipBucket(kind)[btn.dataset.chainviewId!]!;
+      openChainViewEditModal(entry.chainViewNodeId, async (nodeId) => {
+        await upsertEquip(kind, { ...entry, chainViewNodeId: nodeId });
+      });
     }),
   );
   entries.forEach((entry) => {
