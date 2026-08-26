@@ -103,6 +103,7 @@ function injectStyle(): void {
         cursor: grab; user-select: none; touch-action: none; flex: 0 0 auto;
       }
       #scratch-panel .s-head.dragging { cursor: grabbing; }
+      #scratch-panel .s-head .s-grip { color: var(--muted, #9aa0ab); display: inline-flex; line-height: 0; }
       #scratch-panel .s-head .s-title { font-weight: 600; color: var(--text, #e4e6ec); flex: 1; }
       #scratch-panel .s-head button {
         background: transparent; border: none; color: var(--muted, #9aa0ab); cursor: pointer; line-height: 0; padding: 2px;
@@ -388,6 +389,7 @@ function init(): void {
   panel.className = "hidden";
   panel.innerHTML = `
       <div class="s-head" id="scratch-drag-handle">
+        <span class="s-grip" title="ドラッグして移動">${icon("grip-vertical", { size: 14 })}</span>
         <span class="s-title">${icon("pencil", { size: 14 })}クイックメモ</span>
         <div class="popover-wrap">
           <button class="icon-btn" id="scratch-help-toggle" title="記法チートシート">${icon("circle-alert", { size: 14 })}</button>

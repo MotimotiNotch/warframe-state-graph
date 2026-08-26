@@ -191,6 +191,7 @@ function injectStyle(): void {
         cursor: grab; user-select: none; touch-action: none;
       }
       #booster-panel .b-head.dragging { cursor: grabbing; }
+      #booster-panel .b-head .b-grip { color: var(--muted, #9aa0ab); display: inline-flex; line-height: 0; }
       #booster-panel .b-head .b-title { font-weight: 600; color: var(--text, #e4e6ec); flex: 1; }
       #booster-panel .b-head button {
         background: transparent; border: none; color: var(--muted, #9aa0ab); cursor: pointer; line-height: 0; padding: 2px;
@@ -508,6 +509,7 @@ function init(): void {
   panel.className = "hidden";
   panel.innerHTML = `
       <div class="b-head" id="booster-drag-handle">
+        <span class="b-grip" title="ドラッグして移動">${icon("grip-vertical", { size: 14 })}</span>
         <span class="b-title">${icon("zap", { size: 14 })}タイマー</span>
         <div class="popover-wrap">
           <button class="icon-btn" id="booster-help-toggle" title="使い方">${icon("circle-alert", { size: 14 })}</button>
