@@ -157,12 +157,19 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
   // confirmed as the intended tradeoff, not an oversight.
   const MAX_LAYERS = 3;
   const order = layers.map((_, i) => layers.length - 1 - i).slice(0, MAX_LAYERS);
+  // The cut-off part is always the shallow end (toward the target/goal,
+  // rendered on the right) — a dashed stub there signals "this keeps going,
+  // you're not looking at the whole thing" instead of silently implying the
+  // visible 3 layers are the entire chain (2026-08-26, のっち's call).
+  const truncated = layers.length > order.length;
+  const stubLen = 10;
 
   const step = 20;
   const r = 5;
   const padX = 8;
   const h = 20;
-  const svgW = order.length <= 1 ? 18 : padX * 2 + step * (order.length - 1);
+  const baseW = order.length <= 1 ? 18 : padX * 2 + step * (order.length - 1);
+  const svgW = baseW + (truncated ? stubLen + 4 : 0);
   const cy = h / 2;
 
   let lines = "";
@@ -171,6 +178,10 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
     const x2 = padX + (i + 1) * step;
     const bothSatisfied = states[order[i]!] === "satisfied" && states[order[i + 1]!] === "satisfied";
     lines += `<line x1="${x1}" y1="${cy}" x2="${x2}" y2="${cy}" stroke="${bothSatisfied ? "var(--satisfied)" : "var(--border)"}" stroke-width="2"/>`;
+  }
+  if (truncated) {
+    const lastX = order.length <= 1 ? 9 : padX + (order.length - 1) * step;
+    lines += `<line x1="${lastX + r}" y1="${cy}" x2="${lastX + r + stubLen}" y2="${cy}" stroke="var(--border)" stroke-width="2" stroke-dasharray="2,2"><title>この先にさらに層があります（表示は最深${MAX_LAYERS}層まで）</title></line>`;
   }
   const dots = order
     .map((layerIdx, i) => {
