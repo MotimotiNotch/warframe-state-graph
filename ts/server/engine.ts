@@ -79,6 +79,36 @@ export function cascadeUnsatisfyDependents(g: Graph, nodeId: string, seen: Set<s
 }
 
 /**
+ * When a node becomes satisfied, checks every node that lists it in
+ * `contains` (its container parent(s)) — if every one of that parent's
+ * `contains` children is now satisfied, the parent auto-becomes satisfied
+ * too, and the same `cascadeSatisfyRequires` a manual toggle would trigger
+ * runs for it. Recurses upward, since completing a parent can in turn
+ * complete a grandparent.
+ *
+ * One direction only (2026-08-26, のっちの判断): reverting one child later
+ * does NOT auto-revert the parent — a container node with no other way to
+ * toggle it directly (clicking it always drills in, see graph-render.ts's
+ * `drillable` click handler) needed *some* way to reach `satisfied`, but
+ * the achievement, once reached, is meant to persist like other
+ * irreversible-record fields in this app (e.g. Standing's
+ * `highestRankReached`), not track live child state.
+ */
+export function cascadeSatisfyContainsParents(g: Graph, nodeId: string, seen: Set<string> = new Set()): void {
+  if (seen.has(nodeId)) return;
+  seen.add(nodeId);
+
+  for (const [parentId, parent] of Object.entries(g.nodes)) {
+    if (parent.satisfied) continue;
+    if (!parent.contains.includes(nodeId)) continue;
+    if (!parent.contains.every((childId) => g.nodes[childId]?.satisfied)) continue;
+    parent.satisfied = true;
+    cascadeSatisfyRequires(g, parentId);
+    cascadeSatisfyContainsParents(g, parentId, seen);
+  }
+}
+
+/**
  * Recursively walks both `contains` and `requires` from nodeId and collects
  * every related node id (not including nodeId itself). Walking `contains`
  * alone drops real Next Actions (e.g. a syndicate-rank requirement) from the

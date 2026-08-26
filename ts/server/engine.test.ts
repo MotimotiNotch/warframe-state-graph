@@ -5,6 +5,7 @@
 import { expect, test } from "bun:test";
 import { newGraph, type Graph } from "./model.ts";
 import {
+  cascadeSatisfyContainsParents,
   cascadeSatisfyRequires,
   cascadeUnsatisfyDependents,
   deriveNextActions,
@@ -76,14 +77,14 @@ function assertSet(got: string[], want: string[]): void {
 // setup — mirrors the Go tests' terse &model.Node{ID: ..., Requires: ...}
 // literals, filling in the fields Zod's schema requires but the Go struct
 // left at zero value.
-function node(id: string, opts: { requires?: string[]; satisfied?: boolean } = {}) {
+function node(id: string, opts: { requires?: string[]; contains?: string[]; satisfied?: boolean } = {}) {
   return {
     id,
     name: "",
     type: "Resource" as const,
     satisfied: opts.satisfied ?? false,
     requires: opts.requires ?? [],
-    contains: [],
+    contains: opts.contains ?? [],
   };
 }
 
@@ -162,4 +163,71 @@ test("cascadeUnsatisfyDependents on a cycle does not infinite-loop", () => {
 
   cascadeUnsatisfyDependents(g, "a"); // returning without hanging is the test
   expect(g.nodes.b?.satisfied).toBe(false);
+});
+
+// A container node (contains-only, no requires of its own) can only be
+// toggled indirectly: clicking it in the graph always drills in instead of
+// selecting it, so "all its parts are done" is the only path to marking it
+// satisfied. Completing the last remaining part should auto-satisfy it.
+test("cascadeSatisfyContainsParents satisfies a parent once every part is done", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["frame", "weapon"] });
+  g.nodes.frame = node("frame", { satisfied: true });
+  g.nodes.weapon = node("weapon", { satisfied: false });
+
+  cascadeSatisfyContainsParents(g, "frame"); // weapon still unsatisfied — nothing should flip
+  expect(g.nodes.build?.satisfied).toBe(false);
+
+  g.nodes.weapon!.satisfied = true;
+  cascadeSatisfyContainsParents(g, "weapon");
+  expect(g.nodes.build?.satisfied).toBe(true);
+});
+
+// Completing a container should also run the same requires-cascade a manual
+// toggle would (the container isn't a special case once it's satisfied).
+test("cascadeSatisfyContainsParents also cascades the newly-satisfied parent's own requires", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["part"], requires: ["syndicate-rank"] });
+  g.nodes.part = node("part", { satisfied: false });
+  g.nodes["syndicate-rank"] = node("syndicate-rank", { satisfied: false });
+
+  g.nodes.part!.satisfied = true;
+  cascadeSatisfyContainsParents(g, "part");
+
+  expect(g.nodes.build?.satisfied).toBe(true);
+  expect(g.nodes["syndicate-rank"]?.satisfied).toBe(true);
+});
+
+// Grandparent chain: completing the deepest part should bubble up two levels.
+test("cascadeSatisfyContainsParents recurses upward through nested containers", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["weapon"] });
+  g.nodes.weapon = node("weapon", { contains: ["riven"] });
+  g.nodes.riven = node("riven", { satisfied: false });
+
+  g.nodes.riven!.satisfied = true;
+  cascadeSatisfyContainsParents(g, "riven");
+
+  expect(g.nodes.weapon?.satisfied).toBe(true);
+  expect(g.nodes.build?.satisfied).toBe(true);
+});
+
+// One direction only (2026-08-26 のっちの判断): reverting a part later must
+// NOT auto-revert the parent — the achievement, once reached, persists.
+test("cascadeSatisfyContainsParents never un-satisfies (that's not its job)", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["part"], satisfied: true });
+  g.nodes.part = node("part", { satisfied: false }); // reverted after build was already marked done
+
+  cascadeSatisfyContainsParents(g, "part");
+
+  expect(g.nodes.build?.satisfied).toBe(true); // untouched — this function only ever sets true
+});
+
+test("cascadeSatisfyContainsParents on a contains cycle does not infinite-loop", () => {
+  const g = newGraph();
+  g.nodes.a = node("a", { contains: ["b"] });
+  g.nodes.b = node("b", { contains: ["a"], satisfied: true });
+
+  cascadeSatisfyContainsParents(g, "b"); // returning without hanging is the test
 });

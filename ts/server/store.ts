@@ -2,7 +2,7 @@
 // the ToggleSatisfied entry point that invokes engine's cascades.
 
 import { AsyncMutex } from "./async-mutex.ts";
-import { cascadeSatisfyRequires, cascadeUnsatisfyDependents } from "./engine.ts";
+import { cascadeSatisfyContainsParents, cascadeSatisfyRequires, cascadeUnsatisfyDependents } from "./engine.ts";
 import { CURRENT_SCHEMA_VERSION, GraphSchema, newGraph, type Graph, type Node } from "./model.ts";
 import { loadJSON, saveJSON, NotFoundError } from "./persist.ts";
 
@@ -84,7 +84,10 @@ export class GraphStore {
   }
 
   /** Flips `satisfied` and immediately persists. Becoming satisfied cascades
-   * the requires chain (prerequisite side) satisfied; reverting cascades
+   * the requires chain (prerequisite side) satisfied, and auto-satisfies any
+   * `contains` parent whose children are now all done (2026-08-26 —
+   * container nodes can only be toggled indirectly this way, since clicking
+   * one always drills in instead of selecting it); reverting cascades
    * dependents (downstream side) unsatisfied. */
   async toggleSatisfied(id: string): Promise<Node> {
     return this.#mutex.run(async () => {
@@ -94,6 +97,7 @@ export class GraphStore {
       n.satisfied = !n.satisfied;
       if (n.satisfied) {
         cascadeSatisfyRequires(g, id);
+        cascadeSatisfyContainsParents(g, id);
       } else {
         cascadeUnsatisfyDependents(g, id);
       }
