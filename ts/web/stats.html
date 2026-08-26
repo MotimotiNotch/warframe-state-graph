@@ -364,6 +364,11 @@
           <button class="text-btn" id="proxima-mark-all-steelpath-cleared">鋼の道のり全部クリア</button>
           <button class="text-btn" id="proxima-mark-all-steelpath-uncleared">鋼の道のり全部未クリア</button>
         </div>
+        <!-- 星図パネルのchevron分と同じ幅を確保して、ボタン右端を星図側と揃える
+             （Proxima自体には開閉chevronが無い、2026-08-26のっちのフィードバック）。
+             実chevronの幅(padding 4px*2 + 16pxアイコン + border 1px*2 = 26px)を
+             box-sizing:border-boxのwidth/heightで直接再現する。 -->
+        <button class="icon-btn section-chevron" style="visibility:hidden;width:26px;height:26px;" aria-hidden="true" tabindex="-1"></button>
       </div>
       <div id="proxima-list"></div>
     </div>
