@@ -343,7 +343,14 @@
   <div class="panel">
     <div class="panel-head">
       <h2>Build Sets（フレーム＋武器の組み合わせ）<button class="icon-btn add-btn" id="buildsets-add-btn" title="新規登録"></button></h2>
-      <button class="icon-btn section-chevron" id="buildsets-chevron" title="開閉"></button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend" title="Chain View連携ビルドのミニグラフの色">
+          <span><i class="dot" style="background:var(--satisfied)"></i>達成済み</span>
+          <span><i class="dot" style="background:var(--actionable)"></i>実行可能</span>
+          <span><i class="dot" style="background:var(--blocked)"></i>前提待ち</span>
+        </div>
+        <button class="icon-btn section-chevron" id="buildsets-chevron" title="開閉"></button>
+      </div>
     </div>
     <div id="buildsets-body" class="collapsible-body">
       <input type="text" id="buildsets-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
