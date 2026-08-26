@@ -28,6 +28,7 @@ const STYLE = `
     .minigraph-wrap { margin: 4px 0 2px; overflow-x: auto; }
     .minigraph-svg { display: block; }
     .minigraph-dot { cursor: pointer; }
+    .minigraph-hit { cursor: pointer; }
     #minigraph-tip {
       position: fixed; z-index: 500; pointer-events: none;
       background: var(--panel, #1b1e27); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
@@ -177,7 +178,17 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
   const svgW = baseW + (truncated ? stubLen + 4 : 0);
   const cy = h / 2;
 
-  let lines = "";
+  // The dots themselves stay small by design — but a 5px-radius circle is a
+  // narrow target to actually hit (2026-08-26, のっち's call). Rather than
+  // enlarging the dots, an invisible rect underneath catches clicks/hover
+  // across a fixed area sized for the common MAX_LAYERS=3 case, regardless
+  // of how few dots this particular instance actually renders — so even a
+  // single-dot minigraph (the common case: an item with no fan-out) gets
+  // the same generous, consistent click target as a full 3-dot one.
+  const hitW = padX * 2 + step * (MAX_LAYERS - 1);
+  const svgWFinal = Math.max(svgW, hitW);
+
+  let lines = `<rect class="minigraph-hit" x="0" y="0" width="${hitW}" height="${h}" fill="transparent"/>`;
   for (let i = 0; i < order.length - 1; i++) {
     const x1 = padX + i * step;
     const x2 = padX + (i + 1) * step;
@@ -197,11 +208,29 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
     })
     .join("");
 
-  containerEl.innerHTML = `<div class="minigraph-wrap"><svg class="minigraph-svg" width="${svgW}" height="${h}">${lines}${dots}</svg></div>`;
+  containerEl.innerHTML = `<div class="minigraph-wrap"><svg class="minigraph-svg" width="${svgWFinal}" height="${h}">${lines}${dots}</svg></div>`;
   bindDots(containerEl, nodeId);
 }
 
 function bindDots(containerEl: HTMLElement, nodeId: string): void {
+  const navigate = (): void => {
+    window.location.href = `/?focus=${encodeURIComponent(nodeId)}`;
+  };
+  // The hit rect is the actual click/hover target now (sized generously and
+  // consistently, see renderMiniGraph) — it sits under the dots but nothing
+  // else in this small SVG can occlude it, so binding navigation there once
+  // covers the whole minigraph rather than per-dot.
+  const hit = containerEl.querySelector<SVGRectElement>(".minigraph-hit");
+  if (hit) {
+    hit.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigate();
+    });
+  }
+  // Dots keep their own hover/click bindings too — tooltip content differs
+  // per dot, and a dot can still receive the pointer directly (it's drawn
+  // on top of the hit rect), so its own click must also navigate rather
+  // than falling through to nothing.
   containerEl.querySelectorAll<SVGCircleElement>(".minigraph-dot").forEach((dot) => {
     const text = dot.dataset.tip ?? "";
     dot.addEventListener("mouseenter", (e) => showTip(e, text));
@@ -209,7 +238,7 @@ function bindDots(containerEl: HTMLElement, nodeId: string): void {
     dot.addEventListener("mouseleave", hideTip);
     dot.addEventListener("click", (e) => {
       e.stopPropagation();
-      window.location.href = `/?focus=${encodeURIComponent(nodeId)}`;
+      navigate();
     });
   });
 }
