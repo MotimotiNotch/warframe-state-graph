@@ -119,9 +119,33 @@ export function populateBuildSelect(): void {
   sel.onchange = () => {
     selectBuild(sel.value);
   };
-  if (builds.length > 0 && builds[0]) {
-    sel.value = builds[0].id;
-    selectBuild(builds[0].id);
+  // A deep link from Loadouts/Collections' minigraph (?focus=<nodeId>,
+  // 2026-08-26) always points at a Goal/Build node directly — every item's
+  // chainViewNodeId/chainViewBuildId is the node representing the item
+  // itself, never one of its `contains` sub-parts — so it's always one of
+  // these `builds` options; no separate "drill down to a nested node" path
+  // is needed. Falls back to the usual builds[0] default when absent/stale.
+  const requested = new URLSearchParams(location.search).get("focus");
+  const matched = !!requested && builds.some((n) => n.id === requested);
+  const initial = (matched ? requested : builds[0]?.id) ?? null;
+  if (initial) {
+    sel.value = initial;
+    selectBuild(initial);
+    // selectBuild() itself clears state.selected (the normal "just switched
+    // build, nothing picked yet" default) — a deep link should land with
+    // the target already selected/shown in the Inspector, same as clicking
+    // its node directly would, not just focused as the view root with
+    // nothing picked. Set after selectBuild() (which already fired its own
+    // async loadReport()) so this value is what's in place once that
+    // fetch's renderPanel() call actually runs.
+    if (matched) state.selected = initial;
+  }
+  // Consumed — drop it from the URL so a reload/bookmark doesn't keep
+  // forcing this selection over whatever the user picks next.
+  if (requested) {
+    const url = new URL(location.href);
+    url.searchParams.delete("focus");
+    history.replaceState(null, "", url);
   }
 }
 

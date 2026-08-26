@@ -1,9 +1,14 @@
 // Port of web/minigraph.js. Git-commit-graph-style mini progress display on
 // equipment cards (2026-08-18 design). Not a reuse of Chain View's own
 // hierarchical BFS layout (nesting/drill-down included) — this is a
-// deliberately lighter, standalone renderer. Interaction is limited to a
-// tooltip on hover/click of each dot; there's no navigation into the full
-// Chain View (static progress glance only, by design).
+// deliberately lighter, standalone renderer.
+//
+// Clicking any dot jumps to Chain View with the linked node selected
+// (2026-08-26, のっち's call — previously this was a static glance only,
+// no navigation). Every dot in one minigraph jumps to the same place: the
+// item's own linked node, not whatever individual/aggregated nodes that
+// particular layer happens to represent — a fan-out layer has no single
+// "corresponding" node to jump to, so there's no attempt to resolve one.
 //
 // Redesigned 2026-08-26: the original version only walked `requires` and put
 // one dot per node — real items mostly compose parts via `contains` instead
@@ -132,7 +137,7 @@ function layerTooltip(layerIdx: number, layers: string[][], nodesById: NodesById
   const done = nodes.filter((n) => n.satisfied).length;
   const names = nodes.map((n) => n.name);
   const shown = names.length > 3 ? `${names.slice(0, 3).join("、")} 他${names.length - 3}件` : names.join("、");
-  return `${LAYER_LABEL_JA[state]}（${done}/${nodes.length}）: ${shown}`;
+  return `${LAYER_LABEL_JA[state]}（${done}/${nodes.length}）: ${shown}　［クリックでChain Viewへ］`;
 }
 
 /** containerEl: render target. nodeId: Chain View node id. nodesById: the /api/graph nodes map. */
@@ -193,10 +198,10 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
     .join("");
 
   containerEl.innerHTML = `<div class="minigraph-wrap"><svg class="minigraph-svg" width="${svgW}" height="${h}">${lines}${dots}</svg></div>`;
-  bindDots(containerEl);
+  bindDots(containerEl, nodeId);
 }
 
-function bindDots(containerEl: HTMLElement): void {
+function bindDots(containerEl: HTMLElement, nodeId: string): void {
   containerEl.querySelectorAll<SVGCircleElement>(".minigraph-dot").forEach((dot) => {
     const text = dot.dataset.tip ?? "";
     dot.addEventListener("mouseenter", (e) => showTip(e, text));
@@ -204,7 +209,7 @@ function bindDots(containerEl: HTMLElement): void {
     dot.addEventListener("mouseleave", hideTip);
     dot.addEventListener("click", (e) => {
       e.stopPropagation();
-      showTip(e, text);
+      window.location.href = `/?focus=${encodeURIComponent(nodeId)}`;
     });
   });
 }
