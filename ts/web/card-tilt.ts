@@ -12,6 +12,13 @@
 // doesn't grow with grid size.
 const SELECTOR = ".item-card, .buildset-card, .card-v2, .add-card";
 const MAX_TILT_DEG = 8;
+// Any operation the user is actually performing inside a card — toggling a
+// favorite star, switching a MOD config tab, deleting/adding a MOD, typing —
+// is hard to do accurately while the card visually rotates under the
+// pointer. Rule (2026-08-26, generalized from the .card-memo exemption
+// already in place since 2026-08-23): tilt is suppressed over any
+// interactive control inside a card, not just the memo field.
+const NO_TILT_SELECTOR = ".card-memo, button, input, select, textarea, .tab, .mod-tag";
 
 let rafId: number | null = null;
 let pending: { card: HTMLElement; x: number; y: number } | null = null;
@@ -33,11 +40,7 @@ document.addEventListener("mousemove", (e) => {
   const target = e.target as HTMLElement | null;
   const card = target?.closest<HTMLElement>(SELECTOR);
   if (!card) return;
-  // The note field (checkbox interaction, text selection) is hard to read/use
-  // while the card tilts, so it's excluded (2026-08-23) — matching how a
-  // card's built-in memo field gets the same exemption the quick-memo editor
-  // already had by simply living outside any tiltable card.
-  if (target?.closest(".card-memo")) {
+  if (target?.closest(NO_TILT_SELECTOR)) {
     pending = null;
     resetTilt(card);
     return;
