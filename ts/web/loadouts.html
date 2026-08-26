@@ -210,10 +210,11 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px 12px;
-    transition: transform 0.1s ease-out;
+    transition: transform 0.1s ease-out, border-color 0.15s;
     will-change: transform;
   }
   .item-card, .buildset-card { cursor: pointer; }
+  .item-card:hover, .buildset-card:hover { border-color: var(--accent); }
   .show-more-card {
     grid-column: 1 / -1;
     border: 1px dashed var(--border);
