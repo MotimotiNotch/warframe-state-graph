@@ -161,9 +161,28 @@
       if (idx >= 0) placeCaret(idx, col || 0);
     }
 
+    // 未フォーカスのコンテナへの1回のクリックは、同じ物理クリックに対して
+    // 「focusin」と「click」の両方が発火する。focusinが先に走ってブラウザ自身の
+    // （既に正しい）キャレット位置を読み取り、行をアクティブ化する——この過程で
+    // innerHTMLが丸ごと差し替わり、placeCaret()で新しいキャレットも設定される。
+    // その後にclickのハンドラが選択範囲を「もう一度」読み直すと、ブラウザが元の
+    // クリック座標を新しいDOMに対して再解決した結果（実際にクリックしたのは
+    // プレースホルダーだったのに）を拾ってしまうことがある——実際に確認済み
+    // （2026-08-26）：[data-line]の外にはみ出して無反応になるだけの場合もあれば、
+    // setActiveLineが古い行/列で再発火し、直後のキー入力の行分割計算を壊す場合も
+    // あった。justFocusedで、focusinを発火させたそのクリック1回分だけclickを
+    // 無効化する（focusinが既に正しく配置済みのため）。既にフォーカス済みの状態で
+    // 別の行をクリックする場合は、focusinが再発火しないのでclick側の処理が働く。
+    let justFocused = false;
     container.addEventListener("focusin", () => {
       const pos = currentLineAndCol();
-      if (pos) setActiveLine(pos.idx, pos.col);
+      // focusinが位置を解決できた時だけclick側の再処理を抑制する。posがnull
+      // （例えばプログラムからのfocus()等で解決可能な選択範囲が無い場合）なら、
+      // clickの通常のフォールバック処理をそのまま働かせる。
+      if (pos) {
+        justFocused = true;
+        setActiveLine(pos.idx, pos.col);
+      }
     });
 
     container.addEventListener("focusout", () => {
@@ -184,6 +203,10 @@
           render();
           emitChange();
         }
+        return;
+      }
+      if (justFocused) {
+        justFocused = false;
         return;
       }
       const pos = currentLineAndCol();
@@ -236,6 +259,16 @@
 
     return {
       setText(newText) {
+        // scratch.jsはこのエディタを空文字列""で即座に作成し、パネルを開いてから
+        // 実際のfetchをバックグラウンドで走らせる——完了後にsetTextが呼ばれる。
+        // fetchが解決する前にユーザーがクリックして入力を始めた場合（パネルを開いて
+        // すぐ打ち始める、まさに「最初に入力する」場面で起きやすい）、遅れて届いた
+        // setTextが編集中の内容を握りつぶしてはいけない。activeLine !== -1は
+        // ユーザーが既に編集中であることを意味し、ここでlines/activeLineを無条件に
+        // 上書きすると、直前まで打っていた内容が最後にfetchした内容（通常は空）に
+        // 巻き戻る——「改行すらできない」ように見える。2026-08-26、この競合を
+        // 実際に再現して確認済み。
+        if (activeLine !== -1) return;
         syncActiveLineText();
         lines = String(newText || "").split("\n");
         if (lines.length === 0) lines = [""];

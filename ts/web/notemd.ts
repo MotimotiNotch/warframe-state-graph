@@ -188,9 +188,32 @@ export function createLiveEditor(
     if (idx >= 0) placeCaret(idx, col || 0);
   }
 
+  // A click into a not-yet-focused container fires both "focusin" and
+  // "click" for the same physical click. focusin runs first and reads the
+  // browser's own (already-correct) caret placement, then activates the
+  // line — which re-renders the container (innerHTML replaced) and sets its
+  // own caret via placeCaret(). If click's handler *also* re-reads the
+  // selection afterward, it's reading a selection the browser may have just
+  // re-resolved against that brand-new DOM at the original click's pixel
+  // coordinates, not against the placeholder that was actually clicked —
+  // observed empirically (2026-08-26) to sometimes land outside any
+  // [data-line] element (silently no-ops, but the keystroke that follows
+  // still targets a line the user never actually entered) or to re-fire
+  // setActiveLine with a stale line/col, corrupting the very next
+  // keystroke's line-split math. justFocused makes click a no-op for the
+  // one click that just triggered focusin, since focusin already placed the
+  // caret correctly; click still runs its own placement for a later click
+  // on a different line while the editor is already focused.
+  let justFocused = false;
   container.addEventListener("focusin", () => {
     const pos = currentLineAndCol();
-    if (pos) setActiveLine(pos.idx, pos.col);
+    // Only suppress click's own fallback pass if focusin actually resolved
+    // a line and activated it. If pos is null (e.g. focus arrived without a
+    // resolvable selection), click must still get its normal chance to try.
+    if (pos) {
+      justFocused = true;
+      setActiveLine(pos.idx, pos.col);
+    }
   });
 
   container.addEventListener("focusout", () => {
@@ -212,6 +235,10 @@ export function createLiveEditor(
         render();
         emitChange();
       }
+      return;
+    }
+    if (justFocused) {
+      justFocused = false;
       return;
     }
     const pos = currentLineAndCol();
@@ -264,6 +291,18 @@ export function createLiveEditor(
 
   return {
     setText(newText) {
+      // scratch.ts creates this editor synchronously with "" text, opens the
+      // panel, and only *afterward* fires the real fetch in the background —
+      // its resolution calls setText once the note arrives. If the user
+      // clicks in and starts typing before that fetch resolves (the common
+      // case for a fast typist right after opening the panel — exactly the
+      // "first thing I type" scenario), a late setText must not clobber
+      // in-progress edits: activeLine !== -1 means the user is already
+      // editing, and blindly overwriting lines/activeLine here reverts
+      // everything they just typed back to whatever was last fetched
+      // (typically empty), which reads as "I can't even make a newline."
+      // Verified empirically (2026-08-26) against this exact race.
+      if (activeLine !== -1) return;
       syncActiveLineText();
       lines = String(newText || "").split("\n");
       if (lines.length === 0) lines = [""];
