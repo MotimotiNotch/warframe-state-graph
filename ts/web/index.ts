@@ -5,6 +5,7 @@
 // wfcd-wizard -> split-pane.
 import { initResizer } from "./split-pane.ts";
 import { loadGraph, loadReport } from "./graph-state.ts";
+import "./booster.ts";
 import "./graph-nav.ts";
 import "./graph-layout.ts";
 import "./graph-render.ts";

@@ -25,6 +25,7 @@ import {
   wireCopyButtons,
 } from "./export.ts";
 import "./card-tilt.ts";
+import "./booster.ts";
 
 // Shared shape for WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry
 // (FrameEntry-like, no helminthFed) so renderEquipList/openEquipModal/

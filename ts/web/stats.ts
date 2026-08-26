@@ -7,6 +7,7 @@ import type { Data as StatsData } from "../server/stats.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { questJa } from "./quest-i18n.ts";
+import "./booster.ts";
 
 // Collections (pkg/collection) is Phase 10 scope, not yet ported — /api/collections
 // 404s for now and renderCollectionsAgg falls back to its empty defaults, same

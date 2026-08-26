@@ -170,7 +170,9 @@ function injectStyle(): void {
         display: flex; align-items: center; justify-content: center; z-index: 210;
       }
       #wallpaper-position-modal .wp-box {
-        background: var(--panel, #1b1e27);
+        /* モーダルは背後が透けると読みにくいので、半透明の--panelでなく
+           ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由）。 */
+        background: var(--popover-bg, rgba(20, 22, 28, 0.94));
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);
@@ -198,7 +200,9 @@ function injectStyle(): void {
         padding: 20px;
       }
       #header-icon-modal .hi-box {
-        background: var(--panel, #1b1e27);
+        /* モーダルは背後が透けると読みにくいので、半透明の--panelでなく
+           ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由）。 */
+        background: var(--popover-bg, rgba(20, 22, 28, 0.94));
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);

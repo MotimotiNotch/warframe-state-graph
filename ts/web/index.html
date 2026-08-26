@@ -510,11 +510,11 @@
      旧来の個別<script src>の並びの代わりにこれ1本を読み込む。 -->
 <script type="module" src="/index.js"></script>
 
-<!-- 以下はPhase 7でポート予定の共有スクリプト群（notemd/booster/scratch/wallpaper/theme等）。
-     ページ本体のドメインロジックと独立しているため、Phase 4時点では元のGoプロジェクト側の
-     web/*.jsをそのまま静的配信して見た目・挙動を保つ（server/main.tsのlegacyStaticルート参照）。 -->
+<!-- 以下は残る共有スクリプト群（notemd/scratch/wallpaper/theme等）。ページ本体のドメイン
+     ロジックと独立しているため、元のGoプロジェクト側のweb/*.jsをそのまま静的配信して見た目・
+     挙動を保つ（server/main.tsのlegacyStaticルート参照）。boosterは2026-08-26に/index.js側の
+     モジュールバンドルへ移行済み。 -->
 <script src="/notemd.js"></script>
-<script src="/booster.js"></script>
 <script src="/scratch.js"></script>
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>

@@ -95,7 +95,6 @@ import embeddedStatsJs from "../web/.embed/stats.js.txt" with { type: "text" };
 import embeddedCollectionsJs from "../web/.embed/collections.js.txt" with { type: "text" };
 import embeddedFaviconSvg from "../web/.embed/favicon.svg.txt" with { type: "text" };
 import embeddedNotemdJs from "../web/.embed/notemd.js.txt" with { type: "text" };
-import embeddedBoosterJs from "../web/.embed/booster.js.txt" with { type: "text" };
 import embeddedScratchJs from "../web/.embed/scratch.js.txt" with { type: "text" };
 import embeddedWallpaperJs from "../web/.embed/wallpaper.js.txt" with { type: "text" };
 import embeddedThemeJs from "../web/.embed/theme.js.txt" with { type: "text" };
@@ -125,7 +124,6 @@ const embeddedJsByEntry: Record<string, string> = {
 const embeddedLegacyByBasename: Record<string, string> = {
   "favicon.svg": embeddedFaviconSvg,
   "notemd.js": embeddedNotemdJs,
-  "booster.js": embeddedBoosterJs,
   "scratch.js": embeddedScratchJs,
   "wallpaper.js": embeddedWallpaperJs,
   "theme.js": embeddedThemeJs,

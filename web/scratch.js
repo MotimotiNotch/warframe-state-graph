@@ -52,7 +52,9 @@
       #scratch-panel {
         position: fixed;
         z-index: 150;
-        background: var(--panel, #1b1e27);
+        /* パネル本体は文字を読む場所なので、半透明の--panelでなく
+           ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由）。 */
+        background: var(--popover-bg, rgba(20, 22, 28, 0.94));
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);

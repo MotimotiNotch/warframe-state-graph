@@ -13,6 +13,7 @@
   const STATE_KEY = "warframe-state-graph:boosters";
   const POS_KEY = "warframe-state-graph:booster-panel-pos";
   const LIST_KEY = "warframe-state-graph:booster-list";
+  const CUSTOM_KEY = "warframe-state-graph:booster-custom-list";
   const OPEN_KEY = "warframe-state-graph:booster-panel-open";
   const DEFAULT_POS = { top: 10, left: 10 };
   const DEFAULT_LIST = ["xp", "credit"]; // 元々あった2種を初期リストとして引き継ぐ
@@ -91,6 +92,30 @@
     }
   }
 
+  // 任意の名前で追加したタイマー（公式5種のカタログに無いもの）。{id, label}の配列。
+  function loadCustomList() {
+    try {
+      const raw = localStorage.getItem(CUSTOM_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr.filter((x) => x && typeof x.id === "string" && typeof x.label === "string");
+      }
+    } catch (e) {
+      /* 無視してデフォルトへ */
+    }
+    return [];
+  }
+  function saveCustomList(list) {
+    try {
+      localStorage.setItem(CUSTOM_KEY, JSON.stringify(list));
+    } catch (e) {
+      /* 無視 */
+    }
+  }
+  function newCustomId() {
+    return `custom:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  }
+
   function loadOpen() {
     try {
       return localStorage.getItem(OPEN_KEY) === "1";
@@ -126,7 +151,9 @@
       #booster-panel {
         position: fixed;
         z-index: 150;
-        background: var(--panel, #1b1e27);
+        /* パネル本体は文字を読む場所なので、半透明の--panelでなく
+           ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由）。 */
+        background: var(--popover-bg, rgba(20, 22, 28, 0.94));
         backdrop-filter: blur(var(--panel-blur));
         -webkit-backdrop-filter: blur(var(--panel-blur));
         border: 1px solid var(--border, #2a2e3a);
@@ -169,6 +196,12 @@
       #booster-panel .b-body { padding: 6px 8px; }
       #booster-panel .b-add-row { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border, #2a2e3a); }
       #booster-panel .b-add-row select { flex: 1; }
+      /* 公式5種のカタログに無いものを自由な名前で追加できる行（2026-08-26）。 */
+      #booster-panel .b-custom-add-row { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border, #2a2e3a); }
+      #booster-panel .b-custom-add-row input[type="text"] {
+        flex: 1; background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
+        border-radius: 4px; font-size: 0.68rem; padding: 2px 4px; font-family: inherit;
+      }
       /* 経験値/リソースドロップ率のようにラベル長がバラバラでも、時間表示・開始ボタン等の
          列が縦に揃うようグリッドで組む（各.b-rowはdisplay:contentsで自分自身を消し、
          中身4つを親グリッドの列に直接参加させる）。 */
@@ -250,17 +283,24 @@
 
   function renderList(list) {
     const state = loadState();
+    const customList = loadCustomList();
     const body = document.getElementById("booster-list-body");
     if (!body) return;
-    if (!list.length) {
-      body.innerHTML = `<div class="b-empty">上のプルダウンから追加して</div>`;
+    // 公式カタログ（プルダウンで追加）と自由入力（名前を直接タイプ）を同じ行の形式で
+    // 並べる。違いはラベルの取得元と、削除時に「カタログへ戻す」か「名前ごと消す」かだけ。
+    const entries = [
+      ...list.map((id) => ({ id, label: BOOSTER_BY_ID[id].label, custom: false })),
+      ...customList.map((c) => ({ id: c.id, label: c.label, custom: true })),
+    ];
+    if (!entries.length) {
+      body.innerHTML = `<div class="b-empty">上のプルダウン、または自由入力から追加して</div>`;
       return;
     }
-    body.innerHTML = list.map((id) => {
-      const b = BOOSTER_BY_ID[id];
+    body.innerHTML = entries.map(({ id, label, custom }) => {
       const entry = state[id];
       const remaining = entry ? entry.expiry - Date.now() : 0;
       const customOpen = customOpenIds.has(id);
+      const removeTitle = custom ? "削除（名前ごと消えます）" : "リストから外す";
       const customRow = customOpen ? `
         <div class="b-custom-row">
           <input type="number" min="0" max="365" step="1" placeholder="日" data-custom-days="${id}">日
@@ -270,22 +310,22 @@
       if (entry && remaining > 0) {
         return `
           <div class="b-row">
-            <span class="b-label">${b.label}</span>
+            <span class="b-label">${label}</span>
             <span class="b-time" data-expiry="${entry.expiry}" data-id="${id}">${formatRemaining(remaining)}</span>
             <button class="b-action" data-stop="${id}">停止</button>
             <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の時間を追加">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
-            <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
+            <button class="b-action b-remove" data-remove="${id}" title="${removeTitle}">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
           </div>
           ${customRow}`;
       }
       const options = DURATIONS_HOURS.map((d) => `<option value="${d.hours}">${d.label}</option>`).join("");
       return `
         <div class="b-row">
-          <span class="b-label">${b.label}</span>
+          <span class="b-label">${label}</span>
           <select data-duration="${id}">${options}</select>
           <button class="b-action" data-start="${id}">開始</button>
           <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の日数/時間を指定して開始">${window.icon ? window.icon("plus", { size: 12 }) : "+"}</button>
-          <button class="b-action b-remove" data-remove="${id}" title="リストから外す">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
+          <button class="b-action b-remove" data-remove="${id}" title="${removeTitle}">${window.icon ? window.icon("x", { size: 12 }) : "×"}</button>
         </div>
         ${customRow}`;
     }).join("");
@@ -338,7 +378,12 @@
     body.querySelectorAll("[data-remove]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.remove;
-        saveList(loadList().filter((x) => x !== id));
+        if (id.startsWith("custom:")) {
+          // 自由入力エントリはカタログを持たないので、名前ごと消す。
+          saveCustomList(loadCustomList().filter((c) => c.id !== id));
+        } else {
+          saveList(loadList().filter((x) => x !== id));
+        }
         // リストから外す＝タイマーも無関係になるので一緒に消す
         const s = loadState();
         delete s[id];
@@ -441,7 +486,7 @@
 
     const btn = document.createElement("button");
     btn.id = "booster-toggle-btn";
-    btn.innerHTML = (window.icon ? window.icon("zap") : "") + "ブースト";
+    btn.innerHTML = (window.icon ? window.icon("zap") : "") + "タイマー";
     // テーマ切替ボタン（theme.js）と横並びの共通バーへ収める。ブーストボタンを左、
     // テーマボタンを右にしたいので、スクリプト読み込み順（booster.js→theme.js）どおり
     // 先に追加する（2026-08-18指摘）。
@@ -452,19 +497,24 @@
     panel.className = "hidden";
     panel.innerHTML = `
       <div class="b-head" id="booster-drag-handle">
-        <span class="b-title">${window.icon ? window.icon("zap", { size: 14 }) : ""}ブースト</span>
+        <span class="b-title">${window.icon ? window.icon("zap", { size: 14 }) : ""}タイマー</span>
         <div class="popover-wrap">
           <button class="icon-btn" id="booster-help-toggle" title="使い方">${window.icon ? window.icon("circle-alert", { size: 14 }) : "!"}</button>
           <div class="popover hidden" id="booster-help-popover">
             プルダウンは購入時の固定期間（3/7/30/90日）専用。<br>
             <code>+</code>ボタンで任意の日数/時間を指定可能（上限365日23時間）。<br>
-            稼働中に<code>+</code>を押すと「追加」になり、残り時間に加算されます。
+            稼働中に<code>+</code>を押すと「追加」になり、残り時間に加算されます。<br>
+            下の自由入力欄からは、カタログに無い名前でもタイマーを追加できます。
           </div>
         </div>
         <button id="booster-close" title="閉じる">${window.icon ? window.icon("x", { size: 14 }) : "×"}</button>
       </div>
       <div class="b-body">
         <div class="b-add-row" id="booster-add-row"></div>
+        <div class="b-custom-add-row">
+          <input type="text" id="booster-custom-name-input" placeholder="任意の名前(例: サーティエイド)" maxlength="40">
+          <button class="b-action" id="booster-custom-name-add-btn">追加</button>
+        </div>
         <div id="booster-list-body"></div>
       </div>
     `;
@@ -482,6 +532,21 @@
     panel.querySelector("#booster-help-popover").addEventListener("click", (e) => e.stopPropagation());
     document.addEventListener("click", () => {
       panel.querySelector("#booster-help-popover").classList.add("hidden");
+    });
+
+    const addCustomFromInput = () => {
+      const input = panel.querySelector("#booster-custom-name-input");
+      const label = input.value.trim();
+      if (!label) return;
+      const list = loadCustomList();
+      list.push({ id: newCustomId(), label });
+      saveCustomList(list);
+      input.value = "";
+      render();
+    };
+    panel.querySelector("#booster-custom-name-add-btn").addEventListener("click", addCustomFromInput);
+    panel.querySelector("#booster-custom-name-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addCustomFromInput();
     });
 
     // 前回開いたまま（閉じずに）リロードされていたら、開いた状態を引き継ぐ。
