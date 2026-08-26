@@ -146,7 +146,17 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
   // Render order: deepest layer (furthest prerequisite) on the left, the
   // target itself (layer 0) on the right — same "prerequisite first, target
   // last" reading direction the old requires-chain version used.
-  const order = layers.map((_, i) => layers.length - 1 - i);
+  //
+  // Capped to the MAX_LAYERS deepest layers (2026-08-26, のっち's call): the
+  // point of this widget is a glance at how far along things are, not a
+  // full tree — and the deepest layers are the most foundational
+  // prerequisites (raw farming/materials), which is where day-to-day
+  // progress actually happens; the shallower layers (assembly/crafting) are
+  // usually quick once those are done. For a node with more layers than
+  // this, the target itself (layer 0) drops off the display entirely —
+  // confirmed as the intended tradeoff, not an oversight.
+  const MAX_LAYERS = 3;
+  const order = layers.map((_, i) => layers.length - 1 - i).slice(0, MAX_LAYERS);
 
   const step = 20;
   const r = 5;
