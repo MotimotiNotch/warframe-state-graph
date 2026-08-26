@@ -45,6 +45,7 @@ export function renderPanel(): void {
       <button class="toggle" id="add-requires-btn">前提を追加</button>
       <button class="toggle" id="add-contains-btn">中身を追加</button>
     </div>
+    <div id="linked-from-section"></div>
   `;
 
   const btn = document.getElementById("toggle-btn") as HTMLButtonElement | null;
@@ -115,4 +116,90 @@ export function renderPanel(): void {
       })
       .catch(() => {});
   }
+
+  void renderLinkedFrom(state.selected);
+}
+
+interface LoadoutItemLike {
+  name: string;
+  chainViewNodeId?: string;
+}
+interface BuildSetLike {
+  name: string;
+  chainViewBuildId?: string;
+}
+interface LoadoutsResponse {
+  items?: Record<string, LoadoutItemLike>;
+  buildSets?: Record<string, BuildSetLike>;
+}
+interface CollectionEntryLike {
+  name?: string;
+  weaponName?: string;
+  chainViewNodeId?: string;
+}
+type CollectionsResponse = Record<string, Record<string, CollectionEntryLike> | number | undefined>;
+
+const COLLECTION_CATEGORIES_JA: Record<string, string> = {
+  rivens: "Riven",
+  kuva: "Kuva/Tenet/Coda",
+  frames: "フレーム",
+  weapons: "武器",
+  companions: "コンパニオン",
+  archwings: "Archwing",
+  necramechs: "Necramech",
+  incarnons: "インカーノン",
+};
+
+// Reverse of Loadouts/Collections' minigraph "click a dot to jump here"
+// (2026-08-26) — this node may itself be linked *from* one or more
+// Items/BuildSets/collection entries; list them so a normal "I'm looking at
+// this node, where's it actually used" question doesn't require manually
+// hunting through both other pages. Fetches the same full documents those
+// pages load themselves (small personal-tool-sized data, a full scan is
+// cheap) rather than adding a dedicated reverse-index endpoint.
+async function renderLinkedFrom(forNodeId: string): Promise<void> {
+  const [loadouts, collections] = await Promise.all([
+    fetch("/api/loadouts").then((r) => (r.ok ? (r.json() as Promise<LoadoutsResponse>) : null)),
+    fetch("/api/collections").then((r) => (r.ok ? (r.json() as Promise<CollectionsResponse>) : null)),
+  ]).catch(() => [null, null]);
+  // The user may have selected a different node (or none) by the time these
+  // two fetches resolve — a stale result must not overwrite whatever's
+  // actually showing now.
+  if (state.selected !== forNodeId) return;
+  const section = document.getElementById("linked-from-section");
+  if (!section) return;
+
+  const links: { label: string; href: string }[] = [];
+  for (const item of Object.values(loadouts?.items ?? {})) {
+    if (item.chainViewNodeId === forNodeId) links.push({ label: `${item.name}（Loadouts Item）`, href: "/loadouts.html" });
+  }
+  for (const set of Object.values(loadouts?.buildSets ?? {})) {
+    if (set.chainViewBuildId === forNodeId) links.push({ label: `${set.name}（Loadouts BuildSet）`, href: "/loadouts.html" });
+  }
+  for (const [key, jaLabel] of Object.entries(COLLECTION_CATEGORIES_JA)) {
+    const bucket = collections?.[key];
+    if (!bucket || typeof bucket !== "object") continue;
+    for (const entry of Object.values(bucket)) {
+      if (entry.chainViewNodeId === forNodeId) {
+        links.push({ label: `${entry.name ?? entry.weaponName ?? "?"}（Collections ${jaLabel}）`, href: "/collections.html" });
+      }
+    }
+  }
+
+  if (!links.length) {
+    section.innerHTML = "";
+    return;
+  }
+  section.innerHTML = `
+    <div class="ph-row" style="margin-top:10px;color:var(--muted);font-size:0.78rem;">連携元</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+      ${links.map((l, i) => `<button class="toggle" style="text-align:left;margin-top:0;" data-linked-from-idx="${i}">${l.label}</button>`).join("")}
+    </div>
+  `;
+  section.querySelectorAll<HTMLButtonElement>("[data-linked-from-idx]").forEach((btn) => {
+    const href = links[Number(btn.dataset.linkedFromIdx)]!.href;
+    btn.onclick = () => {
+      window.location.href = href;
+    };
+  });
 }
