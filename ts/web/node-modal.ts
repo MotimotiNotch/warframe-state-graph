@@ -25,6 +25,28 @@ export const NODE_TYPE_LABEL_JA: Record<string, string> = {
   Build: "Build（旧形式）",
 };
 
+// Matches server/wfcdgen.ts's Slug() (kept as its own copy rather than a
+// cross-import — client bundles don't pull in server-only modules, and
+// wfcd-wizard.ts already re-implements the same small regex inline).
+function slug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// のっち's call (2026-08-26): users shouldn't have to think about IDs at
+// all when creating a node, only the name. Auto-generates a readable id
+// from the name, matching the existing data/graph.json slug convention,
+// with a numeric suffix only if that slug is already taken.
+function generateNodeId(name: string): string {
+  const base = slug(name) || "node";
+  if (!state.graph!.nodes[base]) return base;
+  let n = 2;
+  while (state.graph!.nodes[`${base}-${n}`]) n++;
+  return `${base}-${n}`;
+}
+
 export type NodeModalMode = "create" | "edit";
 export interface NodeModalContext {
   relation: "requires" | "contains";
@@ -136,6 +158,7 @@ export function openNodeModal(mode: NodeModalMode, node: Node | null, context?: 
 
   el<HTMLInputElement>("node-id").value = node?.id ?? "";
   el<HTMLInputElement>("node-id").disabled = mode === "edit";
+  el("node-id-row").classList.toggle("hidden", mode === "create");
   el<HTMLInputElement>("node-name").value = node?.name ?? "";
   typeSel.value = node?.type ?? types[0] ?? "Goal";
   draftRequires = [...(node?.requires ?? [])];
@@ -168,12 +191,12 @@ el("new-node-btn").addEventListener("click", () => openNodeModal("create", null)
 el("node-modal-cancel").addEventListener("click", closeNodeModal);
 
 el("node-modal-save").addEventListener("click", async () => {
-  const id = el<HTMLInputElement>("node-id").value.trim();
   const name = el<HTMLInputElement>("node-name").value.trim();
-  if (!id || !name) {
-    alert("IDと名前は必須");
+  if (!name) {
+    alert("名前を入力して");
     return;
   }
+  const id = nodeModalMode === "create" ? generateNodeId(name) : el<HTMLInputElement>("node-id").value.trim();
   const node: Record<string, unknown> = {
     id,
     name,

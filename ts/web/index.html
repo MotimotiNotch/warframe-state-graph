@@ -315,6 +315,7 @@
   }
   .modal-backdrop.hidden { display: none; }
   #node-requires-section.hidden, #node-contains-section.hidden { display: none; }
+  #node-id-row.hidden { display: none; }
   .modal {
     /* モーダルは背後のカード/文字が透けると読みにくいので、半透明の--panelでなく
        ほぼ不透明の--popover-bgを使う（popover-opacityルールと同じ理由、2026-08-23）。 */
@@ -442,8 +443,10 @@
   <div id="node-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="node-modal-title">ノード追加</h3>
-      <label>ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
-      <input type="text" id="node-id">
+      <div id="node-id-row">
+        <label>ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
+        <input type="text" id="node-id">
+      </div>
       <label>名前</label>
       <input type="text" id="node-name">
       <div class="row">
