@@ -668,7 +668,10 @@ function renderRivenList(): void {
           <button class="icon-btn danger" data-del-riven="${entry.id}" title="削除">${icon("trash-2")}</button>
         </div>
       </div>
-      ${(entry.positiveStats || []).length ? `<div class="card-row"><b>ポジ値:</b> ${entry.positiveStats!.map((s, i) => formatRivenStat(s, (entry.positiveValues || [])[i], ja)).join(", ")}</div>` : ""}
+      ${(entry.positiveStats || [])
+        .map((s, i) => formatRivenStat(s, (entry.positiveValues || [])[i], ja))
+        .map((line, i) => `<div class="card-row">${i === 0 ? "<b>ポジ値:</b> " : ""}${line}</div>`)
+        .join("")}
       ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${formatRivenStat(entry.negativeStat, entry.negativeValue, ja)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
