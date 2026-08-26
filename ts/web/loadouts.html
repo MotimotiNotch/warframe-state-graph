@@ -29,6 +29,7 @@
     --accent: #f6ddaa;
     --danger: #e88c93;
     --actionable: #7ee3a9;
+    --blocked: #e88c93;
     --satisfied: #9bbeec;
   }
   @media (prefers-color-scheme: light) {
@@ -42,6 +43,7 @@
       --accent: #a7750a;
       --danger: #992e37;
       --actionable: #1a834d;
+      --blocked: #992e37;
       --satisfied: #2b65b1;
     }
   }
@@ -55,6 +57,7 @@
     --accent: #a7750a;
     --danger: #992e37;
     --actionable: #1a834d;
+    --blocked: #992e37;
     --satisfied: #2b65b1;
   }
   * { box-sizing: border-box; }
@@ -133,6 +136,13 @@
     background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
   .icon-btn.add-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+
+  /* Collectionsのセクション見出し横凡例（.status-legend）と同じ置き方・見た目。
+     ミニグラフの3色（達成済み/実行可能/前提待ち）をヘルプポップオーバーの文章に埋めるより、
+     Itemsの見出し横に常時出しておく方が「見た時に意味が分かる」（2026-08-26指摘）。 */
+  .status-legend { display: flex; align-items: center; gap: 12px; font-size: 0.72rem; color: var(--muted); }
+  .status-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
   .bulk-row {
     display: flex; align-items: center; gap: 6px; margin: 0 0 10px;
@@ -303,7 +313,7 @@
             <li>各セクションは右上のアイコンで開閉でき、状態は次回起動時も引き継がれます</li>
             <li>名前で絞り込み検索ができます。8件を超える分は「もっと見る」で表示／折りたたみを切り替えられます</li>
             <li>見出し横の＋アイコンから新規登録できます</li>
-            <li>Chain Viewと連携済みのアイテムには、カード内に進捗のミニグラフが表示されます。1点＝1階層分（中身/前提のまとまり）で、緑＝達成済み・黄＝実行可能（前提が揃った）・赤＝前提待ち、とChain View本体と同じ色分けです（点にカーソルを合わせると内訳が出ます）</li>
+            <li>Chain Viewと連携済みのアイテムには、カード内に進捗のミニグラフが表示されます（色の意味はItems見出し横の凡例を参照。点にカーソルを合わせると内訳が出ます）</li>
           </ul>
           <div>⚠️ フレーム/武器名やビルド名など、未プレイのコンテンツ名が表示されることがあります。</div>
         </div>
@@ -314,7 +324,14 @@
   <div class="panel">
     <div class="panel-head">
       <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理<button class="icon-btn add-btn" id="items-add-btn" title="新規登録"></button></h2>
-      <button class="icon-btn section-chevron" id="items-chevron" title="開閉"></button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="status-legend" title="Chain View連携アイテムのミニグラフの色">
+          <span><i class="dot" style="background:var(--satisfied)"></i>達成済み</span>
+          <span><i class="dot" style="background:var(--actionable)"></i>実行可能</span>
+          <span><i class="dot" style="background:var(--blocked)"></i>前提待ち</span>
+        </div>
+        <button class="icon-btn section-chevron" id="items-chevron" title="開閉"></button>
+      </div>
     </div>
     <div id="items-body" class="collapsible-body">
       <div id="items-jump-nav" class="tabs" style="margin:0 0 8px;"></div>
