@@ -31,7 +31,7 @@ export function renderPanel(): void {
   const badgeColor = isRoot ? STATE_COLOR.ROOT : STATE_COLOR[node.state];
 
   panel.innerHTML = `
-    <div class="ph-name">${node.name} <span id="i18n-name" style="color:var(--muted);font-weight:400;font-size:.85em;"></span></div>
+    <div class="ph-name">${node.name} <span style="color:var(--muted);font-weight:400;font-size:.75em;" title="ノードID">(${state.selected})</span> <span id="i18n-name" style="color:var(--muted);font-weight:400;font-size:.85em;"></span></div>
     <div class="ph-row">種別: ${NODE_TYPE_LABEL_JA[node.type] ?? node.type}${node.type === "Relic" ? `<span id="vault-badge"></span>` : ""}</div>
     ${node.evaluation ? `<div class="ph-row">評価: ${node.evaluation}</div>` : ""}
     ${node.note ? `<div class="ph-row">${node.note}</div>` : ""}

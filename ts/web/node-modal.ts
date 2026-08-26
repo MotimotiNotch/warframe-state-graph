@@ -25,26 +25,16 @@ export const NODE_TYPE_LABEL_JA: Record<string, string> = {
   Build: "Build（旧形式）",
 };
 
-// Matches server/wfcdgen.ts's Slug() (kept as its own copy rather than a
-// cross-import — client bundles don't pull in server-only modules, and
-// wfcd-wizard.ts already re-implements the same small regex inline).
-function slug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 // のっち's call (2026-08-26): users shouldn't have to think about IDs at
-// all when creating a node, only the name. Auto-generates a readable id
-// from the name, matching the existing data/graph.json slug convention,
-// with a numeric suffix only if that slug is already taken.
-function generateNodeId(name: string): string {
-  const base = slug(name) || "node";
-  if (!state.graph!.nodes[base]) return base;
-  let n = 2;
-  while (state.graph!.nodes[`${base}-${n}`]) n++;
-  return `${base}-${n}`;
+// all when creating a node, only the name. A UUID needs no slugification
+// (no ASCII-only/empty-name edge cases a name-derived id would have) — the
+// while loop is a defensive duplicate check per のっち's request, not
+// something expected to ever actually loop (a real crypto.randomUUID()
+// collision is not a realistic occurrence).
+function generateNodeId(): string {
+  let id = crypto.randomUUID();
+  while (state.graph!.nodes[id]) id = crypto.randomUUID();
+  return id;
 }
 
 export type NodeModalMode = "create" | "edit";
@@ -196,7 +186,7 @@ el("node-modal-save").addEventListener("click", async () => {
     alert("名前を入力して");
     return;
   }
-  const id = nodeModalMode === "create" ? generateNodeId(name) : el<HTMLInputElement>("node-id").value.trim();
+  const id = nodeModalMode === "create" ? generateNodeId() : el<HTMLInputElement>("node-id").value.trim();
   const node: Record<string, unknown> = {
     id,
     name,
