@@ -670,7 +670,11 @@ function renderRivenList(): void {
       </div>
       ${(entry.positiveStats || [])
         .map((s, i) => formatRivenStat(s, (entry.positiveValues || [])[i], ja))
-        .map((line, i) => `<div class="card-row">${i === 0 ? "<b>ポジ値:</b> " : ""}${line}</div>`)
+        // The label sits on line 1 only, but every line's value must start at
+        // the same x position — an invisible copy of the label (same text/
+        // weight/font, just hidden) reserves that exact width on lines 2+
+        // instead of guessing a padding value (2026-08-26 のっち's feedback).
+        .map((line, i) => `<div class="card-row" style="display:flex;gap:4px;"><b${i === 0 ? "" : ` style="visibility:hidden;"`}>ポジ値:</b><span>${line}</span></div>`)
         .join("")}
       ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${formatRivenStat(entry.negativeStat, entry.negativeValue, ja)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
