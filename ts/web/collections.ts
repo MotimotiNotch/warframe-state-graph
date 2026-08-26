@@ -499,6 +499,7 @@ function openRivenModal(editId: string | null): void {
   el<HTMLInputElement>("riven-fixed-check").checked = entry ? !!entry.fixed : false;
   el<HTMLTextAreaElement>("riven-note-input").value = entry ? entry.note || "" : "";
   el<HTMLSelectElement>("riven-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : undefined);
+  el<HTMLSelectElement>("riven-chainview-select").disabled = !!entry;
   document.querySelectorAll<HTMLInputElement>("[data-riven-positive]").forEach((cb) => {
     cb.checked = entry ? (entry.positiveStats || []).includes(cb.value) : false;
   });
@@ -836,6 +837,7 @@ function renderKuvaModal(): void {
   el<HTMLSelectElement>("kuva-chainview-select").innerHTML = chainViewOptions(
     editingId && state.data.kuva[editingId] ? state.data.kuva[editingId]!.chainViewNodeId : undefined,
   );
+  el<HTMLSelectElement>("kuva-chainview-select").disabled = !!editingId;
 
   const addToggleBtn = el("kuva-modal-add-toggle");
   const addToggleLabel = entries.length ? "この武器をもう1件追加" : "登録する";
@@ -1019,6 +1021,7 @@ function openFrameModal(editId: string | null): void {
   el<HTMLInputElement>("frame-helminth-check").checked = entry ? !!entry.helminthFed : false;
   el<HTMLTextAreaElement>("frame-note-input").value = entry ? entry.note || "" : "";
   el<HTMLSelectElement>("frame-chainview-select").innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : undefined);
+  el<HTMLSelectElement>("frame-chainview-select").disabled = !!entry;
   el("frame-bulk-row").classList.toggle("hidden", !!editId);
   el<HTMLInputElement>("frame-bulk-check").checked = false;
   el("frame-modal-optional").classList.remove("hidden");
@@ -1201,6 +1204,7 @@ function openEquipModal(kind: EquipKind, editId: string | null): void {
   el<HTMLInputElement>(`${kind}-ranked30-check`).checked = entry ? !!entry.rankedThirty : false;
   el<HTMLTextAreaElement>(`${kind}-note-input`).value = entry ? entry.note || "" : "";
   el<HTMLSelectElement>(`${kind}-chainview-select`).innerHTML = chainViewOptions(entry ? entry.chainViewNodeId : undefined);
+  el<HTMLSelectElement>(`${kind}-chainview-select`).disabled = !!entry;
   el(`${kind}-bulk-row`).classList.toggle("hidden", !!editId);
   el<HTMLInputElement>(`${kind}-bulk-check`).checked = false;
   el(`${kind}-modal-optional`).classList.remove("hidden");
