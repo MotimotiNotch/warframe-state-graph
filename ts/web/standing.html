@@ -195,7 +195,16 @@
     <div class="popover-wrap">
       <button class="icon-btn" id="help-toggle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所。6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）だけは2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）ため、Chain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新する。他の10シンジケートは敵対relationshipを持たずランクは0以上のみ。貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがある。武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使う。<br>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>
+        <div class="empty">
+          <div style="margin-bottom:8px;">全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）は2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）。そのためChain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新します</li>
+            <li>他の10シンジケートは敵対関係を持たず、ランクは0以上のみ</li>
+            <li>貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがあります</li>
+            <li>武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使ってください</li>
+          </ul>
+          <div>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>
+        </div>
       </div>
     </div>
   </nav>
