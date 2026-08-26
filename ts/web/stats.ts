@@ -609,14 +609,20 @@ function setStoredCollapsed(prefix: string, collapsed: boolean): void {
 function initPlainCollapsible(prefix: string): void {
   const body = el(`${prefix}-body`);
   const chevron = el(`${prefix}-chevron`);
+  // Only quest-progress's panel-head has this (the 4 bulk clear/uncleared
+  // buttons) — closest+querySelector makes this a no-op for every other
+  // prefix instead of needing a separate hide path (2026-08-26).
+  const bulkActions = chevron.closest(".panel-head")?.querySelector<HTMLElement>(".quest-bulk-actions");
   chevron.innerHTML = icon("chevron-down");
   const collapsed = getStoredCollapsed(prefix);
   body.classList.toggle("hidden", collapsed);
   chevron.classList.toggle("expanded", !collapsed);
+  bulkActions?.classList.toggle("hidden", collapsed);
   function toggle(): void {
     const nowHidden = body.classList.toggle("hidden");
     chevron.classList.toggle("expanded", !nowHidden);
     setStoredCollapsed(prefix, nowHidden);
+    bulkActions?.classList.toggle("hidden", nowHidden);
   }
   chevron.addEventListener("click", toggle);
 }
