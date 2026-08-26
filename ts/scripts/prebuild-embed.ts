@@ -44,7 +44,6 @@ const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "coll
 const legacyBasenames = [
   "favicon.svg",
   "notemd.js",
-  "scratch.js",
   "wallpaper.js",
   "theme.js",
   "scroll-top.js",

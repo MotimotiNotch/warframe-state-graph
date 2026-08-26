@@ -9,6 +9,7 @@ import { renderNoteMd } from "./notemd.ts";
 import { buildBuildSetExportText, buildItemExportText, wireCopyButtons } from "./export.ts";
 import "./card-tilt.ts";
 import "./booster.ts";
+import "./scratch.ts";
 import { autoGenerateChainViewNode, autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
 
 const state: {

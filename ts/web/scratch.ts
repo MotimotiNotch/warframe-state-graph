@@ -5,12 +5,10 @@
 // (data/scratch.json via /api/scratch) instead of localStorage, so it
 // re-fetches on every open to pick up edits made from other pages.
 //
-// Not yet wired into the bundled-JS routing (`/scratch.js` still serves the
-// original, unported web/scratch.js via the server's legacy static
-// passthrough) because loadouts.html/collections.html/stats.html — not
-// ported yet — still load it as a plain classic `<script src>`, and an ESM
-// bundle's `export` syntax would be a SyntaxError there. The `/scratch.js`
-// route itself cuts over once every consuming page is ported to `type="module"`.
+// Cut over 2026-08-26 (js version retired; ts is now the only maintained
+// copy for this widget — see the equivalent note in booster.ts): bundled as
+// a real module into every consuming page's entry script instead of the
+// legacy `<script src="/scratch.js">` passthrough.
 
 import type { Counter, Data } from "../server/scratch.ts";
 import { el } from "./dom.ts";
@@ -370,7 +368,20 @@ function init(): void {
   const btn = document.createElement("button");
   btn.id = "scratch-toggle-btn";
   btn.innerHTML = icon("pencil") + "クイックメモ";
-  getTopRightBar().appendChild(btn);
+  // Explicit placement, not append/prepend: both this module and booster.ts
+  // are bundled modules now, executing (deferred) after the still-classic
+  // siblings (theme/scroll-top/debug-grid) have already appended their own
+  // buttons — and relative to *each other*, execution order depends on
+  // import order in whichever page bundled them, which isn't worth pinning
+  // down here. Anchor directly to booster's button instead, so the intended
+  // order (timer, then quick-memo) holds regardless of either.
+  const bar = getTopRightBar();
+  const boosterBtn = document.getElementById("booster-toggle-btn");
+  if (boosterBtn && boosterBtn.parentElement === bar) {
+    boosterBtn.insertAdjacentElement("afterend", btn);
+  } else {
+    bar.prepend(btn);
+  }
 
   const panel = document.createElement("div");
   panel.id = "scratch-panel";

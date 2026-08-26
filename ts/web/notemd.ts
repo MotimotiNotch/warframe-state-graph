@@ -205,6 +205,19 @@ export function createLiveEditor(
   // caret correctly; click still runs its own placement for a later click
   // on a different line while the editor is already focused.
   let justFocused = false;
+  // A checkbox is its own focusable element, distinct from the container.
+  // Clicking one moves focus away from whatever line was being edited,
+  // firing this container's own focusout first — which unconditionally
+  // reset activeLine to -1. The next Enter/Backspace would then find no
+  // valid line to act on (currentLineAndCol's container.contains(lineEl)
+  // check fails against the now-detached old DOM) and silently no-op.
+  // Confirmed 2026-08-26 as the actual cause of "occasionally can't make a
+  // newline" reported after editing a multi-line note with checklists for a
+  // while (not the earlier open-panel fetch race). If focus is landing on
+  // something still inside this container (the checkbox) rather than
+  // leaving entirely, stash the line/col so the checkbox's own click
+  // handler can restore editing right after toggling it.
+  let pendingRestore: { idx: number; col: number } | null = null;
   container.addEventListener("focusin", () => {
     const pos = currentLineAndCol();
     // Only suppress click's own fallback pass if focusin actually resolved
@@ -217,10 +230,16 @@ export function createLiveEditor(
   });
 
   container.addEventListener("focusout", () => {
+    // Must check before render() rebuilds the DOM — afterward, a focused
+    // checkbox that render() just replaced is detached and focus has
+    // already snapped back to <body>, so this check would always be false.
+    const shouldRestore = activeLine >= 0 && container.contains(document.activeElement);
+    const pos = shouldRestore ? currentLineAndCol() : null;
     syncActiveLineText();
     activeLine = -1;
     render();
     emitChange();
+    if (shouldRestore && pos) pendingRestore = pos;
   });
 
   container.addEventListener("click", (e) => {
@@ -232,9 +251,29 @@ export function createLiveEditor(
       const m = lines[idx]!.match(/^- \[([ xX])\](?: (.*))?$/);
       if (m) {
         lines[idx] = `- [${m[1]!.toLowerCase() === "x" ? " " : "x"}]${m[2] ? " " + m[2] : ""}`;
-        render();
-        emitChange();
       }
+      if (pendingRestore) {
+        const restore = pendingRestore;
+        pendingRestore = null;
+        activeLine = restore.idx;
+        render();
+        // The checkbox itself still holds real browser focus at this point.
+        // container.focus() moves focus back, but the browser applies its
+        // own default selection (collapsed to the very start of the
+        // contenteditable) as part of that same focus change, and it can
+        // silently override a Range set synchronously (or on the very next
+        // task) right after focus() — observed empirically 2026-08-26 to be
+        // timing-sensitive enough that even a setTimeout(fn, 0) sometimes
+        // lost the race. Two nested requestAnimationFrame calls defer until
+        // after the browser has painted the post-focus state at least once,
+        // which is the standard, more reliable way to wait out this class of
+        // browser-internal focus/selection settling.
+        container.focus();
+        requestAnimationFrame(() => requestAnimationFrame(() => placeCaret(restore.idx, restore.col)));
+      } else {
+        render();
+      }
+      emitChange();
       return;
     }
     if (justFocused) {

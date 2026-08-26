@@ -3,6 +3,7 @@ import type { Data, SyndicateInfo } from "../server/standing.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import "./booster.ts";
+import "./scratch.ts";
 
 interface StandingResponse {
   data: Data;
