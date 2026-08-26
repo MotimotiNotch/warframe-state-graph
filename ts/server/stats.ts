@@ -151,6 +151,20 @@ export class StatsStore {
     });
   }
 
+  /** "全部クリア" bulk action: sets `field` to each planet's own nodeCount (full clear), one lock/save. */
+  async markAllPlanetsCleared(planets: { key: string; nodeCount: number }[], field: "cleared" | "steelPathCleared"): Promise<Data> {
+    return this.#mutex.run(async () => {
+      const d = await this.#loadLocked();
+      for (const p of planets) {
+        const progress = { ...(d.planets[p.key] || { cleared: 0, steelPathCleared: 0 }) };
+        progress[field] = p.nodeCount;
+        d.planets[p.key] = progress;
+      }
+      await this.#saveLocked(d);
+      return d;
+    });
+  }
+
   async setProximaProgress(proximaKey: string, progress: PlanetProgress): Promise<Data> {
     return this.#mutex.run(async () => {
       const d = await this.#loadLocked();

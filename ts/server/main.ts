@@ -612,6 +612,30 @@ const server = Bun.serve({
       },
     },
 
+    // "星図全部クリア" / "鋼の道のり全部クリア" (2026-08-26) — mirrors
+    // /api/stats/quests/main's "re-derive the authoritative list
+    // server-side" rule rather than trusting a client-submitted planet list.
+    "/api/stats/planets/mark-all-cleared": {
+      POST: async () => {
+        try {
+          const planets = await cachedJSON(wfcdCacheDir, "starchart-planets.json", FetchPlanets);
+          return json(await statsStore.markAllPlanetsCleared(planets, "cleared"));
+        } catch (err) {
+          return errorResponse(err, 500);
+        }
+      },
+    },
+    "/api/stats/planets/mark-all-steelpath-cleared": {
+      POST: async () => {
+        try {
+          const planets = await cachedJSON(wfcdCacheDir, "starchart-planets.json", FetchPlanets);
+          return json(await statsStore.markAllPlanetsCleared(planets.filter((p) => p.steelPathApplicable), "steelPathCleared"));
+        } catch (err) {
+          return errorResponse(err, 500);
+        }
+      },
+    },
+
     "/api/stats/railjack-proxima/:key": {
       POST: async (req) => {
         let body: unknown;

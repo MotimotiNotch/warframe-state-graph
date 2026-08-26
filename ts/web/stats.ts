@@ -374,6 +374,18 @@ function renderStarchart(): void {
   });
 }
 
+// 星図/鋼の道のり別の「全部クリア」(2026-08-26、のっちの要望) — quests/main
+// 等と同じく、対象一覧はサーバー側で再導出させる（クライアントの
+// state.planetsが古い可能性を信用しない）。
+async function markAllPlanetsCleared(field: "cleared" | "steelPathCleared"): Promise<void> {
+  const endpoint = field === "cleared" ? "/api/stats/planets/mark-all-cleared" : "/api/stats/planets/mark-all-steelpath-cleared";
+  const res = await fetch(endpoint, { method: "POST" });
+  state.statsData = await res.json();
+  renderStarchart();
+}
+el("starchart-mark-all-cleared").addEventListener("click", () => void markAllPlanetsCleared("cleared"));
+el("starchart-mark-all-steelpath-cleared").addEventListener("click", () => void markAllPlanetsCleared("steelPathCleared"));
+
 // ---------- Intrinsics ----------
 // Verified against wikiwiki.jp/warframe's "レールジャック/性能値" and
 // "漂流者/性能値" pages (2026-08-22). data-intrinsic values must match the
@@ -609,10 +621,10 @@ function setStoredCollapsed(prefix: string, collapsed: boolean): void {
 function initPlainCollapsible(prefix: string): void {
   const body = el(`${prefix}-body`);
   const chevron = el(`${prefix}-chevron`);
-  // Only quest-progress's panel-head has this (the 4 bulk clear/uncleared
-  // buttons) — closest+querySelector makes this a no-op for every other
-  // prefix instead of needing a separate hide path (2026-08-26).
-  const bulkActions = chevron.closest(".panel-head")?.querySelector<HTMLElement>(".quest-bulk-actions");
+  // Only quest-progress and starchart's panel-heads have this (bulk clear/
+  // uncleared buttons) — closest+querySelector makes this a no-op for every
+  // other prefix instead of needing a separate hide path (2026-08-26).
+  const bulkActions = chevron.closest(".panel-head")?.querySelector<HTMLElement>(".panel-bulk-actions");
   chevron.innerHTML = icon("chevron-down");
   const collapsed = getStoredCollapsed(prefix);
   body.classList.toggle("hidden", collapsed);
