@@ -112,6 +112,11 @@
     overflow-wrap: break-word;
   }
   .popover.hidden { display: none; }
+  /* legend-toggle sits at the page's fixed top-right corner (unlike booster/
+     scratch's draggable-widget popovers, which keep the shared class's
+     left:0 default since their anchor can be anywhere) — left:0 here pushed
+     this one off the right edge of the viewport (2026-08-26 のっち's report). */
+  #legend-popover { left: auto; right: 0; }
 
   /* 凡例はポップオーバーに畳んで常時露出させない（UI/UX設計思想2026-08-18、情報の音量差原則）。 */
   .legend {
