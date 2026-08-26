@@ -340,6 +340,28 @@ async function loadRivenStatChoices(): Promise<void> {
 function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+
+// Riven/Kuva stat value inputs were plain type="text" with no filtering — any
+// character could be typed, and only parseFloat()'s leading-number extraction
+// at save time kept garbage out. That leaves the box itself showing whatever
+// was typed (e.g. "50%%abc") until save. Strips everything but digits/one
+// decimal point, plus a leading "-" when allowNegative (negativeValue is the
+// only field where a sign is meaningful — positive-stat/bonus values never are).
+function sanitizeDecimalInput(raw: string, allowNegative: boolean): string {
+  let s = raw.replace(/[^0-9.-]/g, "");
+  const negative = allowNegative && s.startsWith("-");
+  s = s.replace(/-/g, "");
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
+  return (negative ? "-" : "") + s;
+}
+function setupNumericValueInput(id: string, allowNegative: boolean): void {
+  const input = el<HTMLInputElement>(id);
+  input.addEventListener("input", () => {
+    const sanitized = sanitizeDecimalInput(input.value, allowNegative);
+    if (sanitized !== input.value) input.value = sanitized;
+  });
+}
 function escapeHtml(s: unknown): string {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;")
@@ -391,6 +413,8 @@ function setupPopoverToggle(btnId: string, popId: string): void {
   document.addEventListener("click", () => pop.classList.add("hidden"));
 }
 setupPopoverToggle("help-toggle", "help-popover");
+setupNumericValueInput("riven-negative-value", true);
+setupNumericValueInput("kuva-bonus-value-input", false);
 
 function toggleFavorite(kind: "riven" | "kuva", id: string): void {
   if (kind === "riven") {
@@ -449,7 +473,9 @@ function renderRivenPositiveValues(): void {
     .join("");
   container.querySelectorAll<HTMLInputElement>("[data-riven-value]").forEach((inp) =>
     inp.addEventListener("input", () => {
-      rivenPositiveValueDraft[inp.dataset.rivenValue!] = inp.value;
+      const sanitized = sanitizeDecimalInput(inp.value, false);
+      if (sanitized !== inp.value) inp.value = sanitized;
+      rivenPositiveValueDraft[inp.dataset.rivenValue!] = sanitized;
     }),
   );
 }
