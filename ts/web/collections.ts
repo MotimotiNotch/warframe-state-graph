@@ -344,23 +344,37 @@ function uid(prefix: string): string {
 // Riven/Kuva stat value inputs were plain type="text" with no filtering — any
 // character could be typed, and only parseFloat()'s leading-number extraction
 // at save time kept garbage out. That leaves the box itself showing whatever
-// was typed (e.g. "50%%abc") until save. Strips everything but digits/one
-// decimal point, plus a leading "-" when allowNegative (negativeValue is the
-// only field where a sign is meaningful — positive-stat/bonus values never are).
-function sanitizeDecimalInput(raw: string, allowNegative: boolean): string {
-  let s = raw.replace(/[^0-9.-]/g, "");
-  const negative = allowNegative && s.startsWith("-");
-  s = s.replace(/-/g, "");
+// was typed (e.g. "50%%abc") until save. Strips everything but digits and one
+// decimal point — no sign, ever: the "ネガ値" input takes the same plain
+// magnitude as positive-stat/bonus values, and the negative sign is applied
+// automatically at save time from which stat select it's paired with
+// (2026-08-26 のっち's call — typing "-" by hand was itself the bug).
+function sanitizeDecimalInput(raw: string): string {
+  const s = raw.replace(/[^0-9.]/g, "");
   const firstDot = s.indexOf(".");
-  if (firstDot !== -1) s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
-  return (negative ? "-" : "") + s;
+  if (firstDot === -1) return s;
+  return s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
 }
-function setupNumericValueInput(id: string, allowNegative: boolean): void {
+function setupNumericValueInput(id: string): void {
   const input = el<HTMLInputElement>(id);
   input.addEventListener("input", () => {
-    const sanitized = sanitizeDecimalInput(input.value, allowNegative);
+    const sanitized = sanitizeDecimalInput(input.value);
     if (sanitized !== input.value) input.value = sanitized;
   });
+}
+
+// A value input is only meaningful once its paired stat select actually
+// picks a stat — otherwise there's nothing for the number to attach to.
+// Disables (and clears) the value box whenever the select is at "（なし）",
+// both on user interaction and when a modal opens/re-populates the select.
+function syncGatedValueInput(selectId: string, inputId: string): void {
+  const hasStat = !!el<HTMLSelectElement>(selectId).value;
+  const input = el<HTMLInputElement>(inputId);
+  input.disabled = !hasStat;
+  if (!hasStat) input.value = "";
+}
+function setupGatedValueInput(selectId: string, inputId: string): void {
+  el<HTMLSelectElement>(selectId).addEventListener("change", () => syncGatedValueInput(selectId, inputId));
 }
 function escapeHtml(s: unknown): string {
   return String(s == null ? "" : s)
@@ -413,8 +427,10 @@ function setupPopoverToggle(btnId: string, popId: string): void {
   document.addEventListener("click", () => pop.classList.add("hidden"));
 }
 setupPopoverToggle("help-toggle", "help-popover");
-setupNumericValueInput("riven-negative-value", true);
-setupNumericValueInput("kuva-bonus-value-input", false);
+setupNumericValueInput("riven-negative-value");
+setupNumericValueInput("kuva-bonus-value-input");
+setupGatedValueInput("riven-negative-select", "riven-negative-value");
+setupGatedValueInput("kuva-bonus-stat-select", "kuva-bonus-value-input");
 
 function toggleFavorite(kind: "riven" | "kuva", id: string): void {
   if (kind === "riven") {
@@ -473,7 +489,7 @@ function renderRivenPositiveValues(): void {
     .join("");
   container.querySelectorAll<HTMLInputElement>("[data-riven-value]").forEach((inp) =>
     inp.addEventListener("input", () => {
-      const sanitized = sanitizeDecimalInput(inp.value, false);
+      const sanitized = sanitizeDecimalInput(inp.value);
       if (sanitized !== inp.value) inp.value = sanitized;
       rivenPositiveValueDraft[inp.dataset.rivenValue!] = sanitized;
     }),
@@ -528,7 +544,8 @@ function openRivenModal(editId: string | null): void {
   el("riven-modal-title").textContent = entry ? "Riven 編集" : "Riven 新規登録";
   el<HTMLInputElement>("riven-weapon-input").value = entry ? entry.weaponName : "";
   el<HTMLSelectElement>("riven-negative-select").value = entry ? entry.negativeStat || "" : "";
-  el<HTMLInputElement>("riven-negative-value").value = entry && entry.negativeValue ? String(entry.negativeValue) : "";
+  el<HTMLInputElement>("riven-negative-value").value = entry && entry.negativeValue ? String(Math.abs(entry.negativeValue)) : "";
+  syncGatedValueInput("riven-negative-select", "riven-negative-value");
   el<HTMLInputElement>("riven-fixed-check").checked = entry ? !!entry.fixed : false;
   el<HTMLTextAreaElement>("riven-note-input").value = entry ? entry.note || "" : "";
   document.querySelectorAll<HTMLInputElement>("[data-riven-positive]").forEach((cb) => {
@@ -602,7 +619,10 @@ el("riven-modal-save").addEventListener("click", () => {
     positiveStats: selectedRivenPositiveStats(),
     positiveValues: selectedRivenPositiveValues(),
     negativeStat: el<HTMLSelectElement>("riven-negative-select").value,
-    negativeValue: parseFloat(el<HTMLInputElement>("riven-negative-value").value) || 0,
+    // The box only ever holds a plain positive magnitude now (no manual "-"
+    // typing, 2026-08-26) — negate it here so formatRivenStat's sign logic
+    // still displays it correctly as a malus.
+    negativeValue: -(parseFloat(el<HTMLInputElement>("riven-negative-value").value) || 0),
     // "fixed" went entirely unwired from the UI since day one — new entries
     // were always created with it hardcoded false (2026-08-22 finding, added the checkbox).
     fixed: el<HTMLInputElement>("riven-fixed-check").checked,
@@ -865,6 +885,7 @@ function renderKuvaModal(): void {
     el<HTMLInputElement>("kuva-owned-check").checked = editingEntry ? !!editingEntry.owned : false;
     el<HTMLSelectElement>("kuva-bonus-stat-select").value = editingEntry ? editingEntry.bonusStat || "" : "";
     el<HTMLInputElement>("kuva-bonus-value-input").value = editingEntry && editingEntry.bonusValue ? String(editingEntry.bonusValue) : "";
+    syncGatedValueInput("kuva-bonus-stat-select", "kuva-bonus-value-input");
     el<HTMLTextAreaElement>("kuva-note-input").value = editingEntry ? editingEntry.note || "" : "";
   }
 }
