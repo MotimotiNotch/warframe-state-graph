@@ -12,6 +12,7 @@
         "B": [],
         "C": []
       },
+      "favorite": false,
       "note": "- [x] aaa\n- ddddd\n**ありがとう**",
       "lastUsedAt": 1787472128234
     },
@@ -23,7 +24,8 @@
         "A": [],
         "B": [],
         "C": []
-      }
+      },
+      "chainViewNodeId": "braton"
     },
     "item-mt5i54h7k091": {
       "id": "item-mt5i54h7k091",
@@ -43,7 +45,43 @@
         "A": [],
         "B": [],
         "C": []
-      }
+      },
+      "favorite": true
+    },
+    "item-mt9l5uom1ajb": {
+      "id": "item-mt9l5uom1ajb",
+      "name": "Oberon Prime",
+      "type": "Frame",
+      "configs": {
+        "A": [],
+        "B": [],
+        "C": []
+      },
+      "favorite": true,
+      "note": "",
+      "chainViewNodeId": "oberon-prime"
+    },
+    "test-item-3color": {
+      "id": "test-item-3color",
+      "name": "【テスト】3色ミニグラフ例",
+      "type": "Weapon",
+      "configs": {
+        "A": [],
+        "B": [],
+        "C": []
+      },
+      "chainViewNodeId": "test-mg-root"
+    },
+    "test-item-deepcap": {
+      "id": "test-item-deepcap",
+      "name": "【テスト】3層キャップ例(13階層中)",
+      "type": "Weapon",
+      "configs": {
+        "A": [],
+        "B": [],
+        "C": []
+      },
+      "chainViewNodeId": "ash-stealth-build"
     }
   },
   "buildSets": {
@@ -66,6 +104,22 @@
         }
       ],
       "note": "ddddd"
+    },
+    "buildset-mt9le21h4ioi": {
+      "id": "buildset-mt9le21h4ioi",
+      "name": "tesr",
+      "frame": {
+        "itemId": "item-mt9l5uom1ajb",
+        "config": "A"
+      },
+      "weapons": [
+        {
+          "itemId": "item-mt5gslv7tkz6",
+          "config": "A"
+        }
+      ],
+      "note": "",
+      "chainViewBuildId": "goal-mt9le21c51sd"
     }
   }
 }

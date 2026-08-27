@@ -2,19 +2,120 @@
   "schemaVersion": 1,
   "planets": {
     "1999MapName": {
-      "cleared": 8,
+      "cleared": 0,
       "steelPathCleared": 0
     },
     "Ceres": {
       "cleared": 0,
-      "steelPathCleared": 12
+      "steelPathCleared": 0
     },
     "Mars": {
       "cleared": 0,
-      "steelPathCleared": 19
+      "steelPathCleared": 0
+    },
+    "TauRegion": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "SolarMapDeimosName": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Earth": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Eris": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Europa": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Fortress": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Jupiter": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Mercury": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Moon": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Neptune": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Phobos": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Pluto": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "RelayStationSanctuary": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Saturn": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Sedna": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Uranus": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Venus": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Void": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "ZarimanRegionName": {
+      "cleared": 0,
+      "steelPathCleared": 0
     }
   },
-  "railjackProxima": {},
+  "railjackProxima": {
+    "Earth": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Neptune": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Pluto": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Saturn": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "DeepSpace": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    },
+    "Venus": {
+      "cleared": 0,
+      "steelPathCleared": 0
+    }
+  },
   "railjackIntrinsics": {
     "Command": 0,
     "Engineering": 0,
@@ -56,51 +157,51 @@
   },
   "railjackPlexusNote": "",
   "questsCleared": {
-    "A Man Of Few Words": false,
-    "Angels Of The Zariman": false,
+    "A Man Of Few Words": true,
+    "Angels Of The Zariman": true,
     "Apostasy Prologue": true,
     "Awakening": true,
-    "Call Of The Tempestarii": false,
+    "Call Of The Tempestarii": true,
     "Chains Of Harrow": true,
     "Chimera Prologue": true,
-    "Clan Key": false,
+    "Clan Key": true,
     "Erra": true,
     "Heart Of Deimos": true,
-    "Hidden Messages": false,
-    "Howl Of The Kubrow": false,
-    "Jade Shadows": false,
-    "Jade Shadows: Constellations": false,
-    "Mask Of The Revenant": false,
-    "Mutalist Alad V Assassinate": false,
+    "Hidden Messages": true,
+    "Howl Of The Kubrow": true,
+    "Jade Shadows": true,
+    "Jade Shadows: Constellations": true,
+    "Mask Of The Revenant": true,
+    "Mutalist Alad V Assassinate": true,
     "Natah": true,
-    "Octavia's Anthem": false,
+    "Octavia's Anthem": true,
     "Once Awake": true,
-    "Patient Zero": false,
+    "Patient Zero": true,
     "Prelude to War": true,
     "Rising Tide": true,
-    "Sands Of Inaros": false,
-    "Saya's Vigil": false,
-    "Stolen Dreams": true,
+    "Sands Of Inaros": true,
+    "Saya's Vigil": true,
+    "Stolen Dreams": false,
     "The Archwing": true,
-    "The Deadlock Protocol": false,
+    "The Deadlock Protocol": true,
     "The Duviri Paradox": true,
-    "The Glast Gambit": false,
+    "The Glast Gambit": true,
     "The Hex": true,
-    "The Hex Finale": false,
-    "The Jordas Precept": false,
-    "The Limbo Theorem": false,
+    "The Hex Finale": true,
+    "The Jordas Precept": true,
+    "The Limbo Theorem": true,
     "The Lotus Eaters": true,
     "The Maker": true,
     "The New Strange": true,
     "The New War": true,
-    "The Old Peace": false,
+    "The Old Peace": true,
     "The Sacrifice": true,
     "The Second Dream": true,
-    "The Silver Grove": false,
+    "The Silver Grove": true,
     "The Teacher": true,
     "The War Within": true,
-    "The Waverider": false,
-    "Veilbreaker": false,
+    "The Waverider": true,
+    "Veilbreaker": true,
     "Vor's Prize": true,
     "Vox Solaris": true,
     "Whispers In The Walls": true

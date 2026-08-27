@@ -51,14 +51,18 @@
       "name": "Blueprint",
       "type": "Resource",
       "satisfied": false,
-      "requires": [],
-      "contains": []
+      "requires": [
+        "aaaaa"
+      ],
+      "contains": [],
+      "note": "",
+      "masteryTrack": false
     },
     "ash-chassis": {
       "id": "ash-chassis",
       "name": "Chassis",
       "type": "Resource",
-      "satisfied": false,
+      "satisfied": true,
       "requires": [],
       "contains": [],
       "note": "入手先: Pluto/Fenton's Field (Skirmish), Rotation A"
@@ -67,7 +71,7 @@
       "id": "ash-neuroptics",
       "name": "Neuroptics",
       "type": "Resource",
-      "satisfied": false,
+      "satisfied": true,
       "requires": [],
       "contains": []
     },
@@ -75,7 +79,7 @@
       "id": "ash-orokin-cell",
       "name": "Orokin Cell",
       "type": "Resource",
-      "satisfied": false,
+      "satisfied": true,
       "requires": [],
       "contains": []
     },
@@ -92,8 +96,7 @@
         "ash-prime-orokin-cell",
         "ash-prime-systems"
       ],
-      "evaluation": "育成中（Forma 2/4, Helminth未）",
-      "note": "所持・レベリング済みだがForma待ち。",
+      "note": "育成中（Forma 2/4, Helminth未）\n所持・レベリング済みだがForma待ち。",
       "uniqueName": "/Lotus/Powersuits/Ninja/AshPrime"
     },
     "ash-prime-blueprint": {
@@ -169,7 +172,7 @@
       "id": "ash-systems",
       "name": "Systems",
       "type": "Resource",
-      "satisfied": false,
+      "satisfied": true,
       "requires": [],
       "contains": [],
       "note": "入手先: Venus/Bifrost Echo (Skirmish)"
@@ -186,8 +189,8 @@
     "braton": {
       "id": "braton",
       "name": "Braton",
-      "type": "Weapon",
-      "satisfied": false,
+      "type": "Goal",
+      "satisfied": true,
       "requires": [],
       "contains": [],
       "uniqueName": "/Lotus/Weapons/Tenno/Rifle/Rifle"
@@ -353,8 +356,7 @@
       "contains": [
         "dragon-nikana-riven"
       ],
-      "evaluation": "一軍",
-      "note": "武器自体は所持済み。Rivenの完成度は別ノードで管理。"
+      "note": "一軍\n武器自体は所持済み。Rivenの完成度は別ノードで管理。"
     },
     "dragon-nikana-riven": {
       "id": "dragon-nikana-riven",
@@ -368,8 +370,7 @@
         "riven-stat-range",
         "riven-stat-neg"
       ],
-      "evaluation": "要リロール",
-      "note": "CC/CD偏重、Range低め。もう1〜2回Kuvaでロールしたい。入れ子検証用に3階層目のcontainsを追加。"
+      "note": "要リロール\nCC/CD偏重、Range低め。もう1〜2回Kuvaでロールしたい。入れ子検証用に3階層目のcontainsを追加。"
     },
     "fatal-teleport": {
       "id": "fatal-teleport",
@@ -1046,6 +1047,205 @@
       ],
       "contains": [],
       "note": "縦の深さ検証用チェーン（5段目）。"
+    },
+    "oberon-prime": {
+      "id": "oberon-prime",
+      "name": "Oberon Prime",
+      "type": "Goal",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "oberon-prime-blueprint",
+        "oberon-prime-chassis",
+        "oberon-prime-neuroptics",
+        "oberon-prime-orokin-cell",
+        "oberon-prime-systems"
+      ],
+      "uniqueName": "/Lotus/Powersuits/Paladin/PaladinPrime"
+    },
+    "oberon-prime-blueprint": {
+      "id": "oberon-prime-blueprint",
+      "name": "Blueprint",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
+    "oberon-prime-chassis": {
+      "id": "oberon-prime-chassis",
+      "name": "Chassis",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
+    "oberon-prime-neuroptics": {
+      "id": "oberon-prime-neuroptics",
+      "name": "Neuroptics",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
+    "oberon-prime-orokin-cell": {
+      "id": "oberon-prime-orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
+    "oberon-prime-systems": {
+      "id": "oberon-prime-systems",
+      "name": "Systems",
+      "type": "Resource",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
+    "goal-mt9le21c51sd": {
+      "id": "goal-mt9le21c51sd",
+      "name": "tesr",
+      "type": "Goal",
+      "satisfied": true,
+      "requires": [],
+      "contains": [
+        "oberon-prime",
+        "braton"
+      ]
+    },
+    "aaaaa": {
+      "id": "aaaaa",
+      "name": "aaaaa",
+      "type": "Weapon",
+      "satisfied": false,
+      "requires": [],
+      "contains": [],
+      "note": "",
+      "masteryTrack": false
+    },
+    "test-mg-leaf": {
+      "id": "test-mg-leaf",
+      "name": "【テスト】ミニグラフ-葉（達成済み）",
+      "type": "Goal",
+      "satisfied": true,
+      "requires": [],
+      "contains": []
+    },
+    "test-mg-mid": {
+      "id": "test-mg-mid",
+      "name": "【テスト】ミニグラフ-中間（実行可能）",
+      "type": "Goal",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "test-mg-leaf"
+      ]
+    },
+    "test-mg-root": {
+      "id": "test-mg-root",
+      "name": "【テスト】ミニグラフ-根（前提待ち）",
+      "type": "Goal",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "test-mg-mid"
+      ]
+    },
+    "volt-prime-blueprint": {
+      "id": "volt-prime-blueprint",
+      "name": "Blueprint",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "volt-prime-chassis": {
+      "id": "volt-prime-chassis",
+      "name": "Chassis",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "volt-prime-neuroptics": {
+      "id": "volt-prime-neuroptics",
+      "name": "Neuroptics",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "volt-prime-orokin-cell": {
+      "id": "volt-prime-orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "volt-prime-systems": {
+      "id": "volt-prime-systems",
+      "name": "Systems",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "titania-prime": {
+      "id": "titania-prime",
+      "name": "Titania Prime",
+      "type": "Goal",
+      "satisfied": false,
+      "requires": [],
+      "contains": [
+        "titania-prime-blueprint",
+        "titania-prime-chassis",
+        "titania-prime-neuroptics",
+        "titania-prime-orokin-cell",
+        "titania-prime-systems"
+      ],
+      "uniqueName": "/Lotus/Powersuits/Fairy/TitaniaPrime"
+    },
+    "titania-prime-blueprint": {
+      "id": "titania-prime-blueprint",
+      "name": "Blueprint",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "titania-prime-chassis": {
+      "id": "titania-prime-chassis",
+      "name": "Chassis",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "titania-prime-neuroptics": {
+      "id": "titania-prime-neuroptics",
+      "name": "Neuroptics",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "titania-prime-orokin-cell": {
+      "id": "titania-prime-orokin-cell",
+      "name": "Orokin Cell",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
+    },
+    "titania-prime-systems": {
+      "id": "titania-prime-systems",
+      "name": "Systems",
+      "type": "Resource",
+      "satisfied": false,
+      "requires": [],
+      "contains": []
     }
   }
 }

@@ -14,14 +14,7 @@
       ],
       "fixed": true,
       "favorite": true,
-      "note": "- [ ] dddddd\nつよい"
-    },
-    "riven-mt4zl2i7y1nj": {
-      "id": "riven-mt4zl2i7y1nj",
-      "weaponName": "Braton",
-      "positiveStats": [],
-      "fixed": false,
-      "favorite": true
+      "note": "- [x] dddddd\nつよい"
     },
     "riven-mt4zlclrhoys": {
       "id": "riven-mt4zlclrhoys",
@@ -29,6 +22,40 @@
       "positiveStats": [],
       "fixed": false,
       "favorite": true
+    },
+    "riven-mt9p7xvsfpe2": {
+      "id": "riven-mt9p7xvsfpe2",
+      "weaponName": "Braton Vandal",
+      "positiveStats": [
+        "Critical Chance"
+      ],
+      "positiveValues": [
+        50
+      ],
+      "negativeStat": "Critical Chance",
+      "negativeValue": 50,
+      "fixed": false,
+      "favorite": false,
+      "note": ""
+    },
+    "riven-mt9s40wbddl2": {
+      "id": "riven-mt9s40wbddl2",
+      "weaponName": "Braton",
+      "positiveStats": [
+        "Critical Damage",
+        "Status Duration",
+        "Recoil"
+      ],
+      "positiveValues": [
+        100,
+        50,
+        1111
+      ],
+      "negativeStat": "Critical Chance",
+      "negativeValue": -111.5,
+      "fixed": false,
+      "favorite": false,
+      "note": ""
     }
   },
   "kuva": {
@@ -68,6 +95,23 @@
       "owned": false,
       "rankedThirty": false,
       "helminthFed": false
+    },
+    "frame-mt9l5uozfyhn": {
+      "id": "frame-mt9l5uozfyhn",
+      "name": "Oberon Prime",
+      "owned": true,
+      "rankedThirty": false,
+      "helminthFed": false,
+      "note": ""
+    },
+    "frame-mt9rimrrn6fo": {
+      "id": "frame-mt9rimrrn6fo",
+      "name": "Titania Prime",
+      "owned": true,
+      "rankedThirty": true,
+      "helminthFed": true,
+      "note": "",
+      "chainViewNodeId": "titania-prime"
     }
   },
   "weapons": {},
@@ -81,6 +125,13 @@
       "obtained": true,
       "completed": true,
       "note": "テスト\nじつはつよい"
+    },
+    "incarnon-mt9u9e8yienn": {
+      "id": "incarnon-mt9u9e8yienn",
+      "weaponName": "xxxx",
+      "obtained": true,
+      "completed": false,
+      "note": ""
     }
   }
 }

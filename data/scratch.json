@@ -1,11 +1,5 @@
 {
   "schemaVersion": 1,
-  "note": "\n\n",
-  "counters": [
-    {
-      "id": "counter-mt502gewpnzi",
-      "label": "",
-      "value": 0
-    }
-  ]
+  "note": "",
+  "counters": []
 }
