@@ -141,6 +141,12 @@
   }
   @media (max-width: 800px) {
     .layout { flex-direction: column; }
+    /* flex-basis is axis-dependent — a desktop-row pixel width (saved drag
+       or the CSS default below) would otherwise apply as a *height* once
+       flex-direction turns column here (split-pane.ts's applyLayoutForBreakpoint()
+       clears any inline override so this rule actually takes effect). */
+    #folder-panel, #panel { flex: 0 0 auto; }
+    #folder-panel { max-height: 40vh; }
   }
 
   /* 左サイドバー（エクスプローラー風のフォルダ/ビルド一覧、2026-08-27）。ビルドが増えるほど
@@ -214,6 +220,10 @@
   @media (max-width: 800px) {
     #resizer-left { display: none; }
   }
+  /* エクスプローラー風の折りたたみ（2026-08-28、狭いウィンドウでもグラフ本体を
+     広く使えるように）。#graph-panelはflex:3 1 0なので、隣がdisplay:noneで
+     消えれば追加のCSSなしで自動的に空いた幅を吸収する。 */
+  #folder-panel.collapsed, #resizer-left.collapsed { display: none; }
 
   #graph-panel {
     background: var(--panel);
@@ -475,6 +485,7 @@
     <button class="toggle" id="wfcd-import-btn"></button>
     <button class="toggle" id="dsl-import-btn"></button>
     <span style="flex:1"></span>
+    <button class="icon-btn" id="sidebar-toggle-btn"></button>
     <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
     <div class="popover-wrap">
       <button class="icon-btn" id="legend-toggle" title="凡例"></button>

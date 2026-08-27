@@ -103,6 +103,12 @@ const MANUAL_TOPICS: ManualTopic[] = [
     targetId: "legend-toggle",
   },
   {
+    id: "sidebar-toggle",
+    title: "ビルド一覧の折りたたみ",
+    body: "左のビルド一覧パネルを隠してChain View本体を広く使えます。ウィンドウが狭い時に便利です。状態は次回起動時も引き継がれます。",
+    targetId: "sidebar-toggle-btn",
+  },
+  {
     id: "quest-progress",
     title: "クエスト進行状況の登録",
     body: "クリア済みのクエストにチェックを入れると、対応するネタバレ回避セクションの折りたたみが自動的に解除されます。Statsページの「クエスト進行状況」パネルでいつでも変更できます。",

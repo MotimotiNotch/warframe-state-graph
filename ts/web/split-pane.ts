@@ -4,6 +4,7 @@
 // resizers, each only aware of its own adjacent pane pair.
 
 import { el } from "./dom.ts";
+import { icon } from "./icons.ts";
 
 const PANEL_WIDTH_KEY = "warframe-state-graph:panelWidths";
 
@@ -11,6 +12,10 @@ interface SavedPanelWidths {
   folderWidth?: number;
   graphWidth?: number;
   panelWidth?: number;
+  /** エクスプローラー風の折りたたみ状態（2026-08-28）。#graph-panelは
+   * flex:3 1 0なので、折りたたみ時に#folder-panel/#resizer-leftをdisplay:none
+   * にするだけで空いた幅を自動的に吸収する——widthの再計算は不要。 */
+  folderCollapsed?: boolean;
 }
 
 // Saved to localStorage so the ratios survive a reload. This is a
@@ -40,6 +45,28 @@ function restorePanelWidths(): void {
   if (typeof saved.folderWidth === "number") el("folder-panel").style.flex = `0 0 ${saved.folderWidth}px`;
   if (typeof saved.graphWidth === "number") el("graph-panel").style.flex = `0 0 ${saved.graphWidth}px`;
   if (typeof saved.panelWidth === "number") el("panel").style.flex = `0 0 ${saved.panelWidth}px`;
+}
+
+// .layout switches from row to column under this breakpoint (index.html).
+// flex-basis is axis-dependent — a pixel width saved from the desktop 3-pane
+// row layout (or even just the CSS default) would otherwise apply as a
+// *height* once the main axis turns vertical, leaving a tall empty gap under
+// a short build list (2026-08-28, real bug hit testing the sidebar-collapse
+// toggle at a narrow width: #folder-panel rendered ~220px tall with mostly
+// blank space before Chain View even though it only held 2 short rows).
+// Clearing the inline flex-basis here lets #folder-panel/#panel fall back to
+// the mobile media rule's `flex: 0 0 auto` (content-height, capped via
+// #folder-panel's max-height) instead of leaking a desktop width in as
+// height. Re-entering desktop width restores the saved/default pixel basis.
+const MOBILE_MQ = window.matchMedia("(max-width: 800px)");
+
+function applyLayoutForBreakpoint(): void {
+  if (MOBILE_MQ.matches) {
+    el("folder-panel").style.flex = "";
+    el("panel").style.flex = "";
+  } else {
+    restorePanelWidths();
+  }
 }
 
 /** Wires one resizer that trades width between its two adjacent panes only
@@ -89,8 +116,28 @@ function wireResizer(
   });
 }
 
+function applySidebarCollapsed(collapsed: boolean): void {
+  el("folder-panel").classList.toggle("collapsed", collapsed);
+  el("resizer-left").classList.toggle("collapsed", collapsed);
+  const btn = el("sidebar-toggle-btn");
+  btn.innerHTML = icon(collapsed ? "panel-left-open" : "panel-left-close");
+  btn.title = collapsed ? "ビルド一覧を表示" : "ビルド一覧を隠す";
+}
+
+function wireSidebarToggle(): void {
+  const collapsed = loadSavedWidths().folderCollapsed ?? false;
+  applySidebarCollapsed(collapsed);
+  el("sidebar-toggle-btn").addEventListener("click", () => {
+    const next = !el("folder-panel").classList.contains("collapsed");
+    applySidebarCollapsed(next);
+    saveWidths({ folderCollapsed: next });
+  });
+}
+
 export function initResizer(): void {
-  restorePanelWidths();
+  applyLayoutForBreakpoint();
+  MOBILE_MQ.addEventListener("change", applyLayoutForBreakpoint);
+  wireSidebarToggle();
 
   wireResizer("resizer-left", el("folder-panel"), el("graph-panel"), 160, 300, (folderWidth, graphWidth) => {
     saveWidths({ folderWidth, graphWidth });
