@@ -4,6 +4,8 @@
 // not the full quest list). Waits for spoiler-warning.ts's ack event so the
 // two first-run modals never stack.
 
+import { flashHighlight } from "./highlight.ts";
+
 const KEY = "warframe-state-graph:questOnboardingSeen";
 
 function alreadySeen(): boolean {
@@ -65,6 +67,11 @@ function offerManual(): void {
   });
   document.getElementById("quest-onboarding-dismiss-manual")!.addEventListener("click", dismiss);
   window.setTimeout(dismiss, 12000);
+
+  // Point at where the manual actually lives, not just tell about it in text
+  // (のっち指摘、2026-08-27: トースト文言だけでは実際のボタンの場所が分からない).
+  const launcherBtn = document.getElementById("manual-launcher-btn");
+  if (launcherBtn) flashHighlight(launcherBtn);
 }
 
 function show(): void {
@@ -104,11 +111,18 @@ function show(): void {
     offerManual();
   });
   document.getElementById("quest-onboarding-save")!.addEventListener("click", async () => {
+    // Read the checkboxes' state while the modal is still in the document —
+    // backdrop.remove() below detaches it, and getElementById can't find an
+    // id inside a detached subtree, so re-querying after remove() silently
+    // threw (uncaught in this async handler) and skipped offerManual()
+    // entirely on every save, checked or not (のっち報告, 2026-08-27).
+    const checkedFlags = GATING_QUESTS.map(
+      (_, i) => (document.getElementById(`quest-onboarding-check-${i}`) as HTMLInputElement).checked,
+    );
     markSeen();
     backdrop.remove();
     for (let i = 0; i < GATING_QUESTS.length; i++) {
-      const checked = (document.getElementById(`quest-onboarding-check-${i}`) as HTMLInputElement).checked;
-      if (!checked) continue; // uncleared side stays at the default false
+      if (!checkedFlags[i]) continue; // uncleared side stays at the default false
       try {
         await fetch(`/api/stats/quest/${encodeURIComponent(GATING_QUESTS[i]!.name)}`, {
           method: "POST",

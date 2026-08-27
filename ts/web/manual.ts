@@ -3,6 +3,7 @@
 // window.opener (same-origin) to highlight the button a topic is about, so
 // のっち can keep both windows visible side by side while reading.
 import "./theme.ts";
+import { flashHighlight } from "./highlight.ts";
 
 interface ManualTopic {
   id: string;
@@ -11,6 +12,13 @@ interface ManualTopic {
   /** DOM id, in the opener document, this topic is about. Omitted for a
    * page-wide behavior with no single anchor element to highlight. */
   targetId?: string;
+  /** TOC/content section heading rendered directly above this topic.
+   * 2026-08-27: page-specific topics and the always-present top-right-bar
+   * menu items were interleaved in one flat list with no visual grouping,
+   * making it unclear the menu items are the same shared widget on every
+   * page (のっち指摘). Set only on the first topic of each group — render()
+   * inserts the heading whenever it differs from the previous topic's. */
+  section?: string;
 }
 
 // 2026-08-27: covers the always-visible shared widgets (top-right-bar icons)
@@ -22,6 +30,7 @@ const MANUAL_TOPICS: ManualTopic[] = [
   {
     id: "page-chainview",
     title: "Chain View",
+    section: "ページ",
     body: "<p>ゲーム内の依存関係グラフと自分の進行状況を接続し、次にやるべきことを動的に導き出すメインページです。ノードの状態については「凡例」を参照してください。</p>",
   },
   {
@@ -110,27 +119,41 @@ const MANUAL_TOPICS: ManualTopic[] = [
     body: "一覧のお気に入りマークをオンにすると、一覧の先頭に固定表示されます。",
   },
   {
+    id: "manual-button",
+    title: "マニュアルボタン",
+    body: "<p>今開いているこのマニュアルは、このボタンから開けます。</p>",
+    targetId: "manual-launcher-btn",
+    section: "メニュー",
+  },
+  {
+    id: "menu",
+    title: "メニュー",
+    body: "<p>画面右上に常に表示される共通メニューです。どのページを開いていてもここにあります。</p>",
+    targetId: "top-right-bar",
+  },
+  {
     id: "scratch",
     title: "クイックメモ",
-    body: "右上のメモアイコンから、Markdown記法対応の自由記述メモを画面上に浮かべておけます。太字・箇条書き・チェックリストが使えます（記法はメモパネル内の丸に!アイコンから確認できます）。",
+    body: "Markdown記法対応の自由記述メモを画面上に浮かべておけます。太字・箇条書き・チェックリストが使えます（記法はメモパネル内の丸に!アイコンから確認できます）。",
     targetId: "scratch-toggle-btn",
   },
   {
     id: "booster",
     title: "タイマー",
-    body: "右上のタイマーアイコンから、ブースター等の残り時間を計測できます。プルダウンは固定期間専用、「+」から任意の日数/時間も指定できます。",
+    body: "ブースター等の残り時間を計測できます。プルダウンは固定期間専用、「+」から任意の日数/時間も指定できます。",
     targetId: "booster-toggle-btn",
   },
   {
     id: "theme",
     title: "テーマ切替",
-    body: "右上のアイコンでライト/ダークテーマを切り替えられます。",
+    body: "ライト/ダークテーマを切り替えられます。",
     targetId: "theme-toggle-btn",
   },
   {
     id: "easter-egg",
     title: "おまけ",
     body: "このツールにはイースターエッグがあります。探してみてください。",
+    section: "その他",
   },
 ];
 
@@ -154,24 +177,7 @@ function highlightInOpener(opener: Window, targetId: string, statusEl: HTMLEleme
   statusEl.textContent = "";
   opener.focus();
   target.scrollIntoView({ behavior: "smooth", block: "center" });
-
-  const accent = opener.getComputedStyle(opener.document.documentElement).getPropertyValue("--accent").trim() || "#f6ddaa";
-  const prevOutline = target.style.outline;
-  const prevOffset = target.style.outlineOffset;
-  target.style.outlineOffset = "2px";
-  let on = true;
-  let ticks = 0;
-  const timer = window.setInterval(() => {
-    on = !on;
-    target.style.outline = on ? `2px solid ${accent}` : "2px solid transparent";
-    ticks++;
-    if (ticks >= 6) {
-      window.clearInterval(timer);
-      target.style.outline = prevOutline;
-      target.style.outlineOffset = prevOffset;
-    }
-  }, 280);
-  target.style.outline = `2px solid ${accent}`;
+  flashHighlight(target);
 }
 
 // Topics with a targetId only make sense on a page that actually has that
@@ -202,10 +208,21 @@ function render(): void {
     return;
   }
 
-  toc.innerHTML = topics.map((t) => `<button class="toc-item" data-toc="${t.id}">${t.title}</button>`).join("");
+  // section is only set on the first topic of each group in MANUAL_TOPICS;
+  // a filtered-out first topic would silently drop its heading, but every
+  // current group leader is always-visible (see comment on MANUAL_TOPICS),
+  // so this holds in practice.
+  toc.innerHTML = topics
+    .map(
+      (t) =>
+        (t.section ? `<div class="toc-section">${t.section}</div>` : "") +
+        `<button class="toc-item" data-toc="${t.id}">${t.title}</button>`,
+    )
+    .join("");
   container.innerHTML = topics
     .map(
       (t) => `
+      ${t.section ? `<div class="content-section">${t.section}</div>` : ""}
       <div class="topic" id="topic-${t.id}">
         <h2>${t.title}</h2>
         <div class="topic-body">${t.body}</div>
