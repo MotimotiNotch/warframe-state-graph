@@ -203,11 +203,22 @@ export async function fetchCompanionNames(): Promise<string[]> {
 
 const MISSION_REWARDS_URL = "https://raw.githubusercontent.com/WFCD/warframe-drop-data/master/data/missionRewards.json";
 
+// Recognized relic era prefixes. "Vanguard" (2026-08-27) is a special-named
+// Axi-tier relic series from Prime Resurgence — wiki.warframe.com/w/Vanguard_Relic:
+// "a series of Axi Void Relics released through Prime Resurgence shortly
+// after Update 41" (C1/E1/M1/P1) — not a genuine 5th era; its WFCD-side drop
+// names just don't literally start with "Axi". Exported so wfcdgen.ts's
+// separate extraction regex builds from this same list instead of
+// hardcoding its own copy — a second hardcoded copy is exactly how this
+// omission (Vanguard mis-classified as a non-relic mission drop, vault
+// status never checked) went unnoticed until now.
+export const RELIC_ERA_PREFIX = "Lith|Meso|Neo|Axi|Vanguard";
+
 // Matches a bare relic name value in the mission-rewards tree (e.g. "Axi A22
 // Relic (Radiant)"). missionRewards.json's exact nesting (planet -> node ->
 // rotation -> reward) can change between versions, so this scans every
 // string value structure-agnostically rather than depending on the shape.
-const RELIC_NAME_PATTERN = /^(Lith|Meso|Neo|Axi) [A-Z]\d{1,2}(?: Relic)?(?: \([^)]*\))?$/;
+const RELIC_NAME_PATTERN = new RegExp(`^(${RELIC_ERA_PREFIX}) [A-Z]\\d{1,2}(?: Relic)?(?: \\([^)]*\\))?$`);
 
 /** "Axi A22 Relic (Radiant)" -> "Axi A22". Refinement state doesn't affect vault status. */
 function normalizeRelicName(name: string): string {

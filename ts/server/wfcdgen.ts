@@ -8,7 +8,7 @@
 import type { Node, NodeType } from "./model.ts";
 import { MainQuestNames, Prerequisites, ResolveChain, Slug as questchainSlug } from "./questchain.ts";
 import type { Item, SyndicateEntry } from "./wfcd.ts";
-import { findSyndicateWeaponRank, isRelicVaulted, CategoryPets } from "./wfcd.ts";
+import { findSyndicateWeaponRank, isRelicVaulted, CategoryPets, RELIC_ERA_PREFIX } from "./wfcd.ts";
 
 export type Paradigm =
   | "single-blueprint" // (1) blueprint-only
@@ -177,7 +177,9 @@ export interface Suggestion {
 // between versions, so this partial-matches rather than parsing strictly. No
 // match means the drop isn't relic-sourced (plain mission/assassination
 // drop) — returning isRelic=false here matters (see RelicCandidate's comment above).
-const RELIC_IN_LOCATION_PATTERN = /(Lith|Meso|Neo|Axi) [A-Z]\d{1,2}/;
+// Built from wfcd.ts's RELIC_ERA_PREFIX (not a second hardcoded era list) —
+// see that constant's comment for why (2026-08-27, the Vanguard fix).
+const RELIC_IN_LOCATION_PATTERN = new RegExp(`(${RELIC_ERA_PREFIX}) [A-Z]\\d{1,2}`);
 
 function extractRelicName(location: string): { name: string; isRelic: boolean } {
   const m = RELIC_IN_LOCATION_PATTERN.exec(location);
