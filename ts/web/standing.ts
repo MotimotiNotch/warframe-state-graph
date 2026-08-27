@@ -3,6 +3,9 @@ import type { Data, SyndicateInfo } from "../server/standing.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import "./booster.ts";
+import "./spoiler-warning.ts";
+import "./quest-onboarding.ts";
+import "./manual-launcher.ts";
 import "./scratch.ts";
 
 interface StandingResponse {

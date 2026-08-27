@@ -3,14 +3,14 @@
 
 import { z } from "zod";
 import { AsyncMutex } from "./async-mutex.ts";
+import { CounterSchema, type Counter } from "./model.ts";
 import { loadJSON, saveJSON, NotFoundError } from "./persist.ts";
 
-export const CounterSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  value: z.number(),
-});
-export type Counter = z.infer<typeof CounterSchema>;
+// Re-exported for existing importers (ts/web/scratch.ts) — the schema/type
+// itself now lives in model.ts, shared with Node's per-node counters
+// (2026-08-27).
+export { CounterSchema };
+export type { Counter };
 
 export const CURRENT_SCHEMA_VERSION = 1;
 

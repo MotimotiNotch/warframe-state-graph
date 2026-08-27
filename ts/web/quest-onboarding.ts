@@ -39,6 +39,34 @@ const GATING_QUESTS: { name: string; ja: string }[] = [
   { name: "The Duviri Paradox", ja: "デュヴィリ・パラドックス" },
 ];
 
+// Follows the onboarding modal (skip or save, either path) — a low-pressure
+// invite into the manual window, not another blocking modal. The actual
+// window.open() call happens inside this toast's own button click handler
+// (not here), so the popup blocker sees a direct user gesture. Auto-dismisses
+// after a while so it never lingers for someone who doesn't want it.
+function offerManual(): void {
+  const toast = document.createElement("div");
+  toast.style.cssText =
+    "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:501;" +
+    "background:var(--bg,#12141a);color:var(--text,#e4e6ec);border:1px solid var(--accent,#f6ddaa);" +
+    "border-radius:12px;padding:10px 12px 10px 16px;font-family:'Noto Sans JP',-apple-system,'Segoe UI','Hiragino Sans',sans-serif;" +
+    "font-size:0.82rem;box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;";
+  toast.innerHTML =
+    "<span>使い方をハイライト付きで見られます</span>" +
+    "<button id='quest-onboarding-open-manual' style='background:transparent;border:1px solid var(--accent,#f6ddaa);" +
+    "color:var(--accent,#f6ddaa);border-radius:6px;padding:5px 12px;font-size:0.78rem;cursor:pointer;white-space:nowrap;'>マニュアルを開く</button>" +
+    "<button id='quest-onboarding-dismiss-manual' style='background:transparent;border:none;color:var(--muted,#9aa0ab);" +
+    "cursor:pointer;font-size:1rem;padding:2px 4px;line-height:1;'>×</button>";
+  document.body.appendChild(toast);
+  const dismiss = () => toast.remove();
+  document.getElementById("quest-onboarding-open-manual")!.addEventListener("click", () => {
+    window.open("/manual.html", "wsg-manual", "width=440,height=680,resizable=yes,scrollbars=yes");
+    dismiss();
+  });
+  document.getElementById("quest-onboarding-dismiss-manual")!.addEventListener("click", dismiss);
+  window.setTimeout(dismiss, 12000);
+}
+
 function show(): void {
   const backdrop = document.createElement("div");
   backdrop.style.cssText =
@@ -73,6 +101,7 @@ function show(): void {
   document.getElementById("quest-onboarding-skip")!.addEventListener("click", () => {
     markSeen();
     backdrop.remove();
+    offerManual();
   });
   document.getElementById("quest-onboarding-save")!.addEventListener("click", async () => {
     markSeen();
@@ -90,6 +119,7 @@ function show(): void {
         /* the modal still closes on save failure; can be re-registered from the Stats page */
       }
     }
+    offerManual();
   });
 }
 

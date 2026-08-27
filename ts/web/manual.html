@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Warframe State Graph — マニュアル</title>
+<script>
+  // フラッシュ防止: 呼び出し元ページと同じテーマをlocalStorageから同期反映する。
+  (function () {
+    try {
+      var t = localStorage.getItem("warframe-state-graph:theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --panel-blur: 5px;
+    --bg: #12141a;
+    --panel: rgba(27, 30, 39, 0.35);
+    --popover-bg: rgba(20, 22, 28, 0.94);
+    --border: #454b5c;
+    --text: #e4e6ec;
+    --muted: #9aa0ab;
+    --accent: #f6ddaa;
+    --danger: #e88c93;
+    --actionable: #7ee3a9;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --panel: rgba(255, 255, 255, 0.4);
+      --popover-bg: rgba(255, 255, 255, 0.96);
+      --border: #aab0bd;
+      --text: #1c1e24;
+      --muted: #3c3f48;
+      --accent: #a7750a;
+      --danger: #992e37;
+      --actionable: #1a834d;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: rgba(255, 255, 255, 0.4);
+    --popover-bg: rgba(255, 255, 255, 0.96);
+    --border: #aab0bd;
+    --text: #1c1e24;
+    --muted: #3c3f48;
+    --accent: #a7750a;
+    --danger: #992e37;
+    --actionable: #1a834d;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans JP", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    overflow: hidden;
+  }
+  .manual-layout { display: flex; height: 100%; }
+
+  .manual-sidebar {
+    width: 148px;
+    flex-shrink: 0;
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border-right: 1px solid var(--border);
+    padding: 14px 8px;
+    overflow-y: auto;
+  }
+  .manual-sidebar h1 { font-size: 0.92rem; font-weight: 600; margin: 0 0 6px; padding: 0 6px; }
+  .subtitle { font-size: 11px; color: var(--muted); margin: 0 0 10px; padding: 0 6px; line-height: 1.5; }
+  .toc-item {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: none; border-radius: 6px;
+    color: var(--muted); font-size: 12px; padding: 7px 6px; margin-bottom: 2px;
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .toc-item:hover { color: var(--text); background: var(--popover-bg); }
+  .toc-item.active { color: var(--accent); background: var(--popover-bg); }
+
+  .manual-content { flex: 1; overflow-y: auto; padding: 16px; }
+  .topic {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    scroll-margin-top: 12px;
+  }
+  .topic h2 { font-size: 14px; margin: 0 0 6px; }
+  .topic-body { font-size: 13px; line-height: 1.6; color: var(--text); margin: 0 0 10px; }
+  .topic-body p { margin: 0 0 8px; }
+  .topic-body p:last-child { margin-bottom: 0; }
+  .topic-body ul { margin: 0 0 8px; padding-left: 18px; }
+  .topic-body .caution { color: var(--danger); }
+  .locate-btn {
+    font-size: 12px; padding: 6px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent; color: inherit;
+    cursor: pointer; transition: border-color 0.15s, color 0.15s;
+  }
+  .locate-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .locate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .locate-status { font-size: 11px; color: var(--muted); margin-top: 6px; min-height: 1.4em; }
+  .empty { font-size: 13px; color: var(--muted); line-height: 1.6; padding: 0 6px; }
+</style>
+</head>
+<body>
+  <div class="manual-layout">
+    <nav class="manual-sidebar">
+      <h1>マニュアル</h1>
+      <p class="subtitle" id="opener-status">読み込み中…</p>
+      <div id="toc"></div>
+    </nav>
+    <div class="manual-content" id="topics"></div>
+  </div>
+  <script type="module" src="/manual.js"></script>
+</body>
+</html>

@@ -143,6 +143,66 @@
     .layout { flex-direction: column; }
   }
 
+  /* 左サイドバー（エクスプローラー風のフォルダ/ビルド一覧、2026-08-27）。ビルドが増えるほど
+     プルダウン1本での選択が辛くなる問題への対処——旧#build-selectを置き換える形で新設。 */
+  #folder-panel {
+    background: var(--panel);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px;
+    flex: 0 0 220px;
+    min-width: 160px;
+    overflow-y: auto;
+  }
+  .panel-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+  .sb-folder { margin-bottom: 4px; }
+  .sb-folder-head { display: flex; align-items: center; gap: 4px; padding: 3px 0; }
+  .sb-folder-chevron { transition: transform 0.15s ease; flex-shrink: 0; }
+  .sb-folder-chevron.expanded { transform: rotate(180deg); }
+  .sb-folder-name { font-size: 0.85rem; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-folder-count { font-size: 0.72rem; color: var(--muted); margin-right: 2px; }
+  .sb-folder-rename, .sb-folder-delete { padding: 3px; flex-shrink: 0; }
+  .sb-folder-delete:hover { border-color: var(--blocked, #e88c93); color: var(--blocked, #e88c93); }
+  .sb-folder-body { padding-left: 20px; }
+  .sb-folder-body.hidden { display: none; }
+  .sb-empty { font-size: 0.75rem; color: var(--muted); padding: 3px 0; }
+
+  .sb-build-row {
+    display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 6px;
+    cursor: pointer; font-size: 0.82rem;
+  }
+  .sb-build-row:hover { background: var(--border); }
+  .sb-build-row.current { color: var(--accent); font-weight: 600; }
+  .sb-build-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-move-btn { padding: 3px; flex-shrink: 0; }
+  .sb-move-popover { min-width: 160px; max-height: 240px; overflow-y: auto; padding: 4px; }
+  .sb-move-target { padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; }
+  .sb-move-target:hover { background: var(--border); color: var(--accent); }
+  .sb-move-target.current { color: var(--accent); }
+
+  #resizer-left {
+    flex: 0 0 12px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: col-resize;
+  }
+  #resizer-left .grip {
+    width: 4px;
+    height: 44px;
+    background: var(--border);
+    border-radius: 3px;
+    transition: background 0.15s ease;
+  }
+  #resizer-left:hover .grip, #resizer-left.dragging .grip { background: var(--accent); }
+  @media (max-width: 800px) {
+    #resizer-left { display: none; }
+  }
+
   #graph-panel {
     background: var(--panel);
     backdrop-filter: blur(var(--panel-blur));
@@ -399,9 +459,9 @@
   </nav>
 
   <div class="toolbar">
-    <select id="build-select"></select>
     <button class="toggle" id="new-node-btn"></button>
     <button class="toggle" id="wfcd-import-btn"></button>
+    <button class="toggle" id="dsl-import-btn"></button>
     <span style="flex:1"></span>
     <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
     <div class="popover-wrap">
@@ -426,6 +486,14 @@
   </div>
 
   <div class="layout">
+    <div id="folder-panel">
+      <div class="panel-head-row">
+        <div class="panel-title" style="margin:0;">ビルド一覧</div>
+        <button class="icon-btn" id="new-folder-btn" title="新規フォルダ"></button>
+      </div>
+      <div id="sidebar-body"></div>
+    </div>
+    <div id="resizer-left" title="ドラッグして比率を変更"><div class="grip"></div></div>
     <div id="graph-panel">
       <div class="panel-title">Chain View</div>
       <div id="breadcrumb" class="breadcrumb"></div>
@@ -471,8 +539,6 @@
           <div id="node-contains-suggest" class="suggest-list hidden"></div>
         </div>
       </div>
-      <label>評価/メモ（自由記述）</label>
-      <textarea id="node-evaluation"></textarea>
       <label>メモ</label>
       <textarea id="node-note"></textarea>
       <div class="checkbox-row"><input type="checkbox" id="node-mastery-track"><label style="margin:0" for="node-mastery-track">マスタリー担当パーツ（Zaw Strike/Kitgun Chamber/Amp Prism等、Gild必須）</label></div>
@@ -492,7 +558,7 @@
       <div class="row">
         <div>
           <label>種別</label>
-          <select id="wfcd-node-type"><option value="Frame">Frame</option><option value="Weapon">Weapon</option><option value="Quest">Quest</option></select>
+          <select id="wfcd-node-type"></select>
         </div>
         <div>
           <label>名前（キーワードで絞り込み）</label>
@@ -513,6 +579,25 @@
     </div>
   </div>
 
+  <!-- テキストDSLからのノード一括生成（上級者モード）。項目29。 -->
+  <div id="dsl-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>テキストから一括生成（上級者モード）</h3>
+      <div class="ph-row" style="opacity:.8;">
+        <code>A -&gt; B</code>＝「AはBが前提」、<code>A -&gt; [B -&gt; C]</code>＝「Aの中身にB、BはCが前提」、<code>,</code>区切りで複数のチェーンをまとめて書けます。同じ名前は同一ノードとして扱われます。チェーンの先頭（他のどこからも参照されない名前）だけが左上プルダウンから辿れる探索起点になります。
+      </div>
+      <textarea id="dsl-input" rows="4" placeholder="例: フレーム入手 -> [パーツA -> パーツA用レリック開封], フレーム入手 -> パーツB"></textarea>
+      <div class="actions" style="justify-content:flex-start;margin-top:8px;">
+        <button class="toggle" id="dsl-preview-btn">プレビュー</button>
+      </div>
+      <div id="dsl-preview"></div>
+      <div class="actions">
+        <button class="toggle" id="dsl-modal-cancel">閉じる</button>
+        <button class="toggle" id="dsl-modal-import" style="display:none;">この内容でグラフに追加</button>
+      </div>
+    </div>
+  </div>
+
 <!-- Chain View本体（8モジュール＋依存4本）はTSソースからバンドルした単一ESMファイル
      （bun build web/index.ts --outdir=dist --target=browser --format=esm の出力）。
      旧来の個別<script src>の並びの代わりにこれ1本を読み込む。 -->
@@ -526,8 +611,6 @@
 <script src="/wallpaper.js"></script>
 <script src="/theme.js"></script>
 <script src="/scroll-top.js"></script>
-<script src="/spoiler-warning.js"></script>
-<script src="/quest-onboarding.js"></script>
 <script src="/debug-grid.js"></script>
 </body>
 </html>

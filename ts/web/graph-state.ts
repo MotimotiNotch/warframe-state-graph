@@ -8,12 +8,14 @@ import type { Graph } from "../server/model.ts";
 import type { NextActionReport } from "../server/engine.ts";
 import { el } from "./dom.ts";
 import { icon, iconLabel } from "./icons.ts";
+import { initSidebar } from "./build-sidebar.ts";
 import { renderBreadcrumb } from "./graph-nav.ts";
 import { renderGraph } from "./graph-render.ts";
 import { renderPanel } from "./inspector.ts";
 
-// graph-state.ts <-> graph-nav.ts/graph-render.ts/inspector.ts is a genuine
-// circular import (those modules import `state` back from here). ES modules
+// graph-state.ts <-> graph-nav.ts/graph-render.ts/inspector.ts/build-sidebar.ts
+// is a genuine circular import (those modules import `state` back from
+// here). ES modules
 // support this via hoisted, live bindings as long as nothing calls the
 // imported function during top-level module evaluation — loadReport() below
 // only calls these inside an async function invoked later (from main.ts's
@@ -41,6 +43,8 @@ el("new-node-btn").innerHTML = iconLabel("plus", "新規ゴール");
 el("new-node-btn").title = "新規ゴール";
 el("wfcd-import-btn").innerHTML = iconLabel("refresh-cw", "WFCDから自動生成");
 el("wfcd-import-btn").title = "WFCDから自動生成";
+el("dsl-import-btn").innerHTML = iconLabel("code", "テキストから一括生成");
+el("dsl-import-btn").title = "テキストから一括生成（上級者モード）";
 el("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
 el<HTMLButtonElement>("refresh-wfcd-btn").addEventListener("click", async () => {
   const btn = el<HTMLButtonElement>("refresh-wfcd-btn");
@@ -99,7 +103,7 @@ export const state: AppState = {
 
 export async function loadGraph(): Promise<void> {
   await refreshGraph();
-  populateBuildSelect();
+  await initSidebar();
 }
 
 // Used right after a toggle etc., when we want to refetch graph data only
@@ -107,46 +111,6 @@ export async function loadGraph(): Promise<void> {
 export async function refreshGraph(): Promise<void> {
   const res = await fetch("/api/graph");
   state.graph = (await res.json()) as Graph;
-}
-
-export function populateBuildSelect(): void {
-  const sel = el<HTMLSelectElement>("build-select");
-  // Build was folded into Goal (2026-08-25 item 30, no longer creatable),
-  // but existing data can still have Build-typed nodes — keep matching both
-  // for backward compatibility.
-  const builds = Object.values(state.graph!.nodes).filter((n) => n.type === "Build" || n.type === "Goal");
-  sel.innerHTML = builds.map((n) => `<option value="${n.id}">${n.name}</option>`).join("");
-  sel.onchange = () => {
-    selectBuild(sel.value);
-  };
-  // A deep link from Loadouts/Collections' minigraph (?focus=<nodeId>,
-  // 2026-08-26) always points at a Goal/Build node directly — every item's
-  // chainViewNodeId/chainViewBuildId is the node representing the item
-  // itself, never one of its `contains` sub-parts — so it's always one of
-  // these `builds` options; no separate "drill down to a nested node" path
-  // is needed. Falls back to the usual builds[0] default when absent/stale.
-  const requested = new URLSearchParams(location.search).get("focus");
-  const matched = !!requested && builds.some((n) => n.id === requested);
-  const initial = (matched ? requested : builds[0]?.id) ?? null;
-  if (initial) {
-    sel.value = initial;
-    selectBuild(initial);
-    // selectBuild() itself clears state.selected (the normal "just switched
-    // build, nothing picked yet" default) — a deep link should land with
-    // the target already selected/shown in the Inspector, same as clicking
-    // its node directly would, not just focused as the view root with
-    // nothing picked. Set after selectBuild() (which already fired its own
-    // async loadReport()) so this value is what's in place once that
-    // fetch's renderPanel() call actually runs.
-    if (matched) state.selected = initial;
-  }
-  // Consumed — drop it from the URL so a reload/bookmark doesn't keep
-  // forcing this selection over whatever the user picks next.
-  if (requested) {
-    const url = new URL(location.href);
-    url.searchParams.delete("focus");
-    history.replaceState(null, "", url);
-  }
 }
 
 export function selectBuild(buildId: string): void {

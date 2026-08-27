@@ -166,7 +166,6 @@ export function openNodeModal(mode: NodeModalMode, node: Node | null, context?: 
   // directly touch existing connections.
   el("node-requires-section").classList.toggle("hidden", mode !== "edit");
   el("node-contains-section").classList.toggle("hidden", mode !== "edit");
-  el<HTMLTextAreaElement>("node-evaluation").value = node?.evaluation ?? "";
   el<HTMLTextAreaElement>("node-note").value = node?.note ?? "";
   el<HTMLInputElement>("node-mastery-track").checked = !!node?.masteryTrack;
   el("node-modal-delete").style.display = mode === "edit" ? "" : "none";
@@ -193,17 +192,22 @@ el("node-modal-save").addEventListener("click", async () => {
     type: el<HTMLSelectElement>("node-type").value,
     requires: [...draftRequires],
     contains: [...draftContains],
-    evaluation: el<HTMLTextAreaElement>("node-evaluation").value.trim(),
     note: el<HTMLTextAreaElement>("node-note").value.trim(),
     masteryTrack: el<HTMLInputElement>("node-mastery-track").checked,
   };
-  // Editing carries over the existing satisfied/gilded/uniqueName (state not
-  // shown in the form).
+  // Editing carries over existing satisfied/gilded/uniqueName/counters/
+  // archived/folderId (state not shown in the form) — these fields would
+  // otherwise silently reset to their zero value on every edit-modal save,
+  // since they're just absent from the fresh `node` object the form builds
+  // above.
   const existing = state.graph!.nodes[id];
   if (nodeModalMode === "edit" && existing) {
     node.satisfied = existing.satisfied;
     node.gilded = existing.gilded;
     node.uniqueName = existing.uniqueName;
+    node.counters = existing.counters;
+    node.archived = existing.archived;
+    node.folderId = existing.folderId;
   }
   await fetch("/api/nodes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(node) });
 

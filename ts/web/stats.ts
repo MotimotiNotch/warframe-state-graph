@@ -8,6 +8,9 @@ import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { questJa } from "./quest-i18n.ts";
 import "./booster.ts";
+import "./spoiler-warning.ts";
+import "./quest-onboarding.ts";
+import "./manual-launcher.ts";
 import "./scratch.ts";
 
 // Collections (pkg/collection) is Phase 10 scope, not yet ported — /api/collections

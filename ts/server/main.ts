@@ -20,13 +20,15 @@ import {
   RivenEntrySchema,
   WeaponEntrySchema,
 } from "./collection.ts";
+import { parseDsl } from "./dsl.ts";
 import { deriveNextActions } from "./engine.ts";
+import { FolderSchema, FolderStore } from "./folder.ts";
 import { EntrySchema, GlossaryStore } from "./glossary.ts";
 import { BuildSetSchema, ItemSchema, LoadoutStore } from "./loadout.ts";
 import type { NodeType } from "./model.ts";
-import { NodeSchema } from "./model.ts";
+import { CounterSchema, NodeSchema } from "./model.ts";
 import { MainQuestNames, ResolveChain } from "./questchain.ts";
-import { CounterSchema, ScratchStore } from "./scratch.ts";
+import { ScratchStore } from "./scratch.ts";
 import { FetchPlanets, FetchProxima } from "./starchart.ts";
 import { ALL_SYNDICATES, findSyndicate, maxRank, minRank, StandingStore } from "./standing.ts";
 import {
@@ -87,19 +89,19 @@ import embeddedStandingHtml from "../web/.embed/standing.html.txt" with { type: 
 import embeddedLoadoutsHtml from "../web/.embed/loadouts.html.txt" with { type: "text" };
 import embeddedStatsHtml from "../web/.embed/stats.html.txt" with { type: "text" };
 import embeddedCollectionsHtml from "../web/.embed/collections.html.txt" with { type: "text" };
+import embeddedManualHtml from "../web/.embed/manual.html.txt" with { type: "text" };
 import embeddedIndexJs from "../web/.embed/index.js.txt" with { type: "text" };
 import embeddedGlossaryJs from "../web/.embed/glossary.js.txt" with { type: "text" };
 import embeddedStandingJs from "../web/.embed/standing.js.txt" with { type: "text" };
 import embeddedLoadoutsJs from "../web/.embed/loadouts.js.txt" with { type: "text" };
 import embeddedStatsJs from "../web/.embed/stats.js.txt" with { type: "text" };
 import embeddedCollectionsJs from "../web/.embed/collections.js.txt" with { type: "text" };
+import embeddedManualJs from "../web/.embed/manual.js.txt" with { type: "text" };
 import embeddedFaviconSvg from "../web/.embed/favicon.svg.txt" with { type: "text" };
 import embeddedNotemdJs from "../web/.embed/notemd.js.txt" with { type: "text" };
 import embeddedWallpaperJs from "../web/.embed/wallpaper.js.txt" with { type: "text" };
 import embeddedThemeJs from "../web/.embed/theme.js.txt" with { type: "text" };
 import embeddedScrollTopJs from "../web/.embed/scroll-top.js.txt" with { type: "text" };
-import embeddedSpoilerWarningJs from "../web/.embed/spoiler-warning.js.txt" with { type: "text" };
-import embeddedQuestOnboardingJs from "../web/.embed/quest-onboarding.js.txt" with { type: "text" };
 import embeddedDebugGridJs from "../web/.embed/debug-grid.js.txt" with { type: "text" };
 
 const embeddedHtmlByEntry: Record<string, string> = {
@@ -109,6 +111,7 @@ const embeddedHtmlByEntry: Record<string, string> = {
   loadouts: embeddedLoadoutsHtml,
   stats: embeddedStatsHtml,
   collections: embeddedCollectionsHtml,
+  manual: embeddedManualHtml,
 };
 const embeddedJsByEntry: Record<string, string> = {
   index: embeddedIndexJs,
@@ -117,6 +120,7 @@ const embeddedJsByEntry: Record<string, string> = {
   loadouts: embeddedLoadoutsJs,
   stats: embeddedStatsJs,
   collections: embeddedCollectionsJs,
+  manual: embeddedManualJs,
 };
 // Keyed by the same URL-pathname basename the legacy passthrough serves
 // (e.g. "favicon.svg", "notemd.js") — see the catch-all `fetch()` handler below.
@@ -126,13 +130,12 @@ const embeddedLegacyByBasename: Record<string, string> = {
   "wallpaper.js": embeddedWallpaperJs,
   "theme.js": embeddedThemeJs,
   "scroll-top.js": embeddedScrollTopJs,
-  "spoiler-warning.js": embeddedSpoilerWarningJs,
-  "quest-onboarding.js": embeddedQuestOnboardingJs,
   "debug-grid.js": embeddedDebugGridJs,
 };
 
 const dataDir = process.env.DATA_DIR ?? path.join(import.meta.dir, "..", "scratch-data");
 const graphStore = new GraphStore(path.join(dataDir, "graph.json"));
+const folderStore = new FolderStore(path.join(dataDir, "folders.json"));
 const glossaryStore = new GlossaryStore(path.join(dataDir, "glossary.json"));
 const standingStore = new StandingStore(path.join(dataDir, "standing.json"));
 const scratchStore = new ScratchStore(path.join(dataDir, "scratch.json"));
@@ -231,6 +234,7 @@ const pages: { path: string; entry: string }[] = [
   { path: "/loadouts.html", entry: "loadouts" },
   { path: "/stats.html", entry: "stats" },
   { path: "/collections.html", entry: "collections" },
+  { path: "/manual.html", entry: "manual" },
 ];
 
 async function servePageHtml(entry: string): Promise<Response> {
@@ -337,6 +341,46 @@ const server = Bun.serve({
 
     "/api/scratch": {
       GET: async () => json(await scratchStore.load()),
+    },
+
+    // Chain View left-sidebar explorer panel's folders (2026-08-27, flat/
+    // single-level — no nesting).
+    "/api/folders": {
+      GET: async () => json(await folderStore.load()),
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const parsed = FolderSchema.safeParse(body);
+        if (!parsed.success) return new Response(parsed.error.message, { status: 400 });
+        return json(await folderStore.addFolder(parsed.data));
+      },
+    },
+
+    "/api/folders/:id": {
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const name = (body as { name?: unknown } | null)?.name;
+        if (typeof name !== "string" || !name) return new Response("name must be a non-empty string", { status: 400 });
+        try {
+          return json(await folderStore.renameFolder(req.params.id, name));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+      DELETE: async (req) => {
+        await folderStore.deleteFolder(req.params.id);
+        await graphStore.clearFolderFromNodes(req.params.id);
+        return new Response(null, { status: 204 });
+      },
     },
 
     "/api/scratch/note": {
@@ -472,10 +516,43 @@ const server = Bun.serve({
       },
     },
 
+    "/api/nodes/:id/archive-toggle": {
+      POST: async (req) => {
+        try {
+          const n = await graphStore.toggleArchived(req.params.id);
+          return json(n);
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
     "/api/nodes/:id": {
       DELETE: async (req) => {
         await graphStore.deleteNode(req.params.id);
         return new Response(null, { status: 204 });
+      },
+    },
+
+    // Left-sidebar explorer panel's "移動" action (2026-08-27) — files a
+    // Build/Goal under a folder, or clears it back to 未分類 with folderId:null.
+    "/api/nodes/:id/folder": {
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const folderId = (body as { folderId?: unknown } | null)?.folderId;
+        if (folderId !== null && typeof folderId !== "string") {
+          return new Response("folderId must be a string or null", { status: 400 });
+        }
+        try {
+          return json(await graphStore.setNodeFolder(req.params.id, folderId));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
       },
     },
 
@@ -493,6 +570,112 @@ const server = Bun.serve({
         }
         await graphStore.upsertNode(parsed.data);
         return json(parsed.data);
+      },
+    },
+
+    // Inspector's "メモ" live-markdown editor (2026-08-27) — a lighter path
+    // than round-tripping the whole node through the edit modal's upsertNode.
+    "/api/nodes/:id/note": {
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const note = (body as { note?: unknown } | null)?.note;
+        if (typeof note !== "string") return new Response("note must be a string", { status: 400 });
+        try {
+          return json(await graphStore.setNodeNote(req.params.id, note));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
+    // Inspector's "カウントアップ" section (2026-08-27) — same shape/contract
+    // as /api/scratch/counters, scoped to one node instead of the global
+    // scratchpad.
+    "/api/nodes/:id/counters": {
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const parsed = CounterSchema.safeParse(body);
+        if (!parsed.success) return new Response(parsed.error.message, { status: 400 });
+        if (!parsed.data.id) return new Response("id is required", { status: 400 });
+        try {
+          return json(await graphStore.addNodeCounter(req.params.id, parsed.data));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
+    "/api/nodes/:id/counters/:cid/increment": {
+      POST: async (req) => {
+        try {
+          return json(await graphStore.incrementNodeCounter(req.params.id, req.params.cid));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
+    "/api/nodes/:id/counters/:cid/decrement": {
+      POST: async (req) => {
+        try {
+          return json(await graphStore.decrementNodeCounter(req.params.id, req.params.cid));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
+    "/api/nodes/:id/counters/:cid": {
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const label = (body as { label?: unknown } | null)?.label;
+        if (typeof label !== "string") return new Response("label must be a string", { status: 400 });
+        try {
+          return json(await graphStore.renameNodeCounter(req.params.id, req.params.cid, label));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+      DELETE: async (req) => {
+        try {
+          await graphStore.deleteNodeCounter(req.params.id, req.params.cid);
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+        return new Response(null, { status: 204 });
+      },
+    },
+
+    "/api/nodes/:id/counters/:cid/value": {
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const value = (body as { value?: unknown } | null)?.value;
+        if (typeof value !== "number") return new Response("value must be a number", { status: 400 });
+        try {
+          return json(await graphStore.setNodeCounterValue(req.params.id, req.params.cid, value));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
       },
     },
 
@@ -1178,6 +1361,34 @@ const server = Bun.serve({
         const parsed = nodes.map((n) => NodeSchema.parse(n));
         await graphStore.upsertNodes(parsed);
         return json(parsed);
+      },
+    },
+
+    // Item 29: text-DSL bulk node generation ("advanced mode"). Parses only
+    // (no graph mutation) — the client previews the result and, if there are
+    // no errors, imports it via the existing /api/wfcd/import above (same
+    // upsertNodes path, so a name that collides with an existing node
+    // overwrites it — the `conflicts` list here is what lets the client warn
+    // about that before the user commits).
+    "/api/dsl/parse": {
+      POST: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const text = (body as { text?: unknown } | null)?.text;
+        if (typeof text !== "string") {
+          return new Response("text (string) is required", { status: 400 });
+        }
+        const { nodes, errors } = parseDsl(text);
+        if (errors.length > 0) {
+          return json({ nodes: [], errors, conflicts: [] });
+        }
+        const g = await graphStore.load();
+        const conflicts = nodes.filter((n) => g.nodes[n.id]).map((n) => n.id);
+        return json({ nodes, errors: [], conflicts });
       },
     },
 

@@ -111,8 +111,11 @@ function injectStyle(): void {
       #scratch-panel .s-head button:hover { color: var(--danger, #e88c93); }
       #scratch-panel .s-body { padding: 8px; overflow-y: auto; }
 
-      #scratch-panel .s-section-title { color: var(--muted, #9aa0ab); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
-      #scratch-panel .s-section-title:first-child { margin-top: 0; }
+      /* Unscoped (not "#scratch-panel .s-section-title") so Chain View's
+         Inspector "メモ"/"カウントアップ" section (2026-08-27) can reuse the
+         exact same look without duplicating this rule. */
+      .s-section-title { color: var(--muted, #9aa0ab); font-size: 0.68rem; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
+      .s-section-title:first-child { margin-top: 0; }
 
       /* ページごとに.popoverのleft/right基準がバラバラ（index.htmlはleft:0、他はright:0）なため、
          このパネル自身の右寄り位置に合わせてID差でここだけ明示的に上書きする（2026-08-22、
@@ -127,19 +130,21 @@ function injectStyle(): void {
       }
       #scratch-panel .popover code { background: var(--bg, #12141a); padding: 0 3px; border-radius: 3px; }
 
-      #scratch-panel .note-live-editor {
+      /* Unscoped, same reason as .s-section-title above — Inspector's note
+         editor needs the identical box/line styling. */
+      .note-live-editor {
         width: 100%; box-sizing: border-box; min-height: 60px; max-height: 220px; overflow-y: auto;
         background: var(--bg, #12141a); color: var(--text, #e4e6ec); border: 1px solid var(--border, #2a2e3a);
         border-radius: 6px; font-size: 0.78rem; padding: 6px; font-family: inherit; cursor: text;
       }
-      #scratch-panel .note-live-editor .note-line { min-height: 1.3em; word-break: break-word; }
-      #scratch-panel .note-live-editor .note-line-active { background: rgba(255, 255, 255, 0.06); border-radius: 3px; }
-      #scratch-panel .note-live-editor .note-placeholder { color: var(--muted, #9aa0ab); }
-      #scratch-panel .note-live-editor .note-md-check { padding: 1px 0; }
-      #scratch-panel .note-live-editor .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-      #scratch-panel .note-live-editor .note-md-check input[type="checkbox"] { cursor: pointer; }
-      #scratch-panel .note-live-editor .note-md-bullet { display: flex; gap: 6px; }
-      #scratch-panel .note-live-editor .note-md-bullet-dot { color: var(--muted, #9aa0ab); }
+      .note-live-editor .note-line { min-height: 1.3em; word-break: break-word; }
+      .note-live-editor .note-line-active { background: rgba(255, 255, 255, 0.06); border-radius: 3px; }
+      .note-live-editor .note-placeholder { color: var(--muted, #9aa0ab); }
+      .note-live-editor .note-md-check { padding: 1px 0; }
+      .note-live-editor .note-md-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+      .note-live-editor .note-md-check input[type="checkbox"] { cursor: pointer; }
+      .note-live-editor .note-md-bullet { display: flex; gap: 6px; }
+      .note-live-editor .note-md-bullet-dot { color: var(--muted, #9aa0ab); }
 
       .scratch-counter-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
       .scratch-counter-row .sc-label-input {
@@ -161,13 +166,16 @@ function injectStyle(): void {
       }
       .scratch-counter-row button:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
       .scratch-counter-row button.sc-del:hover { border-color: var(--danger, #e88c93); color: var(--danger, #e88c93); }
-      #scratch-add-counter-btn {
+      /* Class-based (not the old "#scratch-add-counter-btn"/"#scratch-counters-empty"
+         ID selectors) so Inspector's own counter section (2026-08-27) can
+         reuse the same look under a different element id. */
+      .add-counter-btn {
         display: inline-flex; align-items: center; gap: 5px; margin-top: 6px;
         background: transparent; color: var(--muted, #9aa0ab); border: 1px dashed var(--border, #2a2e3a);
         border-radius: 6px; font-size: 0.75rem; padding: 4px 8px; cursor: pointer; width: 100%; justify-content: center;
       }
-      #scratch-add-counter-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
-      #scratch-counters-empty { color: var(--muted, #9aa0ab); font-size: 0.72rem; padding: 2px 0; }
+      .add-counter-btn:hover { border-color: var(--accent, #f6ddaa); color: var(--accent, #f6ddaa); }
+      .counters-empty { color: var(--muted, #9aa0ab); font-size: 0.72rem; padding: 2px 0; }
     `;
   document.head.appendChild(style);
 }
@@ -209,7 +217,7 @@ function renderCounters(): void {
   if (!body || !cache) return;
   const counters = cache.counters || [];
   if (!counters.length) {
-    body.innerHTML = `<div id="scratch-counters-empty">まだありません</div>`;
+    body.innerHTML = `<div class="counters-empty">まだありません</div>`;
     return;
   }
   body.innerHTML = counters
@@ -406,7 +414,7 @@ function init(): void {
         <div id="scratch-note-editor"></div>
         <div class="s-section-title">カウントアップ</div>
         <div id="scratch-counters-body"></div>
-        <button id="scratch-add-counter-btn">${icon("plus", { size: 12 })}カウントアップを追加</button>
+        <button id="scratch-add-counter-btn" class="add-counter-btn">${icon("plus", { size: 12 })}カウントアップを追加</button>
       </div>
     `;
   document.body.appendChild(panel);

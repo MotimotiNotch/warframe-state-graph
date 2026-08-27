@@ -9,6 +9,9 @@ import { renderNoteMd } from "./notemd.ts";
 import { buildBuildSetExportText, buildItemExportText, wireCopyButtons } from "./export.ts";
 import "./card-tilt.ts";
 import "./booster.ts";
+import "./spoiler-warning.ts";
+import "./quest-onboarding.ts";
+import "./manual-launcher.ts";
 import "./scratch.ts";
 import { autoGenerateChainViewNode, autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
 

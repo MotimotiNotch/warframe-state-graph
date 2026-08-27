@@ -27,6 +27,9 @@ import {
 import { autoGenerateChainViewNode } from "./wfcd-autolink.ts";
 import "./card-tilt.ts";
 import "./booster.ts";
+import "./spoiler-warning.ts";
+import "./quest-onboarding.ts";
+import "./manual-launcher.ts";
 import "./scratch.ts";
 
 // Shared shape for WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry

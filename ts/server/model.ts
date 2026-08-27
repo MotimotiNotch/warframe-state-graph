@@ -27,6 +27,18 @@ export type NodeType = z.infer<typeof NodeType>;
 export const NodeState = z.enum(["SATISFIED", "ACTIONABLE", "BLOCKED"]);
 export type NodeState = z.infer<typeof NodeState>;
 
+// Shared {id, label, value} counter shape — originally scratch.ts-only (the
+// page-independent quick-memo widget), promoted here once Node also needed
+// per-node count-up counters (2026-08-27, Chain View Inspector "メモ"/
+// "カウントアップ" section matching quick memo's look). scratch.ts imports
+// this instead of defining its own copy.
+export const CounterSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.number(),
+});
+export type Counter = z.infer<typeof CounterSchema>;
+
 // Go's `requires`/`contains` fields have no `omitempty` tag, so they can
 // appear in JSON as an array, or as `null` (a nil Go slice marshals to
 // `null`, not `[]`). Absent (older schema) should also collapse to `[]`.
@@ -43,9 +55,23 @@ export const NodeSchema = z.object({
   satisfied: z.boolean().default(false),
   requires: stringArray,
   contains: stringArray,
-  evaluation: z.string().optional(),
   priority: z.number().optional(),
+  // Free-form note. `evaluation` (a second, near-duplicate freeform field)
+  // was folded into this one 2026-08-27 — same "don't keep two overlapping
+  // freeform fields" call as Loadouts' HelminthNote -> Note consolidation
+  // (2026-08-20). Existing data was migrated in place (evaluation text
+  // prepended into note, evaluation key dropped) via a one-off script run
+  // directly against data/graph.json, not a lazy-migration-on-read path.
   note: z.string().optional(),
+  // Per-node count-up counters (2026-08-27), same shape/semantics as
+  // scratch.ts's page-independent ones — e.g. "Forma回数"/"討伐回数" tracked
+  // against this specific node instead of the global scratchpad. Optional
+  // like note/masteryTrack (not a `.default([])`, unlike
+  // requires/contains) — most nodes have none, and a `.default` would make
+  // every existing node-literal construction site (tests, wfcdgen.ts, dsl.ts)
+  // list it explicitly for no runtime benefit. Consumers read `node.counters
+  // ?? []`.
+  counters: z.array(CounterSchema).optional(),
   // MasteryTrack marks a node as one of the asymmetric MR-earning parts
   // (Zaw/Kitgun/Amp Strike/Chamber/Prism) — only these show a Gild toggle.
   masteryTrack: z.boolean().optional(),
@@ -56,6 +82,20 @@ export const NodeSchema = z.object({
   // WFCD-auto-generated nodes, used for i18n/Vault/Resurgence lookups by a
   // stable key instead of fuzzy name matching.
   uniqueName: z.string().optional(),
+  // Archived (2026-08-27): hides a Build/Goal from the Chain View build-select
+  // dropdown without deleting it (deleteNode strips requires/contains
+  // references from every other node — a real Build the owner still wants as
+  // a reference shouldn't pay that cost just to declutter the picker). Not
+  // meaningful on non-Build/Goal nodes; nothing currently reads it for them.
+  archived: z.boolean().optional(),
+  // Loose optional reference to a folder.ts Folder id — which group this
+  // Build/Goal shows under in the left-sidebar explorer panel (2026-08-27).
+  // Same "loose id reference, no referential integrity enforced" pattern as
+  // Loadouts/Collections' chainViewNodeId — a folder can be deleted out from
+  // under this without touching Node (store.ts's clearFolderFromNodes()
+  // handles that side). Absent/unset means "unfiled" (未分類). Not
+  // meaningful on non-Build/Goal nodes.
+  folderId: z.string().optional(),
 });
 export type Node = z.infer<typeof NodeSchema>;
 

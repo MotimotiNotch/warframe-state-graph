@@ -3,7 +3,7 @@
 
 import { AsyncMutex } from "./async-mutex.ts";
 import { cascadeSatisfyContainsParents, cascadeSatisfyRequires, cascadeUnsatisfyDependents } from "./engine.ts";
-import { CURRENT_SCHEMA_VERSION, GraphSchema, newGraph, type Graph, type Node } from "./model.ts";
+import { CURRENT_SCHEMA_VERSION, GraphSchema, newGraph, type Counter, type Graph, type Node } from "./model.ts";
 import { loadJSON, saveJSON, NotFoundError } from "./persist.ts";
 
 export class GraphStore {
@@ -103,6 +103,112 @@ export class GraphStore {
       }
       await this.#saveLocked(g);
       return n;
+    });
+  }
+
+  /** Flips `archived` — hides/unhides a Build/Goal from the Chain View
+   * build-select dropdown without deleting it (2026-08-27). */
+  async toggleArchived(id: string): Promise<Node> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[id];
+      if (!n) throw new Error(`node "${id}" not found`);
+      n.archived = !n.archived;
+      await this.#saveLocked(g);
+      return n;
+    });
+  }
+
+  /** Sets (or clears, with `null`) which folder a Build/Goal is filed under
+   * (2026-08-27, left-sidebar explorer panel's "移動" action). */
+  async setNodeFolder(id: string, folderId: string | null): Promise<Node> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[id];
+      if (!n) throw new Error(`node "${id}" not found`);
+      if (folderId) n.folderId = folderId;
+      else delete n.folderId;
+      await this.#saveLocked(g);
+      return n;
+    });
+  }
+
+  /** Unfiles every node referencing a just-deleted folder (same "strip
+   * dangling references" shape as deleteNode's requires/contains cleanup) —
+   * called from the DELETE /api/folders/:id route, not from FolderStore
+   * itself, since folder.ts has no visibility into graph.json. */
+  async clearFolderFromNodes(folderId: string): Promise<void> {
+    await this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      for (const n of Object.values(g.nodes)) {
+        if (n.folderId === folderId) delete n.folderId;
+      }
+      await this.#saveLocked(g);
+    });
+  }
+
+  /** Sets a node's free-text note directly (Inspector's live-markdown editor),
+   * without going through the full node-edit modal's upsertNode round trip. */
+  async setNodeNote(id: string, note: string): Promise<Node> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[id];
+      if (!n) throw new Error(`node "${id}" not found`);
+      n.note = note;
+      await this.#saveLocked(g);
+      return n;
+    });
+  }
+
+  /** `c.id` is client-generated (same pattern as ScratchStore.addCounter). */
+  async addNodeCounter(nodeId: string, c: Counter): Promise<Node> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[nodeId];
+      if (!n) throw new Error(`node "${nodeId}" not found`);
+      (n.counters ??= []).push(c);
+      await this.#saveLocked(g);
+      return n;
+    });
+  }
+
+  async #mutateNodeCounter(nodeId: string, counterId: string, mutate: (c: Counter) => void): Promise<Counter> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[nodeId];
+      if (!n) throw new Error(`node "${nodeId}" not found`);
+      const c = n.counters?.find((x) => x.id === counterId);
+      if (!c) throw new Error(`counter "${counterId}" not found on node "${nodeId}"`);
+      mutate(c);
+      await this.#saveLocked(g);
+      return c;
+    });
+  }
+
+  async incrementNodeCounter(nodeId: string, counterId: string): Promise<Counter> {
+    return this.#mutateNodeCounter(nodeId, counterId, (c) => c.value++);
+  }
+
+  /** Below-zero is allowed — this is an undo for a mis-click, not a floor. */
+  async decrementNodeCounter(nodeId: string, counterId: string): Promise<Counter> {
+    return this.#mutateNodeCounter(nodeId, counterId, (c) => c.value--);
+  }
+
+  async setNodeCounterValue(nodeId: string, counterId: string, value: number): Promise<Counter> {
+    return this.#mutateNodeCounter(nodeId, counterId, (c) => (c.value = value));
+  }
+
+  async renameNodeCounter(nodeId: string, counterId: string, label: string): Promise<Counter> {
+    return this.#mutateNodeCounter(nodeId, counterId, (c) => (c.label = label));
+  }
+
+  async deleteNodeCounter(nodeId: string, counterId: string): Promise<void> {
+    await this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[nodeId];
+      if (!n) throw new Error(`node "${nodeId}" not found`);
+      n.counters = (n.counters ?? []).filter((c) => c.id !== counterId);
+      await this.#saveLocked(g);
     });
   }
 }

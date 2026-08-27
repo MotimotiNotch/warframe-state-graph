@@ -1,11 +1,10 @@
 // Port of web/wfcd-wizard.js. WFCD auto-generation import wizard.
 //
-// This module's UI/client logic is ported now (Phase 4), but the backend it
-// calls (/api/wfcd/generate, /api/wfcd/import — pkg/wfcdgen/pkg/wfcd) and
-// the cross-page endpoints (/api/loadout-items — pkg/loadout) aren't ported
-// to the TS server until Phase 9/11 of the migration plan. Until then this
-// wizard will 404 against the TS server; it's kept complete and typed now so
-// Phase 11 only has to wire the backend, not rebuild this file.
+// Backend (/api/wfcd/generate, /api/wfcd/import — server/wfcdgen.ts/wfcd.ts)
+// is fully wired on the TS server; /api/wfcd/generate is hard-restricted to
+// nodeType Frame|Weapon|Quest server-side (main.ts) — Companion/Archwing/
+// Necramech deliberately don't get a Chain View node at all, only a
+// Collections entry (see loadouts.ts's add-item-btn handler comment).
 
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
@@ -15,6 +14,7 @@ import { itemJa } from "./item-i18n.ts";
 import { locationJa } from "./location-i18n.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
+import { NODE_TYPE_LABEL_JA } from "./node-modal.ts";
 
 // Shape of a /api/wfcd/generate response. Ported ahead of pkg/wfcdgen
 // itself (Phase 11) — refine/replace with the real generated type once that
@@ -45,6 +45,18 @@ interface WfcdSuggestion {
 }
 
 let wfcdSuggestion: WfcdSuggestion | null = null;
+
+// /api/wfcd/generate's server-side type restriction (main.ts) — the only
+// values <select id="wfcd-node-type"> may hold. Labels come from
+// NODE_TYPE_LABEL_JA (node-modal.ts's create/edit form) instead of being
+// hardcoded a second time in index.html's static markup, so this dropdown
+// can't drift back out of sync with the rest of the app's Japanese labels
+// (2026-08-27 fix — it had silently stayed on raw English option text
+// through the 2026-08-25 item 30 Japanese-labeling pass).
+const WFCD_GEN_NODE_TYPES = ["Frame", "Weapon", "Quest"] as const;
+el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
+  (t) => `<option value="${t}">${NODE_TYPE_LABEL_JA[t] ?? t}</option>`,
+).join("");
 
 // Reference data pool for the name-field keyword filter, swapped per node
 // type (Frame/Weapon/Quest) — same pattern as the Loadouts/Collections
@@ -212,11 +224,11 @@ function renderWfcdPreview(): void {
     <div class="wfcd-part">
       <label style="display:flex;align-items:flex-start;gap:6px;">
         <input type="checkbox" id="wfcd-attach-check" checked style="margin-top:3px;">
-        <span>現在のBuild「<b>${currentBuild.name}</b>」のcontainsに追加する（チェックを外すと種別がGoalになり、単独の探索起点として左上のプルダウンから辿れます）</span>
+        <span>現在のBuild「<b>${currentBuild.name}</b>」のcontainsに追加する（チェックを外すと種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）</span>
       </label>
     </div>`
     : `
-    <div class="wfcd-part"><div class="empty">現在選択中のBuildがないため、このまま追加すると種別がGoalになり、単独の探索起点として左上のプルダウンから辿れます</div></div>`;
+    <div class="wfcd-part"><div class="empty">現在選択中のBuildがないため、このまま追加すると種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます</div></div>`;
 
   // Reverse propagation to Loadouts (2026-08-25 item 27). Chain View's Node
   // types have no Companion/Archwing/Necramech (and WFCD auto-generation only
@@ -361,6 +373,6 @@ el("wfcd-modal-import").addEventListener("click", async () => {
   alert(
     attached
       ? `「${root.name}」を追加し、現在のBuildのcontainsに繋げました。`
-      : `「${root.name}」をGoalとして追加しました。左上のプルダウンから単独の探索起点として辿れます。既存のBuildのcontainsに含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
+      : `「${root.name}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存のBuildのcontainsに含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
   );
 });

@@ -1,9 +1,23 @@
 // Port of web/inspector.js. Right-side node detail panel.
 
 import { el } from "./dom.ts";
-import { gameIcon } from "./icons.ts";
+import { gameIcon, icon } from "./icons.ts";
 import { STATE_COLOR, STATE_LABEL_JA, loadReport, refreshGraph, state } from "./graph-state.ts";
+import { refreshSidebar } from "./build-sidebar.ts";
 import { NODE_TYPE_LABEL_JA, openNodeModal } from "./node-modal.ts";
+import type { Counter } from "../server/model.ts";
+import { createLiveEditor } from "./notemd.ts";
+
+function genCounterId(): string {
+  return `counter-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function escapeHtml(s: unknown): string {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
+}
 
 interface RelicStatusResponse {
   vaulted?: boolean;
@@ -33,20 +47,58 @@ export function renderPanel(): void {
   panel.innerHTML = `
     <div class="ph-name">${node.name} <span style="color:var(--muted);font-weight:400;font-size:.75em;" title="ノードID">(${state.selected})</span> <span id="i18n-name" style="color:var(--muted);font-weight:400;font-size:.85em;"></span></div>
     <div class="ph-row">種別: ${NODE_TYPE_LABEL_JA[node.type] ?? node.type}${node.type === "Relic" ? `<span id="vault-badge"></span>` : ""}</div>
-    ${node.evaluation ? `<div class="ph-row">評価: ${node.evaluation}</div>` : ""}
-    ${node.note ? `<div class="ph-row">${node.note}</div>` : ""}
     <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
       ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${node.satisfied ? "取り消す" : "達成にする"}</button>`}
       ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "Gild済み" : "Gildする"}</button>` : ""}
       <button class="toggle" id="edit-btn">編集</button>
+      ${
+        node.type === "Build" || node.type === "Goal"
+          ? `<button class="toggle" id="archive-btn">${node.archived ? "アーカイブ解除" : "アーカイブする"}</button>`
+          : ""
+      }
     </div>
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
       <button class="toggle" id="add-requires-btn">前提を追加</button>
       <button class="toggle" id="add-contains-btn">中身を追加</button>
     </div>
+    <div class="s-section-title">メモ</div>
+    <div id="insp-note-editor"></div>
+    <div class="s-section-title">カウントアップ</div>
+    <div id="insp-counters-body"></div>
+    <button id="insp-add-counter-btn" class="add-counter-btn">${icon("plus", { size: 12 })}カウントアップを追加</button>
     <div id="linked-from-section"></div>
   `;
+
+  // "メモ"/"カウントアップ" — same live-markdown editor + count-up widget as
+  // the quick-memo panel (scratch.ts), scoped to this node instead of the
+  // global scratchpad. Style is shared via scratch.ts's unscoped
+  // .note-live-editor/.scratch-counter-row/.add-counter-btn rules
+  // (2026-08-27, "クイックメモと同じ感じに" — style unification only, the
+  // Inspector's existing buttons above are untouched).
+  const nodeIdAtRender = state.selected!;
+  createLiveEditor(el("insp-note-editor"), node.note ?? "", async (text) => {
+    await fetch(`/api/nodes/${encodeURIComponent(nodeIdAtRender)}/note`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: text }),
+    });
+    node.note = text;
+  });
+  renderNodeCounters(nodeIdAtRender, node.counters ?? []);
+  el("insp-add-counter-btn").onclick = async () => {
+    const c: Counter = { id: genCounterId(), label: "", value: 0 };
+    const res = await fetch(`/api/nodes/${encodeURIComponent(nodeIdAtRender)}/counters`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(c),
+    });
+    if (res.ok) {
+      const updated = (await res.json()) as { counters: Counter[] };
+      node.counters = updated.counters;
+      if (state.selected === nodeIdAtRender) renderNodeCounters(nodeIdAtRender, node.counters);
+    }
+  };
 
   const btn = document.getElementById("toggle-btn") as HTMLButtonElement | null;
   if (btn) {
@@ -64,6 +116,23 @@ export function renderPanel(): void {
       gildBtn.disabled = true;
       await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/gild-toggle`, { method: "POST" });
       await refreshGraph();
+      await loadReport();
+    };
+  }
+
+  const archiveBtn = document.getElementById("archive-btn") as HTMLButtonElement | null;
+  if (archiveBtn) {
+    archiveBtn.onclick = async () => {
+      archiveBtn.disabled = true;
+      await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/archive-toggle`, { method: "POST" });
+      await refreshGraph();
+      // Hides/unhides this build in the sidebar (2026-08-27). If this was
+      // the currently-viewed build and it just got archived, refreshSidebar()
+      // switches the view to the next remaining one (which fires its own
+      // loadReport()) — the loadReport() below then just re-renders whatever
+      // state.focus ends up being, so it stays correct either way (unchanged
+      // view, or the just-switched-to one).
+      refreshSidebar();
       await loadReport();
     };
   }
@@ -118,6 +187,96 @@ export function renderPanel(): void {
   }
 
   void renderLinkedFrom(state.selected);
+}
+
+/** Renders/wires the selected node's counters list — same layout and
+ * increment/decrement/rename/delete flow as scratch.ts's renderCounters(),
+ * just pointed at /api/nodes/:id/counters instead of /api/scratch/counters.
+ * `counters` is the live array on the report node (mutated in place so
+ * later re-renders from the same renderPanel() call stay in sync). */
+function renderNodeCounters(nodeId: string, counters: Counter[]): void {
+  const body = document.getElementById("insp-counters-body");
+  if (!body) return;
+  if (!counters.length) {
+    body.innerHTML = `<div class="counters-empty">まだありません</div>`;
+    return;
+  }
+  body.innerHTML = counters
+    .map(
+      (c) => `
+      <div class="scratch-counter-row" data-counter-id="${c.id}">
+        <input type="text" class="sc-label-input" placeholder="メモ" value="${escapeHtml(c.label)}">
+        <button class="sc-dec" title="-1">${icon("minus", { size: 12 })}</button>
+        <input type="number" class="sc-value" value="${c.value}">
+        <button class="sc-inc" title="+1">${icon("plus", { size: 12 })}</button>
+        <button class="sc-del" title="削除">${icon("x", { size: 12 })}</button>
+      </div>
+    `,
+    )
+    .join("");
+
+  body.querySelectorAll<HTMLInputElement>(".sc-label-input").forEach((input) => {
+    input.addEventListener("change", async () => {
+      const id = input.closest<HTMLElement>(".scratch-counter-row")!.dataset.counterId!;
+      await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/counters/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: input.value }),
+      });
+      const c = counters.find((x) => x.id === id);
+      if (c) c.label = input.value;
+    });
+  });
+  body.querySelectorAll<HTMLButtonElement>(".sc-inc").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest<HTMLElement>(".scratch-counter-row")!.dataset.counterId!;
+      const res = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/counters/${encodeURIComponent(id)}/increment`, { method: "POST" });
+      if (res.ok) {
+        const updated = (await res.json()) as Counter;
+        const c = counters.find((x) => x.id === id);
+        if (c) c.value = updated.value;
+        renderNodeCounters(nodeId, counters);
+      }
+    });
+  });
+  body.querySelectorAll<HTMLButtonElement>(".sc-dec").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest<HTMLElement>(".scratch-counter-row")!.dataset.counterId!;
+      const res = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/counters/${encodeURIComponent(id)}/decrement`, { method: "POST" });
+      if (res.ok) {
+        const updated = (await res.json()) as Counter;
+        const c = counters.find((x) => x.id === id);
+        if (c) c.value = updated.value;
+        renderNodeCounters(nodeId, counters);
+      }
+    });
+  });
+  body.querySelectorAll<HTMLInputElement>(".sc-value").forEach((input) => {
+    input.addEventListener("change", async () => {
+      const id = input.closest<HTMLElement>(".scratch-counter-row")!.dataset.counterId!;
+      const value = parseInt(input.value, 10) || 0;
+      const res = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/counters/${encodeURIComponent(id)}/value`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value }),
+      });
+      if (res.ok) {
+        const updated = (await res.json()) as Counter;
+        const c = counters.find((x) => x.id === id);
+        if (c) c.value = updated.value;
+        renderNodeCounters(nodeId, counters);
+      }
+    });
+  });
+  body.querySelectorAll<HTMLButtonElement>(".sc-del").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest<HTMLElement>(".scratch-counter-row")!.dataset.counterId!;
+      await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/counters/${encodeURIComponent(id)}`, { method: "DELETE" });
+      const idx = counters.findIndex((x) => x.id === id);
+      if (idx !== -1) counters.splice(idx, 1);
+      renderNodeCounters(nodeId, counters);
+    });
+  });
 }
 
 interface LoadoutItemLike {

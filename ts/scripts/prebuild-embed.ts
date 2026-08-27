@@ -37,20 +37,11 @@ const embedDir = path.join(webDir, ".embed");
 const legacyWebDir = path.join(import.meta.dir, "..", "..", "web");
 
 // Keep in sync with main.ts's `pages` array.
-const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "collections"];
+const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "collections", "manual"];
 
 // Keep in sync with main.ts's legacy static passthrough / Phase 7's
 // still-unwired shared-script list.
-const legacyBasenames = [
-  "favicon.svg",
-  "notemd.js",
-  "wallpaper.js",
-  "theme.js",
-  "scroll-top.js",
-  "spoiler-warning.js",
-  "quest-onboarding.js",
-  "debug-grid.js",
-];
+const legacyBasenames = ["favicon.svg", "notemd.js", "wallpaper.js", "theme.js", "scroll-top.js", "debug-grid.js"];
 
 await fs.mkdir(embedDir, { recursive: true });
 
