@@ -178,7 +178,19 @@
   .sb-build-row.current { color: var(--accent); font-weight: 600; }
   .sb-build-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sb-move-btn { padding: 3px; flex-shrink: 0; }
-  .sb-move-popover { min-width: 160px; max-height: 240px; overflow-y: auto; padding: 4px; }
+  /* #folder-panel sets overflow-y:auto, which per spec computes its
+     overflow-x to auto too (never stays "visible" once either axis isn't) —
+     so a popover positioned absolute/relative to a button inside it gets
+     silently clipped at the panel's ~200px width instead of overlapping the
+     graph panel like every other popover in this app (2026-08-28, のっち
+     報告: フォルダ移動の候補がはみ出す/切れる). backdrop-filter on the same
+     panel also rules out plain position:fixed as a fix — it establishes a
+     containing block for fixed descendants too, so the clip would persist
+     even with position:fixed if this stayed a child of #folder-panel. Fixed
+     by hoisting this to a single shared instance living at the top level of
+     <body> (build-sidebar.ts's openMovePopover/wireMovePopoverOnce),
+     positioned via JS from the trigger button's getBoundingClientRect(). */
+  #sb-move-popover { position: fixed; min-width: 160px; max-height: 240px; overflow-y: auto; padding: 4px; }
   .sb-move-target { padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; }
   .sb-move-target:hover { background: var(--border); color: var(--accent); }
   .sb-move-target.current { color: var(--accent); }
@@ -506,6 +518,11 @@
       <div id="panel-body"><div class="empty">ノードを選択してください</div></div>
     </div>
   </div>
+
+  <!-- ビルドの「フォルダへ移動」ポップオーバー。#folder-panelの子だとoverflow-x
+       クリップではみ出すため、bodyの直接の子として単一インスタンスを共有する
+       （build-sidebar.tsが開閉のたびにgetBoundingClientRect()で位置と中身を差し替える）。 -->
+  <div class="popover hidden sb-move-popover" id="sb-move-popover"></div>
 
   <!-- ノード新規作成・編集フォーム。data/graph.json直接編集だった状態を解消するための最小限のUI。 -->
   <div id="node-modal-backdrop" class="modal-backdrop hidden">

@@ -88,10 +88,7 @@ function buildRowHtml(n: Node): string {
   return `
     <div class="sb-build-row${current ? " current" : ""}" data-build-id="${n.id}">
       <span class="sb-build-name">${escapeHtml(n.name)}</span>
-      <div class="popover-wrap">
-        <button class="icon-btn sb-move-btn" data-move-toggle="${n.id}" title="フォルダへ移動">${icon("folder", { size: 13 })}</button>
-        <div class="popover hidden sb-move-popover" data-move-popover="${n.id}">${moveTargetsHtml(n)}</div>
-      </div>
+      <button class="icon-btn sb-move-btn" data-move-toggle="${n.id}" title="フォルダへ移動">${icon("folder", { size: 13 })}</button>
     </div>`;
 }
 
@@ -138,8 +135,67 @@ function render(): void {
   wireInteractions(container);
 }
 
-function closeAllMovePopovers(container: HTMLElement): void {
-  container.querySelectorAll(".sb-move-popover").forEach((p) => p.classList.add("hidden"));
+// Single shared "move to folder" popover living at the top level of <body>
+// (index.html), not nested inside #folder-panel — see the CSS comment on
+// #sb-move-popover for why a per-row instance there gets clipped. Tracks
+// which build it's currently open for so a second click on the same button
+// toggles it closed instead of just re-opening in place.
+let openForBuildId: string | null = null;
+
+function getMovePopover(): HTMLElement {
+  return el("sb-move-popover");
+}
+
+function closeMovePopover(): void {
+  openForBuildId = null;
+  getMovePopover().classList.add("hidden");
+}
+
+function openMovePopover(btn: HTMLElement, node: Node): void {
+  const pop = getMovePopover();
+  pop.innerHTML = moveTargetsHtml(node);
+  const rect = btn.getBoundingClientRect();
+  const minWidth = 160; // matches #sb-move-popover's CSS min-width
+  pop.style.top = `${rect.bottom + 6}px`;
+  if (rect.left + minWidth > window.innerWidth) {
+    pop.style.left = "auto";
+    pop.style.right = `${window.innerWidth - rect.right}px`;
+  } else {
+    pop.style.left = `${rect.left}px`;
+    pop.style.right = "auto";
+  }
+  pop.classList.remove("hidden");
+  openForBuildId = node.id;
+}
+
+async function moveBuildToFolder(buildId: string, target: string): Promise<void> {
+  await fetch(`/api/nodes/${encodeURIComponent(buildId)}/folder`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ folderId: target || null }),
+  });
+  closeMovePopover();
+  await refreshGraph();
+  render();
+}
+
+/** One-time wiring for the shared move popover — content clicks (delegated,
+ * since innerHTML is replaced on every open) and outside-click/scroll close.
+ * Call once from initSidebar(), not from wireInteractions() (which reruns on
+ * every render() and would stack duplicate listeners). */
+function wireMovePopoverOnce(): void {
+  const pop = getMovePopover();
+  pop.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const target = (e.target as HTMLElement).closest<HTMLElement>("[data-move-target]");
+    if (!target) return;
+    void moveBuildToFolder(target.dataset.moveBuild!, target.dataset.moveTarget!);
+  });
+  document.addEventListener("click", () => closeMovePopover());
+  // #folder-panel scrolling would otherwise leave the popover visually
+  // stranded away from the button it was opened from (position is computed
+  // once at open time, not re-tracked).
+  el("folder-panel").addEventListener("scroll", () => closeMovePopover());
 }
 
 function wireInteractions(container: HTMLElement): void {
@@ -155,7 +211,7 @@ function wireInteractions(container: HTMLElement): void {
 
   container.querySelectorAll<HTMLElement>(".sb-build-row").forEach((row) => {
     row.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).closest(".sb-move-btn, .sb-move-popover")) return;
+      if ((e.target as HTMLElement).closest(".sb-move-btn")) return;
       selectBuild(row.dataset.buildId!);
       render();
     });
@@ -164,26 +220,13 @@ function wireInteractions(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".sb-move-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const pop = container.querySelector<HTMLElement>(`[data-move-popover="${CSS.escape(btn.dataset.moveToggle!)}"]`)!;
-      const wasHidden = pop.classList.contains("hidden");
-      closeAllMovePopovers(container);
-      pop.classList.toggle("hidden", !wasHidden);
-    });
-  });
-  container.querySelectorAll<HTMLElement>(".sb-move-popover").forEach((p) => p.addEventListener("click", (e) => e.stopPropagation()));
-
-  container.querySelectorAll<HTMLElement>("[data-move-target]").forEach((item) => {
-    item.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const buildId = item.dataset.moveBuild!;
-      const target = item.dataset.moveTarget!; // "" means 未分類 (folderId: null)
-      await fetch(`/api/nodes/${encodeURIComponent(buildId)}/folder`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folderId: target || null }),
-      });
-      await refreshGraph();
-      render();
+      const id = btn.dataset.moveToggle!;
+      if (openForBuildId === id) {
+        closeMovePopover();
+        return;
+      }
+      const node = state.graph!.nodes[id];
+      if (node) openMovePopover(btn, node);
     });
   });
 
@@ -243,6 +286,7 @@ async function createFolder(): Promise<void> {
  * loadGraph() at page bootstrap. */
 export async function initSidebar(): Promise<void> {
   await loadFolders();
+  wireMovePopoverOnce();
   el("new-folder-btn").innerHTML = icon("folder-plus");
   el("new-folder-btn").onclick = () => void createFolder();
 
