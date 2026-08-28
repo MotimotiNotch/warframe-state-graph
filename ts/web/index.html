@@ -653,6 +653,13 @@
           </div>
         </div>
       </div>
+      <!-- 種別プルダウンがフレーム/武器/クエストの3つしかない理由（アークウィング/
+           相棒/ネクラメックが無い）を明示——のっち指摘（2026-08-28、プルダウンだけ
+           見ると欠けているように見える）。/api/wfcd/generateはこの3種別のみサーバー側
+           で受け付ける仕様（wfcd-wizard.tsのWFCD_GEN_NODE_TYPES参照）。 -->
+      <div class="ph-row" style="opacity:.8;">
+        アークウィング/相棒/ネクラメックはこの一覧にありません（Chain Viewのノードを持たない仕様）。Loadoutsの見出し横の＋アイコンから登録してください。
+      </div>
       <div class="actions" style="justify-content:flex-start;margin-top:8px;">
         <button class="toggle" id="wfcd-fetch-btn">候補を取得</button>
       </div>
