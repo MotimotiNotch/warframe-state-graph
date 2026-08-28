@@ -8,7 +8,7 @@
 
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
-import { gameIcon, icon } from "./icons.ts";
+import { icon } from "./icons.ts";
 import { questJa } from "./quest-i18n.ts";
 import { itemJa } from "./item-i18n.ts";
 import { locationJa } from "./location-i18n.ts";
@@ -172,15 +172,14 @@ function renderWfcdPreview(): void {
   const preview = el("wfcd-preview");
   const parts = (s.parts ?? [])
     .map((p, i) => {
-      // A native <select> can't embed a Vault-status badge (with icon), so
-      // this uses a click-selectable card list instead. Selection state
-      // lives in each part's hidden [data-part-value] input; the import
-      // handler reads only that.
-      const candidateRows = (p.relicCandidates ?? [])
+      // 縦に長くなりがちなカード一覧をやめてネイティブ<select>に変更
+      // （のっち指摘、2026-08-28）。Vault済みバッジ（アイコン付き）は
+      // <option>に差し込めないため、テキストの「・Vault済み」に格下げ。
+      const candidateOptions = (p.relicCandidates ?? [])
         .map((c, ci) => {
           const kindText = c.isRelic ? "・レリック" : "・通常ミッション";
-          const vaultedBadge = c.vaulted ? `<span class="badge-vaulted">${gameIcon("lorc-padlock")}Vault済み</span>` : "";
-          return `<div class="candidate-item" data-part-idx="${i}" data-cand-idx="${ci}">${locationJa(c.name)}（${c.chance}%${kindText}）${vaultedBadge}</div>`;
+          const vaultedText = c.vaulted ? "・Vault済み" : "";
+          return `<option value="${ci}">${locationJa(c.name)}（${c.chance}%${kindText}${vaultedText}）</option>`;
         })
         .join("");
       return `
@@ -189,11 +188,10 @@ function renderWfcdPreview(): void {
         ${
           (p.relicCandidates ?? []).length
             ? `<label style="margin:0 0 2px;">入手先（1つ選択、OR関係なのでどれか1つでよい。レリックとは限らず通常ミッションのドロップも含む）</label>
-             <div class="candidate-list">
-               <div class="candidate-item selected" data-part-idx="${i}" data-cand-idx="">（未選択）</div>
-               ${candidateRows}
-             </div>
-             <input type="hidden" data-part-value="${i}" value="">`
+             <select data-part-value="${i}">
+               <option value="">（未選択）</option>
+               ${candidateOptions}
+             </select>`
             : `<div class="empty">WFCD側にこのパーツの入手先データなし（既定素材として通常のミッション/敵ドロップで入手する想定）</div>`
         }
       </div>`;
@@ -268,15 +266,6 @@ function renderWfcdPreview(): void {
     ${questChain}
     ${parts}
   `;
-
-  preview.querySelectorAll(".candidate-item").forEach((row) => {
-    row.addEventListener("click", () => {
-      const partIdx = (row as HTMLElement).dataset.partIdx;
-      const hidden = preview.querySelector<HTMLInputElement>(`[data-part-value="${partIdx}"]`);
-      if (hidden) hidden.value = (row as HTMLElement).dataset.candIdx ?? "";
-      preview.querySelectorAll(`.candidate-item[data-part-idx="${partIdx}"]`).forEach((r) => r.classList.toggle("selected", r === row));
-    });
-  });
 }
 
 el("wfcd-modal-import").addEventListener("click", async () => {
@@ -317,7 +306,7 @@ el("wfcd-modal-import").addEventListener("click", async () => {
 
   (wfcdSuggestion.parts ?? []).forEach((p, i) => {
     const partNode: Record<string, unknown> = { ...p.node, requires: [] };
-    const sel = document.querySelector<HTMLInputElement>(`[data-part-value="${i}"]`);
+    const sel = document.querySelector<HTMLSelectElement>(`[data-part-value="${i}"]`);
     const chosenIdx = sel ? sel.value : "";
     if (chosenIdx !== "" && p.relicCandidates) {
       const candidate = p.relicCandidates[Number(chosenIdx)];

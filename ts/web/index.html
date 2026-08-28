@@ -479,13 +479,6 @@
   .badge-vaulted { display: inline-flex; align-items: center; gap: 3px; background: #e88c9322; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
   .badge-resurgence { display: inline-flex; align-items: center; gap: 3px; background: #f6ddaa22; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
 
-  /* WFCD自動生成の入手先候補一覧。ネイティブ<select><option>だとVault済みバッジ（アイコン付き）
-     を差し込めないため、Inspector側と同じクリック選択式のカードリストにした（2026-08-25）。 */
-  .candidate-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-  .candidate-item { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
-  .candidate-item:hover { border-color: var(--accent); }
-  .candidate-item.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
-
   /* キーワード入力で絞り込める自前のコンボボックス（Loadouts/Collectionsと同じパターン、
      2026-08-23、WFCD自動生成の名前欄を種別で絞り込んだ予測変換にする要望で追加）。 */
   .combobox { position: relative; }
