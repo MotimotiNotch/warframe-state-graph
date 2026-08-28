@@ -140,8 +140,12 @@
     align-items: stretch;
     /* #folder-toggle-rowが#folder-panelの上端の外側へposition:absoluteで
        ちょい乗せするため（下記#folder-col）、.progress-wrapとの間に
-       ボタン1個分の逃げ場を作る。 */
-    margin-top: 24px;
+       ボタン1個分の逃げ場を作る。隣接兄弟のmargin相殺で.progress-wrapの
+       margin-bottom:10pxはこちらの値に吸収される（大きい方が勝つ、
+       足し算にはならない）ため、24pxでは実測6px「0/5完了」ラベルに
+       食い込んでいた（のっち報告、2026-08-28）。38pxで実測8px弱の
+       余裕を確認。 */
+    margin-top: 38px;
   }
   @media (max-width: 800px) {
     .layout { flex-direction: column; }
