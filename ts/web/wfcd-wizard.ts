@@ -62,7 +62,9 @@ el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
 // プルダウン・見出し文言と同じもの（「相棒」等の和訳を独自に当てない——
 // のっち指摘、2026-08-28: そのカテゴリの呼称は元々アプリ内で英字のまま
 // 統一されている）をそのまま踏襲する。
-el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>Companion/Archwing/Necramechはこの一覧にありません（Chain Viewのノードを持たない仕様）。Loadoutsの見出し横の＋アイコンから登録してください。</span>`;
+// 登録先の誘導（Loadoutsの＋アイコンから...）は蛇足と判断し削除（のっち
+// 指摘、2026-08-28）——「ここには無い」という事実だけ伝われば足りる。
+el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>Companion/Archwing/Necramechはこの一覧にありません（Chain Viewのノードを持たない仕様）。</span>`;
 
 // Reference data pool for the name-field keyword filter, swapped per node
 // type (Frame/Weapon/Quest) — same pattern as the Loadouts/Collections
