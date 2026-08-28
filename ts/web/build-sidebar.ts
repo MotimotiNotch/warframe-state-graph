@@ -90,6 +90,7 @@ function buildRowHtml(n: Node): string {
     <div class="sb-build-row${current ? " current" : ""}" data-build-id="${n.id}">
       <span class="sb-build-name">${escapeHtml(n.name)}</span>
       <button class="icon-btn sb-move-btn" data-move-toggle="${n.id}" title="フォルダへ移動">${icon("folder", { size: 13 })}</button>
+      <button class="icon-btn sb-delete-btn" data-build-delete="${n.id}" title="削除">${icon("trash-2", { size: 13 })}</button>
     </div>`;
 }
 
@@ -212,7 +213,7 @@ function wireInteractions(container: HTMLElement): void {
 
   container.querySelectorAll<HTMLElement>(".sb-build-row").forEach((row) => {
     row.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).closest(".sb-move-btn")) return;
+      if ((e.target as HTMLElement).closest(".sb-move-btn, .sb-delete-btn")) return;
       selectBuild(row.dataset.buildId!);
       render();
     });
@@ -228,6 +229,22 @@ function wireInteractions(container: HTMLElement): void {
       }
       const node = state.graph!.nodes[id];
       if (node) openMovePopover(btn, node);
+    });
+  });
+
+  // ビルド一覧から直接削除できるように（のっち依頼、2026-08-28）。それまでは
+  // 選択→詳細パネル→編集モーダル→削除、という遠回りしか手段がなかった。
+  // node-modal.tsの削除確認と同じ文言・同じconfirmInlineパターンを踏襲。
+  container.querySelectorAll<HTMLButtonElement>(".sb-delete-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.buildDelete!;
+      const node = state.graph!.nodes[id];
+      if (!node) return;
+      if (!(await confirmInline(btn, `「${node.name}」を削除する？（他ノードからの参照も外れます）`))) return;
+      await fetch(`/api/nodes/${encodeURIComponent(id)}`, { method: "DELETE" });
+      await refreshGraph();
+      refreshSidebar();
     });
   });
 

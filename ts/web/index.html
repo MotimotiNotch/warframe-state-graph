@@ -251,7 +251,8 @@
   .sb-build-row:hover { background: var(--border); }
   .sb-build-row.current { color: var(--accent); font-weight: 600; }
   .sb-build-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sb-move-btn { padding: 3px; flex-shrink: 0; }
+  .sb-move-btn, .sb-delete-btn { padding: 3px; flex-shrink: 0; }
+  .sb-delete-btn:hover { border-color: var(--blocked, #e88c93); color: var(--blocked, #e88c93); }
   /* #folder-panel sets overflow-y:auto, which per spec computes its
      overflow-x to auto too (never stays "visible" once either axis isn't) —
      so a popover positioned absolute/relative to a button inside it gets
