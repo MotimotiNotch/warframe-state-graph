@@ -144,11 +144,16 @@
   .toast {
     background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
     border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 14px; font-size: 0.85rem; max-width: 320px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4); cursor: pointer;
+    padding: 10px 12px 10px 14px; font-size: 0.85rem; max-width: 320px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    display: flex; align-items: flex-start; gap: 8px;
     opacity: 0; transform: translateY(8px); transition: opacity 0.15s ease, transform 0.15s ease;
   }
   .toast.show { opacity: 1; transform: translateY(0); }
+  .toast-text { flex: 1; }
+  /* 自動消滅ではなく閉じるボタンで手動クローズ（のっち指摘、2026-08-28）。 */
+  .toast-close { flex-shrink: 0; background: transparent; border: none; padding: 2px; color: inherit; cursor: pointer; opacity: 0.7; line-height: 0; }
+  .toast-close:hover { opacity: 1; }
   .toast-error { border-color: var(--blocked); color: var(--blocked); }
   .toast-success { border-color: var(--satisfied); color: var(--satisfied); }
   /* インライン削除確認（window.confirm()廃止、ADR05実装、2026-08-28）。

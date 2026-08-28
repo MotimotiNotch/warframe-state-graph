@@ -7,6 +7,8 @@
 //
 // Single shared #toast-container (created lazily, reused across calls) so
 // multiple toasts stack instead of replacing each other.
+import { icon } from "./icons.ts";
+
 let container: HTMLDivElement | null = null;
 
 function getContainer(): HTMLDivElement {
@@ -18,21 +20,18 @@ function getContainer(): HTMLDivElement {
   return container;
 }
 
-/** kind "error" (validation/save-failure messages) auto-dismisses slower
- * than "success" — an error is worth a beat longer to actually read. Click
- * dismisses immediately either way. */
+/** 自動で消えるのではなく閉じるボタンで手動で消す方式（のっち指摘、
+ * 2026-08-28）——自動消滅だと読み終わる前に消えることがあった。 */
 export function showToast(message: string, kind: "error" | "success" = "error"): void {
   const el = document.createElement("div");
   el.className = `toast toast-${kind}`;
-  el.textContent = message;
+  el.innerHTML = `<span class="toast-text">${message}</span><button class="toast-close" aria-label="閉じる">${icon("x", { size: 13 })}</button>`;
   getContainer().appendChild(el);
   // rAF so the .show transition actually animates in (adding the class in
   // the same tick as append would skip the transition — starts "already on").
   requestAnimationFrame(() => el.classList.add("show"));
-  const dismiss = (): void => {
+  el.querySelector(".toast-close")!.addEventListener("click", () => {
     el.classList.remove("show");
     setTimeout(() => el.remove(), 200);
-  };
-  el.addEventListener("click", dismiss);
-  setTimeout(dismiss, kind === "error" ? 4000 : 3000);
+  });
 }
