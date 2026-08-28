@@ -15,6 +15,7 @@ import { locationJa } from "./location-i18n.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
 import { NODE_TYPE_LABEL_JA } from "./node-modal.ts";
+import { showToast } from "./toast.ts";
 
 // Shape of a /api/wfcd/generate response. Ported ahead of pkg/wfcdgen
 // itself (Phase 11) — refine/replace with the real generated type once that
@@ -158,7 +159,7 @@ el("wfcd-fetch-btn").addEventListener("click", async () => {
   const preview = el("wfcd-preview");
   el("wfcd-modal-import").style.display = "none";
   if (!name) {
-    alert("名前を入力して");
+    showToast("名前を入力して");
     return;
   }
   preview.innerHTML = `<div class="empty">取得中…</div>`;
@@ -449,9 +450,10 @@ el("wfcd-modal-import").addEventListener("click", async () => {
   el("wfcd-modal-backdrop").classList.add("hidden");
   await loadGraph();
   if (state.focus) await loadReport();
-  alert(
+  showToast(
     attached
       ? `「${root.name}」を追加し、現在のBuildのcontainsに繋げました。`
       : `「${root.name}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存のBuildのcontainsに含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
+    "success",
   );
 });

@@ -7,9 +7,11 @@
 // editing one (see typeOptionsFor), never for new nodes.
 
 import type { Node, NodeType } from "../server/model.ts";
+import { confirmInline } from "./confirm-inline.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
+import { showToast } from "./toast.ts";
 
 export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic"];
 export const NODE_TYPE_LABEL_JA: Record<string, string> = {
@@ -182,7 +184,7 @@ el("node-modal-cancel").addEventListener("click", closeNodeModal);
 el("node-modal-save").addEventListener("click", async () => {
   const name = el<HTMLInputElement>("node-name").value.trim();
   if (!name) {
-    alert("名前を入力して");
+    showToast("名前を入力して");
     return;
   }
   const id = nodeModalMode === "create" ? generateNodeId() : el<HTMLInputElement>("node-id").value.trim();
@@ -234,7 +236,7 @@ el("node-modal-save").addEventListener("click", async () => {
 
 el("node-modal-delete").addEventListener("click", async () => {
   const id = el<HTMLInputElement>("node-id").value.trim();
-  if (!confirm(`「${id}」を削除する？（他ノードからの参照も外れます）`)) return;
+  if (!(await confirmInline(el("node-modal-delete"), `「${id}」を削除する？（他ノードからの参照も外れます）`))) return;
   await fetch(`/api/nodes/${encodeURIComponent(id)}`, { method: "DELETE" });
   closeNodeModal();
   state.selected = null;

@@ -14,6 +14,7 @@
 // elsewhere: wallpaper position drag, card-tilt.js's rAF/background-tab
 // issues, scratch panel drag).
 
+import { confirmInline } from "./confirm-inline.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import type { Folder } from "../server/folder.ts";
@@ -242,7 +243,7 @@ function wireInteractions(container: HTMLElement): void {
       e.stopPropagation();
       const id = btn.dataset.folderDelete!;
       const name = folders[id]?.name ?? "";
-      if (!window.confirm(`「${name}」を削除する？（中のビルドは未分類に戻ります）`)) return;
+      if (!(await confirmInline(btn, `「${name}」を削除する？（中のビルドは未分類に戻ります）`))) return;
       await fetch(`/api/folders/${encodeURIComponent(id)}`, { method: "DELETE" });
       delete folders[id];
       // The server also clears folderId off every affected node

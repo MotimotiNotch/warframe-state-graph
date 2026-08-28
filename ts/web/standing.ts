@@ -2,6 +2,7 @@
 import type { Data, SyndicateInfo } from "../server/standing.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
+import { showToast } from "./toast.ts";
 import "./booster.ts";
 import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
@@ -233,31 +234,9 @@ function renderSyndicateList(containerId: string, list: SyndicateInfo[], showAch
   );
   container.querySelectorAll(".syn-sacrifice-pop").forEach((pop) => pop.addEventListener("click", (e) => e.stopPropagation()));
   container.querySelectorAll<HTMLButtonElement>("[data-highest-reset]").forEach((btn) =>
-    btn.addEventListener("click", async (e) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const name = btn.dataset.highestReset!;
-      const syn = state.syndicates.find((s) => s.name === name);
-      const max = syn ? maxRank(syn) : 5;
-      const current = state.highest[name] ?? 0;
-      const input = window.prompt(
-        `「${synJa(name)}」の最高到達実績を訂正（0〜${max}、間違って高いランクを選んでしまった時用）`,
-        String(current),
-      );
-      if (input === null) return;
-      const rank = Number(input);
-      if (!Number.isInteger(rank) || rank < 0 || rank > max) {
-        window.alert(`0〜${max}の整数を入力して`);
-        return;
-      }
-      const res = await fetch(`/api/standing/${encodeURIComponent(name)}/highest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rank }),
-      });
-      const data = (await res.json()) as Data;
-      state.ranks = data.ranks || state.ranks;
-      state.highest = data.highestRankReached || state.highest;
-      render();
+      openRankCorrectModal(btn.dataset.highestReset!);
     }),
   );
   container.querySelectorAll<HTMLSelectElement>("[data-syndicate]").forEach((sel) => {
@@ -281,6 +260,60 @@ function renderSyndicateList(containerId: string, list: SyndicateInfo[], showAch
     });
   });
 }
+
+// 最高到達実績の訂正モーダル（window.prompt()/window.alert()廃止、ADR05実装、
+// 2026-08-28）。「間違って高いランクを選んでしまった時用」の訂正なので
+// 頻度は低いが、他の全箇所と同じくのっち指示で対象——このページ唯一の
+// モーダル利用箇所（standing.htmlに.modal-backdrop/.modalを新規追加）。
+let rankCorrectSyndicate: string | null = null;
+
+function openRankCorrectModal(name: string): void {
+  rankCorrectSyndicate = name;
+  const syn = state.syndicates.find((s) => s.name === name);
+  const max = syn ? maxRank(syn) : 5;
+  const current = state.highest[name] ?? 0;
+  el("rank-correct-title").textContent = `「${synJa(name)}」の最高到達実績を訂正`;
+  el("rank-correct-hint").textContent = `0〜${max}（間違って高いランクを選んでしまった時用）`;
+  const input = el<HTMLInputElement>("rank-correct-input");
+  input.min = "0";
+  input.max = String(max);
+  input.value = String(current);
+  el("rank-correct-modal-backdrop").classList.remove("hidden");
+  input.focus();
+}
+
+function closeRankCorrectModal(): void {
+  el("rank-correct-modal-backdrop").classList.add("hidden");
+  rankCorrectSyndicate = null;
+}
+
+async function saveRankCorrectModal(): Promise<void> {
+  const name = rankCorrectSyndicate;
+  if (!name) return;
+  const syn = state.syndicates.find((s) => s.name === name);
+  const max = syn ? maxRank(syn) : 5;
+  const rank = Number(el<HTMLInputElement>("rank-correct-input").value);
+  if (!Number.isInteger(rank) || rank < 0 || rank > max) {
+    showToast(`0〜${max}の整数を入力して`);
+    return;
+  }
+  const res = await fetch(`/api/standing/${encodeURIComponent(name)}/highest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rank }),
+  });
+  const data = (await res.json()) as Data;
+  state.ranks = data.ranks || state.ranks;
+  state.highest = data.highestRankReached || state.highest;
+  closeRankCorrectModal();
+  render();
+}
+
+el("rank-correct-cancel").addEventListener("click", closeRankCorrectModal);
+el("rank-correct-save").addEventListener("click", () => void saveRankCorrectModal());
+el<HTMLInputElement>("rank-correct-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") void saveRankCorrectModal();
+});
 
 function render(): void {
   const isMajor = (s: SyndicateInfo) => s.faction === "left" || s.faction === "right";

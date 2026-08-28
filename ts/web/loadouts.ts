@@ -2,10 +2,12 @@
 import type { Node } from "../server/model.ts";
 import type { BuildSet, ConfigSlot, Data as LoadoutData, Item, ItemType } from "../server/loadout.ts";
 import type { NextActionReport } from "../server/engine.ts";
+import { confirmInline } from "./confirm-inline.ts";
 import { el, maybeEl } from "./dom.ts";
 import { icon, iconLabel } from "./icons.ts";
 import { renderMiniGraph } from "./minigraph.ts";
 import { renderNoteMd } from "./notemd.ts";
+import { showToast } from "./toast.ts";
 import { buildBuildSetExportText, buildItemExportText, wireCopyButtons } from "./export.ts";
 import "./card-tilt.ts";
 import "./booster.ts";
@@ -348,8 +350,8 @@ function renderItems(): void {
   );
   wireCopyButtons(listEl, "[data-copy-item]", (btn) => buildItemExportText(state.data.items[btn.dataset.copyItem!]!));
   listEl.querySelectorAll<HTMLElement>("[data-del-item]").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      if (confirm(`「${state.data.items[btn.dataset.delItem!]!.name}」を削除する？`)) void deleteItem(btn.dataset.delItem!);
+    btn.addEventListener("click", async () => {
+      if (await confirmInline(btn, `「${state.data.items[btn.dataset.delItem!]!.name}」を削除する？`)) void deleteItem(btn.dataset.delItem!);
     })
   );
   listEl.querySelectorAll<HTMLElement>("[data-edit-item-meta]").forEach((btn) =>
@@ -504,7 +506,7 @@ el("add-item-btn").addEventListener("click", async () => {
   const name = el<HTMLInputElement>("new-item-name").value.trim();
   const type = el<HTMLSelectElement>("new-item-type").value as ItemType;
   if (!name) {
-    alert("名前を入力して");
+    showToast("名前を入力して");
     return;
   }
   const bulk = el<HTMLInputElement>("item-bulk-check").checked;
@@ -701,7 +703,7 @@ function renderBuildSetForm(): void {
   el("draft-cancel").addEventListener("click", closeBuildSetModal);
   el("draft-save").addEventListener("click", async () => {
     if (!draft.name.trim()) {
-      alert("ビルドセット名を入力して");
+      showToast("ビルドセット名を入力して");
       return;
     }
     const wantsChainView = !draft.chainViewBuildId && maybeEl<HTMLInputElement>("draft-chainview-check")?.checked;
@@ -826,9 +828,9 @@ function renderBuildSets(): void {
   }
 
   listEl.querySelectorAll<HTMLElement>("[data-del-set]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (confirm(`「${state.data.buildSets[btn.dataset.delSet!]!.name}」を削除する？`)) void deleteBuildSet(btn.dataset.delSet!);
+      if (await confirmInline(btn, `「${state.data.buildSets[btn.dataset.delSet!]!.name}」を削除する？`)) void deleteBuildSet(btn.dataset.delSet!);
     })
   );
   listEl.querySelectorAll<HTMLElement>("[data-edit-set]").forEach((btn) =>

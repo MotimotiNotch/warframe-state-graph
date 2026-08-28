@@ -11,10 +11,12 @@ import type {
   RivenEntry,
   WeaponEntry,
 } from "../server/collection.ts";
+import { confirmInline } from "./confirm-inline.ts";
 import { el, maybeEl } from "./dom.ts";
 import { icon, iconLabel } from "./icons.ts";
 import { renderMiniGraph } from "./minigraph.ts";
 import { renderNoteMd } from "./notemd.ts";
+import { showToast } from "./toast.ts";
 import {
   buildEquipExportText,
   buildFrameEntryExportText,
@@ -591,7 +593,7 @@ el("riven-weapon-input").addEventListener("keydown", (e) => {
 el("riven-modal-save").addEventListener("click", () => {
   const weaponName = el<HTMLInputElement>("riven-weapon-input").value.trim();
   if (!weaponName) {
-    alert("対象武器名を入力して");
+    showToast("対象武器名を入力して");
     return;
   }
   const bulk = !rivenEditingId && el<HTMLInputElement>("riven-bulk-check").checked;
@@ -700,10 +702,10 @@ function renderRivenList(): void {
     }),
   );
   container.querySelectorAll<HTMLElement>("[data-del-riven]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delRiven!;
-      if (confirm(`「${state.data.rivens[id]!.weaponName}」を削除する？`)) void deleteRiven(id);
+      if (await confirmInline(btn, `「${state.data.rivens[id]!.weaponName}」を削除する？`)) void deleteRiven(id);
     }),
   );
   container.querySelectorAll<HTMLElement>("[data-toggle-fav]").forEach((btn) =>
@@ -858,7 +860,7 @@ function renderKuvaModal(): void {
   entriesEl.querySelectorAll<HTMLElement>("[data-toggle-fav]").forEach((b) => b.addEventListener("click", () => toggleFavorite("kuva", b.dataset.toggleFav!)));
   entriesEl.querySelectorAll<HTMLElement>("[data-del-kuva]").forEach((b) =>
     b.addEventListener("click", async () => {
-      if (confirm("この個体を削除する？")) {
+      if (await confirmInline(b, "この個体を削除する？")) {
         await deleteKuva(b.dataset.delKuva!);
         const stillExists = groupedKuva()[weaponName];
         if (stillExists && stillExists.length) renderKuvaModal();
@@ -909,7 +911,7 @@ el("kuva-modal-add-toggle").addEventListener("click", () => {
 el("kuva-form-save").addEventListener("click", () => {
   const weaponName = kuvaModalState.weaponName || el<HTMLInputElement>("kuva-weapon-input").value.trim();
   if (!weaponName) {
-    alert("武器名を入力して");
+    showToast("武器名を入力して");
     return;
   }
   const isNewEntry = !kuvaModalState.editingId;
@@ -1035,10 +1037,10 @@ function renderFrameList(): void {
     }),
   );
   container.querySelectorAll<HTMLElement>("[data-del-frame]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delFrame!;
-      if (confirm(`「${state.data.frames[id]!.name}」を削除する？`)) void deleteFrame(id);
+      if (await confirmInline(btn, `「${state.data.frames[id]!.name}」を削除する？`)) void deleteFrame(id);
     }),
   );
   entries.forEach((entry) => {
@@ -1095,7 +1097,7 @@ function findFrameByName(name: string): FrameEntry | undefined {
 el("frame-modal-save").addEventListener("click", () => {
   const name = el<HTMLInputElement>("frame-name-input").value.trim();
   if (!name) {
-    alert("フレーム名を入力して");
+    showToast("フレーム名を入力して");
     return;
   }
   const bulk = !frameEditingId && el<HTMLInputElement>("frame-bulk-check").checked;
@@ -1231,10 +1233,10 @@ function renderEquipList(kind: EquipKind): void {
     }),
   );
   container.querySelectorAll<HTMLElement>("[data-del-id]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delId!;
-      if (confirm(`「${equipBucket(kind)[id]!.name}」を削除する？`)) void deleteEquip(kind, id);
+      if (await confirmInline(btn, `「${equipBucket(kind)[id]!.name}」を削除する？`)) void deleteEquip(kind, id);
     }),
   );
   entries.forEach((entry) => {
@@ -1270,7 +1272,7 @@ function equipSave(kind: EquipKind): void {
   const cfg = EQUIP_KINDS[kind];
   const name = el<HTMLInputElement>(`${kind}-name-input`).value.trim();
   if (!name) {
-    alert(`${cfg.label}名を入力して`);
+    showToast(`${cfg.label}名を入力して`);
     return;
   }
   const editingId = equipEditingId[kind] ?? null;
@@ -1406,10 +1408,10 @@ function renderIncarnonList(): void {
     }),
   );
   container.querySelectorAll<HTMLElement>("[data-del-incarnon]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delIncarnon!;
-      if (confirm(`「${state.data.incarnons[id]!.weaponName}」を削除する？`)) void deleteIncarnon(id);
+      if (await confirmInline(btn, `「${state.data.incarnons[id]!.weaponName}」を削除する？`)) void deleteIncarnon(id);
     }),
   );
   entries.forEach((entry) => {
@@ -1452,7 +1454,7 @@ el("incarnon-weapon-input").addEventListener("keydown", (e) => {
 el("incarnon-modal-save").addEventListener("click", () => {
   const weaponName = el<HTMLInputElement>("incarnon-weapon-input").value.trim();
   if (!weaponName) {
-    alert("武器名を入力して");
+    showToast("武器名を入力して");
     return;
   }
   const bulk = !incarnonEditingId && el<HTMLInputElement>("incarnon-bulk-check").checked;

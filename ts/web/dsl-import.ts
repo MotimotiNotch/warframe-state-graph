@@ -6,6 +6,7 @@
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
+import { showToast } from "./toast.ts";
 
 interface DslError {
   message: string;
@@ -93,5 +94,5 @@ el("dsl-modal-import").addEventListener("click", async () => {
   el("dsl-modal-backdrop").classList.add("hidden");
   await loadGraph();
   if (state.focus) await loadReport();
-  alert(`${dslPreviewNodes.length}個のノードを追加しました。探索起点は左サイドバーの一覧から辿れます。`);
+  showToast(`${dslPreviewNodes.length}個のノードを追加しました。探索起点は左サイドバーの一覧から辿れます。`, "success");
 });

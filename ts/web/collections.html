@@ -135,6 +135,35 @@
   }
   .popover.hidden { display: none; }
   .popover.left { right: auto; left: 0; }
+  /* トースト通知（window.alert()廃止、ADR05実装、2026-08-28）。
+     #toast-containerはtoast.tsが遅延生成する。 */
+  #toast-container {
+    position: fixed; bottom: 16px; right: 16px; z-index: 500;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+  }
+  .toast {
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.85rem; max-width: 320px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); cursor: pointer;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast-error { border-color: var(--blocked); color: var(--blocked); }
+  .toast-success { border-color: var(--satisfied); color: var(--satisfied); }
+  /* インライン削除確認（window.confirm()廃止、ADR05実装、2026-08-28）。
+     confirm-inline.tsがgetBoundingClientRect()で位置決めしてbody直下に
+     生成する（position:fixed——親のoverflow/backdrop-filterに影響
+     されない、#sb-move-popoverと同じ理由）。 */
+  .confirm-inline {
+    position: fixed; z-index: 210;
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px; max-width: 260px; font-size: 0.82rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .confirm-inline .actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+  .confirm-inline-ok { border-color: var(--blocked); color: var(--blocked); }
 
   .panel {
     background: var(--panel);

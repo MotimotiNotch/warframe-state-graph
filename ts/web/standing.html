@@ -102,6 +102,59 @@
     overflow-wrap: break-word;
   }
   .popover.hidden { display: none; }
+  /* トースト通知（window.alert()廃止、ADR05実装、2026-08-28）。
+     #toast-containerはtoast.tsが遅延生成する。 */
+  #toast-container {
+    position: fixed; bottom: 16px; right: 16px; z-index: 500;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+  }
+  .toast {
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.85rem; max-width: 320px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); cursor: pointer;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  /* standing.htmlは--blockedを持たず--dangerのみなので、他3ページの
+     コピーと違いここだけ--dangerを参照する。 */
+  .toast-error { border-color: var(--danger); color: var(--danger); }
+  .toast-success { border-color: var(--satisfied); color: var(--satisfied); }
+  /* インライン削除確認（window.confirm()廃止、ADR05実装、2026-08-28）。
+     confirm-inline.tsがgetBoundingClientRect()で位置決めしてbody直下に
+     生成する（position:fixed——親のoverflow/backdrop-filterに影響
+     されない、#sb-move-popoverと同じ理由）。 */
+  .confirm-inline {
+    position: fixed; z-index: 210;
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px; max-width: 260px; font-size: 0.82rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .confirm-inline .actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+  .confirm-inline-ok { border-color: var(--danger); color: var(--danger); }
+
+  /* 最高到達実績の訂正モーダル（window.prompt()廃止、ADR05実装、2026-08-28）。
+     このページ唯一のモーダル利用箇所——index.html/loadouts.htmlの既存
+     .modal-backdrop/.modalをそのまま踏襲。 */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 200;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 16px; width: 100%; max-width: 420px;
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 1rem; }
+  .modal label { display: block; font-size: 0.78rem; color: var(--muted); margin: 8px 0 3px; }
+  .modal input[type=text], .modal input[type=number] {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; font-family: inherit;
+  }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
   .panel {
     background: var(--panel);
@@ -221,6 +274,19 @@
     </div>
     <div class="syn-warning">クエストやイベント進行で解放されるシンジケートです。ネタバレを含むため閲覧に注意してください。</div>
     <div id="other-syndicate-list" class="syn-grid hidden"></div>
+  </div>
+
+  <!-- 最高到達実績の訂正（window.prompt()廃止、ADR05実装、2026-08-28）。 -->
+  <div id="rank-correct-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="rank-correct-title">最高到達実績を訂正</h3>
+      <label id="rank-correct-hint"></label>
+      <input type="number" id="rank-correct-input" min="0" step="1">
+      <div class="actions">
+        <button class="toggle" id="rank-correct-cancel">キャンセル</button>
+        <button class="toggle" id="rank-correct-save">保存</button>
+      </div>
+    </div>
   </div>
 
 <script type="module" src="/standing.js"></script>
