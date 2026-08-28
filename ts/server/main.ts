@@ -30,7 +30,7 @@ import { CounterSchema, NodeSchema } from "./model.ts";
 import { MainQuestNames, ResolveChain } from "./questchain.ts";
 import { ScratchStore } from "./scratch.ts";
 import { FetchPlanets, FetchProxima } from "./starchart.ts";
-import { ALL_SYNDICATES, findSyndicate, maxRank, minRank, StandingStore } from "./standing.ts";
+import { ALL_SYNDICATES, findSyndicate, maxRank, minRank, StandingStore, syndicateNames } from "./standing.ts";
 import {
   FocusInvestment,
   FocusSchools,
@@ -60,6 +60,8 @@ import {
   fetchModNames,
   fetchNecramechNames,
   fetchQuestNames,
+  fetchRelicNames,
+  fetchResourceNames,
   fetchWeaponNames,
   findItemByName,
   isRelicVaulted,
@@ -1277,6 +1279,32 @@ const server = Bun.serve({
       GET: async () => {
         try {
           return json(await cachedNames(wfcdCacheDir, "mods.json", fetchModNames));
+        } catch (err) {
+          return errorResponse(err, 502);
+        }
+      },
+    },
+
+    // Node-modal name autocomplete for Syndicate/Resource/Relic types
+    // (2026-08-28, requested as "武器/フレーム/MOD以外の候補は？"). Syndicate is
+    // static in-process data (no fetch/cache needed); Resource/Relic go
+    // through the same cachedNames path as the other WFCD-sourced types.
+    "/api/reference/syndicates": {
+      GET: () => json(syndicateNames()),
+    },
+    "/api/reference/resources": {
+      GET: async () => {
+        try {
+          return json(await cachedNames(wfcdCacheDir, "resources.json", fetchResourceNames));
+        } catch (err) {
+          return errorResponse(err, 502);
+        }
+      },
+    },
+    "/api/reference/relics": {
+      GET: async () => {
+        try {
+          return json(await cachedNames(wfcdCacheDir, "relics.json", fetchRelicNames));
         } catch (err) {
           return errorResponse(err, 502);
         }

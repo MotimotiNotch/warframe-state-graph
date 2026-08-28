@@ -125,14 +125,19 @@ function updateNodeSuggest(kind: "requires" | "contains"): void {
 
 // 名前欄の予測変換（のっち依頼、2026-08-28）: 種別を選んだらWFCDの実データ
 // から候補を出す——wfcd-wizard.tsの名前欄と同じパターン・同じ参照エンド
-// ポイントを流用。Riven/Syndicate/Resource/Relicのようにカタログを持たない
-// 種別もあるので、候補が0件でも自由入力はそのまま通る（wfcd-wizard.tsと
-// 同じ「一致なし（このまま自由入力できます）」表示）。
+// ポイントを流用。Rivenだけはディスポジション個体差が強くカタログ化でき
+// ないので候補なし——ただし黙って何も出さないのではなく「自由入力のみ」
+// と明示する（updateNodeNameSuggest側で処理）。カタログのある種別は候補
+// が0件でも自由入力はそのまま通る（wfcd-wizard.tsと同じ「一致なし（この
+// まま自由入力できます）」表示）。
 const NODE_NAME_REF_ENDPOINTS: Partial<Record<NodeType, string>> = {
   Frame: "/api/reference/frames",
   Weapon: "/api/reference/weapons",
   Mod: "/api/reference/mods",
   Quest: "/api/reference/quests",
+  Syndicate: "/api/reference/syndicates",
+  Resource: "/api/reference/resources",
+  Relic: "/api/reference/relics",
 };
 const nodeNameRefData: Partial<Record<NodeType, string[]>> = {};
 async function loadNodeNameRefData(): Promise<void> {
@@ -155,6 +160,13 @@ function hideNodeNameSuggest(): void {
 }
 function updateNodeNameSuggest(): void {
   const type = el<HTMLSelectElement>("node-type").value as NodeType;
+  // Rivenのようにカタログを持たない種別は、候補ゼロで黙って何も出さない
+  // のではなく「自由入力のみ」と明示する（のっち依頼、2026-08-28）。
+  if (!Object.prototype.hasOwnProperty.call(NODE_NAME_REF_ENDPOINTS, type)) {
+    nodeNameSuggest.innerHTML = `<div class="suggest-empty">候補なし（自由入力のみ対応の種別です）</div>`;
+    nodeNameSuggest.classList.remove("hidden");
+    return;
+  }
   const pool = nodeNameRefData[type] ?? [];
   const q = nodeNameInput.value.trim().toLowerCase();
   if (!q || !pool.length) {

@@ -198,6 +198,38 @@ export async function fetchCompanionNames(): Promise<string[]> {
   return names;
 }
 
+/** Resources.json (241 entries, Resource/Gem/Plant mixed, unfiltered) alone
+ * is missing the common basic-crafting resources (Rubedo, Salvage, Circuits,
+ * Plastids, Orokin Cell, ...) — WFCD files those under Misc.json instead,
+ * type:"Resource" among ~1250 unrelated Zaw/Kitgun/Amp components (confirmed
+ * 2026-08-28), so merged in filtered to that type. */
+export async function fetchResourceNames(): Promise<string[]> {
+  const [resources, misc] = await Promise.all([
+    fetchNames(itemsCategoryURL(CategoryResources)),
+    fetchItemsFull(CategoryMisc),
+  ]);
+  const names = new Set(resources);
+  for (const it of misc) if (it.type === "Resource") names.add(it.name);
+  return [...names];
+}
+
+// Relics.json (3120 entries confirmed 2026-08-28) has 4 refinement-tier rows
+// per base relic ("Axi A1 Intact/Exceptional/Flawless/Radiant"), unlike
+// missionRewards.json's drop-table strings this suffix is a plain trailing
+// word (no parens) — dedupe strips it directly rather than reusing
+// normalizeRelicName(), which targets the other format.
+const RELIC_TIER_SUFFIX = / (Intact|Exceptional|Flawless|Radiant)$/;
+
+/** Base relic names (era+tier code only, e.g. "Axi A1") deduped across
+ * refinement rows. Sourced from Relics.json rather than
+ * fetchActiveRelicNames()'s missionRewards.json walk so vaulted relics are
+ * included too — a node candidate list should cover things worth tracking
+ * as a goal, not just currently-farmable ones. */
+export async function fetchRelicNames(): Promise<string[]> {
+  const items = await fetchItemsFull(CategoryRelics);
+  return [...new Set(items.map((it) => it.name.replace(RELIC_TIER_SUFFIX, "")))];
+}
+
 // ---------------------------------------------------------------------------
 // relics.go: relic-vault detection + Prime Resurgence (Varzia) rotation.
 

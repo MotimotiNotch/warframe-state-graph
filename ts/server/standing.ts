@@ -195,6 +195,11 @@ export function findSyndicate(name: string): SyndicateInfo | undefined {
   return ALL_SYNDICATES.find((s) => s.name === name);
 }
 
+/** Backs /api/reference/syndicates (node-modal name autocomplete, 2026-08-28) — static, no fetch/cache needed. */
+export function syndicateNames(): string[] {
+  return ALL_SYNDICATES.map((s) => s.name);
+}
+
 /** Items needed to recover from a negative rank back to Neutral (0) — always
  * equal to the Rank-3 sacrifice, per the pattern found in 3 real data points
  * (see pkg/standing's doc comment). Empty for non-hostile syndicates. */
