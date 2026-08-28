@@ -683,6 +683,20 @@
     </div>
   </div>
 
+  <!-- フォルダの新規作成/名前変更（2026-08-28、window.prompt()廃止——のっち指摘）。
+       同じ「フォルダ名を1つ入力する」操作なので作成/リネーム共用。 -->
+  <div id="folder-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="folder-modal-title">新規フォルダ</h3>
+      <label>フォルダ名</label>
+      <input type="text" id="folder-modal-name" maxlength="60">
+      <div class="actions">
+        <button class="toggle" id="folder-modal-cancel">キャンセル</button>
+        <button class="toggle" id="folder-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+
 <!-- Chain View本体（8モジュール＋依存4本）はTSソースからバンドルした単一ESMファイル
      （bun build web/index.ts --outdir=dist --target=browser --format=esm の出力）。
      旧来の個別<script src>の並びの代わりにこれ1本を読み込む。 -->

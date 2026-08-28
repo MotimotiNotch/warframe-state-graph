@@ -231,20 +231,9 @@ function wireInteractions(container: HTMLElement): void {
   });
 
   container.querySelectorAll<HTMLButtonElement>("[data-folder-rename]").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const id = btn.dataset.folderRename!;
-      const name = window.prompt("フォルダ名を変更", folders[id]?.name ?? "");
-      if (!name) return;
-      const res = await fetch(`/api/folders/${encodeURIComponent(id)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (res.ok) {
-        folders[id] = (await res.json()) as Folder;
-        render();
-      }
+      openFolderModal("rename", btn.dataset.folderRename!);
     });
   });
 
@@ -265,19 +254,63 @@ function wireInteractions(container: HTMLElement): void {
   });
 }
 
-async function createFolder(): Promise<void> {
-  const name = window.prompt("新しいフォルダの名前");
+// Folder create/rename modal (2026-08-28) — replaces window.prompt() (のっち
+// 指摘: ブラウザ標準アラートでなくモーダルにしたい), same shape as ADR05's
+// planned native-dialog migration. Both actions are "enter one folder name",
+// so they share one modal; folderModalTargetId distinguishes which API call
+// saveFolderModal() makes.
+let folderModalMode: "create" | "rename" = "create";
+let folderModalTargetId: string | null = null;
+
+function openFolderModal(mode: "create" | "rename", targetId?: string): void {
+  folderModalMode = mode;
+  folderModalTargetId = targetId ?? null;
+  el("folder-modal-title").textContent = mode === "create" ? "新規フォルダ" : "フォルダ名を変更";
+  const input = el<HTMLInputElement>("folder-modal-name");
+  input.value = mode === "rename" && targetId ? (folders[targetId]?.name ?? "") : "";
+  el("folder-modal-backdrop").classList.remove("hidden");
+  input.focus();
+}
+
+function closeFolderModal(): void {
+  el("folder-modal-backdrop").classList.add("hidden");
+}
+
+async function saveFolderModal(): Promise<void> {
+  const name = el<HTMLInputElement>("folder-modal-name").value.trim();
   if (!name) return;
-  const f: Folder = { id: genFolderId(), name };
-  const res = await fetch("/api/folders", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(f),
-  });
-  if (res.ok) {
+  if (folderModalMode === "create") {
+    const f: Folder = { id: genFolderId(), name };
+    const res = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(f),
+    });
+    if (!res.ok) return;
     folders[f.id] = (await res.json()) as Folder;
-    render();
+  } else {
+    if (!folderModalTargetId) return;
+    const res = await fetch(`/api/folders/${encodeURIComponent(folderModalTargetId)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) return;
+    folders[folderModalTargetId] = (await res.json()) as Folder;
   }
+  closeFolderModal();
+  render();
+}
+
+/** One-time wiring for the folder modal's own buttons/input — mirrors
+ * wireMovePopoverOnce(): call once from initSidebar(), not from
+ * wireInteractions() (reruns every render(), would stack listeners). */
+function wireFolderModalOnce(): void {
+  el("folder-modal-cancel").addEventListener("click", closeFolderModal);
+  el("folder-modal-save").addEventListener("click", () => void saveFolderModal());
+  el<HTMLInputElement>("folder-modal-name").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void saveFolderModal();
+  });
 }
 
 /** Full initial load: fetches folders, resolves the deep-link `?focus=` /
@@ -287,8 +320,9 @@ async function createFolder(): Promise<void> {
 export async function initSidebar(): Promise<void> {
   await loadFolders();
   wireMovePopoverOnce();
+  wireFolderModalOnce();
   el("new-folder-btn").innerHTML = icon("folder-plus");
-  el("new-folder-btn").onclick = () => void createFolder();
+  el("new-folder-btn").onclick = () => openFolderModal("create");
 
   const builds = selectableBuilds();
   // A deep link from Loadouts/Collections' minigraph (?focus=<nodeId>,
