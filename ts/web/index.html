@@ -233,7 +233,10 @@
   .panel-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
   .sb-folder { margin-bottom: 4px; }
-  .sb-folder-head { display: flex; align-items: center; gap: 4px; padding: 3px 0; }
+  /* padding-rightを.sb-build-row（padding: 4px 6px）と揃える——0のままだと
+     フォルダの削除ボタンとビルドの削除ボタンが縦列で6pxずれて見えた
+     （のっち指摘、2026-08-28）。 */
+  .sb-folder-head { display: flex; align-items: center; gap: 4px; padding: 3px 6px 3px 0; }
   .sb-folder-chevron { transition: transform 0.15s ease; flex-shrink: 0; }
   .sb-folder-chevron.expanded { transform: rotate(180deg); }
   .sb-folder-name { font-size: 0.85rem; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
