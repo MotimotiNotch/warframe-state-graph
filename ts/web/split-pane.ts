@@ -117,8 +117,20 @@ function wireResizer(
 }
 
 function applySidebarCollapsed(collapsed: boolean): void {
-  el("folder-panel").classList.toggle("collapsed", collapsed);
+  const folderPanel = el("folder-panel");
+  folderPanel.classList.toggle("collapsed", collapsed);
   el("resizer-left").classList.toggle("collapsed", collapsed);
+  if (collapsed) {
+    // Same inline-style-always-wins issue as applyLayoutForBreakpoint()
+    // above: restorePanelWidths()/a live resizer drag may have left an
+    // inline `style.flex` (e.g. a dragged 400px) on #folder-panel, which
+    // would silently defeat the .collapsed CSS rule's `flex: 0 0 auto` —
+    // the rail rendered at the old dragged width instead of shrinking to
+    // just the button (real bug hit right after building this, 2026-08-28).
+    folderPanel.style.flex = "";
+  } else if (!MOBILE_MQ.matches) {
+    restorePanelWidths();
+  }
   const btn = el("sidebar-toggle-btn");
   btn.innerHTML = icon(collapsed ? "panel-left-open" : "panel-left-close");
   btn.title = collapsed ? "ビルド一覧を表示" : "ビルド一覧を隠す";
