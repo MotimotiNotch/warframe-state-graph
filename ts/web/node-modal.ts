@@ -26,8 +26,8 @@ export const NODE_TYPE_LABEL_JA: Record<string, string> = {
   Resource: "リソース",
   Relic: "レリック",
   Build: "Build（旧形式）",
-  // どのカテゴリにも当てはまらないアイテム用（のっち依頼、2026-08-28: 表示は「-」でいい）。
-  Other: "-",
+  // どのカテゴリにも当てはまらないアイテム用（のっち依頼、2026-08-28: 当初「-」表示だったが「Otherが良いかも」で変更）。
+  Other: "Other",
 };
 
 // のっち's call (2026-08-26): users shouldn't have to think about IDs at
