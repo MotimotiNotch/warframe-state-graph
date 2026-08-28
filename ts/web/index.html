@@ -138,6 +138,10 @@
     display: flex;
     gap: 4px;
     align-items: stretch;
+    /* #folder-toggle-rowが#folder-panelの上端の外側へposition:absoluteで
+       ちょい乗せするため（下記#folder-col）、.progress-wrapとの間に
+       ボタン1個分の逃げ場を作る。 */
+    margin-top: 24px;
   }
   @media (max-width: 800px) {
     .layout { flex-direction: column; }
@@ -158,15 +162,25 @@
      （2026-08-28、のっち指摘：ヘッダー行に間借りさせるとタイトル/新規フォルダと
      ごちゃつく）。#layoutの実際のflexアイテムは#folder-panel自身ではなく
      この2つをまとめた#folder-col——split-pane.tsの幅の保存/復元・折りたたみは
-     #folder-colを対象にする。 */
+     #folder-colを対象にする。
+
+     #folder-toggle-rowは通常フローに乗せず（position:absolute）#folder-panelの
+     境界線の上にちょい乗せする——通常フローの行として積むと、#graph-panel/#panel
+     には無い分だけ#folder-panelの上端が下にずれ、3パネルの高さが揃わなくなった
+     （のっち指摘、2026-08-28）。absoluteにすることで#folder-panelは#folder-col内
+     唯一のin-flow要素に戻り、他2パネルとぴったり同じ高さで揃う。 */
   #folder-col {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 6px;
     flex: 0 0 220px;
     min-width: 160px;
   }
-  #folder-toggle-row { display: flex; justify-content: flex-end; }
+  #folder-toggle-row {
+    position: absolute;
+    top: -30px;
+    right: 0;
+  }
   #folder-panel {
     background: var(--panel);
     backdrop-filter: blur(var(--panel-blur));
