@@ -21,6 +21,8 @@ export const NodeType = z.enum([
   "Quest",
   "Resource",
   "Relic",
+  // どのカテゴリにも当てはまらないアイテム用の汎用種別（のっち依頼、2026-08-28）。
+  "Other",
 ]);
 export type NodeType = z.infer<typeof NodeType>;
 

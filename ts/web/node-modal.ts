@@ -14,7 +14,7 @@ import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { questJa } from "./quest-i18n.ts";
 import { showToast } from "./toast.ts";
 
-export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic"];
+export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic", "Other"];
 export const NODE_TYPE_LABEL_JA: Record<string, string> = {
   Goal: "ゴール",
   Weapon: "武器",
@@ -26,6 +26,8 @@ export const NODE_TYPE_LABEL_JA: Record<string, string> = {
   Resource: "リソース",
   Relic: "レリック",
   Build: "Build（旧形式）",
+  // どのカテゴリにも当てはまらないアイテム用（のっち依頼、2026-08-28: 表示は「-」でいい）。
+  Other: "-",
 };
 
 // のっち's call (2026-08-26): users shouldn't have to think about IDs at
