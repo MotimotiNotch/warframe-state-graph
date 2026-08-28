@@ -11,6 +11,7 @@ import { confirmInline } from "./confirm-inline.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
+import { questJa } from "./quest-i18n.ts";
 import { showToast } from "./toast.ts";
 
 export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic"];
@@ -121,6 +122,78 @@ function updateNodeSuggest(kind: "requires" | "contains"): void {
   input.addEventListener("focus", () => updateNodeSuggest(kind));
   input.addEventListener("blur", () => setTimeout(() => hideNodeSuggest(kind), 150));
 });
+
+// 名前欄の予測変換（のっち依頼、2026-08-28）: 種別を選んだらWFCDの実データ
+// から候補を出す——wfcd-wizard.tsの名前欄と同じパターン・同じ参照エンド
+// ポイントを流用。Riven/Syndicate/Resource/Relicのようにカタログを持たない
+// 種別もあるので、候補が0件でも自由入力はそのまま通る（wfcd-wizard.tsと
+// 同じ「一致なし（このまま自由入力できます）」表示）。
+const NODE_NAME_REF_ENDPOINTS: Partial<Record<NodeType, string>> = {
+  Frame: "/api/reference/frames",
+  Weapon: "/api/reference/weapons",
+  Mod: "/api/reference/mods",
+  Quest: "/api/reference/quests",
+};
+const nodeNameRefData: Partial<Record<NodeType, string[]>> = {};
+async function loadNodeNameRefData(): Promise<void> {
+  await Promise.all(
+    (Object.entries(NODE_NAME_REF_ENDPOINTS) as [NodeType, string][]).map(async ([type, url]) => {
+      try {
+        nodeNameRefData[type] = (await fetch(url).then((r) => r.json())) as string[];
+      } catch {
+        // 取得失敗してもその種別は候補なしになるだけ、自由入力は引き続き可能
+      }
+    }),
+  );
+}
+void loadNodeNameRefData();
+
+const nodeNameInput = el<HTMLInputElement>("node-name");
+const nodeNameSuggest = el("node-name-suggest");
+function hideNodeNameSuggest(): void {
+  nodeNameSuggest.classList.add("hidden");
+}
+function updateNodeNameSuggest(): void {
+  const type = el<HTMLSelectElement>("node-type").value as NodeType;
+  const pool = nodeNameRefData[type] ?? [];
+  const q = nodeNameInput.value.trim().toLowerCase();
+  if (!q || !pool.length) {
+    hideNodeNameSuggest();
+    return;
+  }
+  // Questのみ日本語名でもマッチ（questJa）。実際に送る値はWFCDの英語名の
+  // まま——wfcd-wizard.tsの同じ扱いに合わせる。
+  const matches = pool
+    .filter((n) => n.toLowerCase().includes(q) || (type === "Quest" && questJa(n) !== n && questJa(n).toLowerCase().includes(q)))
+    .slice(0, 30);
+  if (!matches.length) {
+    nodeNameSuggest.innerHTML = `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+  } else {
+    nodeNameSuggest.innerHTML = matches
+      .map((n) => {
+        const label = type === "Quest" && questJa(n) !== n ? `${questJa(n)}（${n}）` : n;
+        return `<div class="suggest-item" data-value="${n.replace(/"/g, "&quot;")}">${label}</div>`;
+      })
+      .join("");
+    nodeNameSuggest.querySelectorAll(".suggest-item").forEach((itemEl) => {
+      itemEl.addEventListener("mousedown", (e) => {
+        // fires before blur
+        e.preventDefault();
+        nodeNameInput.value = (itemEl as HTMLElement).dataset.value ?? "";
+        hideNodeNameSuggest();
+      });
+    });
+  }
+  nodeNameSuggest.classList.remove("hidden");
+}
+nodeNameInput.addEventListener("input", updateNodeNameSuggest);
+nodeNameInput.addEventListener("focus", updateNodeNameSuggest);
+nodeNameInput.addEventListener("blur", () => setTimeout(hideNodeNameSuggest, 150));
+// 種別を切り替えたら参照プールが変わるため、古い種別の候補が出しっぱなしに
+// ならないよう畳む（名前欄の中身自体はクリアしない——自由入力した名前を
+// 種別変更だけで消してしまうのは不親切なため、wfcd-wizard.tsの挙動とは
+// あえて変えている）。
+el("node-type").addEventListener("change", hideNodeNameSuggest);
 
 // Type options depend on the entry point: header "新規ゴール" (bare create, no
 // context) is Goal-only; Inspector's add-prerequisite/add-contents (has

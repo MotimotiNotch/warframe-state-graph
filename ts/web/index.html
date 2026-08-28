@@ -639,7 +639,10 @@
         <input type="text" id="node-id">
       </div>
       <label>名前</label>
-      <input type="text" id="node-name">
+      <div class="combobox">
+        <input type="text" id="node-name" autocomplete="off">
+        <div id="node-name-suggest" class="suggest-list hidden"></div>
+      </div>
       <div class="row">
         <div>
           <label>種別</label>
