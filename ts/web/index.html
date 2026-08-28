@@ -257,8 +257,21 @@
      コンテンツ（#folder-toggle-rowの1ボタン分）に合わせて自動的に幅
      （横並び時）/高さ（縦積み時）を縮める。#graph-panelはflex:3 1 0なので、
      隣が縮んだ分は追加CSSなしで自動的に吸収する。 */
-  #folder-col.collapsed { flex: 0 0 auto; }
+  #folder-col.collapsed {
+    flex: 0 0 auto;
+    /* ベースの#folder-colはmin-width:160pxを持つ——折りたたみ時もこれが
+       生きたままだと#folder-panel分の見た目は消えても160px幅の透明な箱が
+       ボタンの左に残り、ボタンが左端から浮いて変な空白に見える（のっち
+       報告、2026-08-28）。0にして#folder-colの実体幅を無くし、ボタンの
+       位置（下記left:0）だけが#layoutの左端の目印として残るようにする。 */
+    min-width: 0;
+  }
   #folder-col.collapsed #folder-panel { display: none; }
+  /* 折りたたみ時はページの左端（.layoutの左端）ぴったりに寄せる——展開時の
+     right:0（パネル右上に乗せる位置）とは逆側。#folder-colの実体幅が0に
+     なった後は、right:0だとボタンごと左へ押し出されて画面外に切れて
+     しまうため、left:0に切り替える。 */
+  #folder-col.collapsed #folder-toggle-row { right: auto; left: 0; }
   #resizer-left.collapsed { display: none; }
 
   #graph-panel {
