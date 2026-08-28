@@ -144,13 +144,29 @@
     /* flex-basis is axis-dependent — a desktop-row pixel width (saved drag
        or the CSS default below) would otherwise apply as a *height* once
        flex-direction turns column here (split-pane.ts's applyLayoutForBreakpoint()
-       clears any inline override so this rule actually takes effect). */
-    #folder-panel, #panel { flex: 0 0 auto; }
-    #folder-panel { max-height: 40vh; }
+       clears any inline override so this rule actually takes effect). #folder-col
+       is the actual .layout flex item now (#folder-panel moved under it,
+       2026-08-28), so it's the one that needs the override; its own internal
+       flex-direction:column never changes with this breakpoint. */
+    #folder-col, #panel { flex: 0 0 auto; }
+    #folder-col { max-height: 40vh; }
   }
 
   /* 左サイドバー（エクスプローラー風のフォルダ/ビルド一覧、2026-08-27）。ビルドが増えるほど
-     プルダウン1本での選択が辛くなる問題への対処——旧#build-selectを置き換える形で新設。 */
+     プルダウン1本での選択が辛くなる問題への対処——旧#build-selectを置き換える形で新設。
+     折りたたみボタン（#folder-toggle-row）は#folder-panelの外・真上に置く
+     （2026-08-28、のっち指摘：ヘッダー行に間借りさせるとタイトル/新規フォルダと
+     ごちゃつく）。#layoutの実際のflexアイテムは#folder-panel自身ではなく
+     この2つをまとめた#folder-col——split-pane.tsの幅の保存/復元・折りたたみは
+     #folder-colを対象にする。 */
+  #folder-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 0 0 220px;
+    min-width: 160px;
+  }
+  #folder-toggle-row { display: flex; justify-content: flex-end; }
   #folder-panel {
     background: var(--panel);
     backdrop-filter: blur(var(--panel-blur));
@@ -158,16 +174,11 @@
     border: 1px solid var(--border);
     border-radius: 18px;
     padding: 12px;
-    flex: 0 0 220px;
-    min-width: 160px;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
   }
   .panel-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  /* #folder-panelのheadだけ折りたたみボタンが増えて子要素が3つになるため、
-     justify-content:space-between任せだと中央のボタンが浮いてしまう
-     （2要素専用の挙動）。titleをflex:1にして残り2ボタンを右端に寄せる——
-     既存の2要素構成（title+ボタン1個）でも見た目は変わらない。 */
-  .panel-head-row .panel-title { flex: 1; min-width: 0; }
 
   .sb-folder { margin-bottom: 4px; }
   .sb-folder-head { display: flex; align-items: center; gap: 4px; padding: 3px 0; }
@@ -226,30 +237,14 @@
     #resizer-left { display: none; }
   }
   /* エクスプローラー風の折りたたみ（2026-08-28、狭いウィンドウでもグラフ本体を
-     広く使えるように）。開閉ボタンは#folder-panel自身のヘッダーに置いている
-     ため（ビルド一覧の近くに欲しいというのっち指摘、トップのツールバーだと
-     遠すぎた）、折りたたみ時もパネルごとdisplay:noneにはできず、細い帯として
-     残す。中身（タイトル/新規フォルダ/一覧）を隠すだけでflex:0 0 autoが
-     コンテンツに合わせて自動的に幅（横並び時）/高さ（縦積み時）を縮める
-     ——固定px値をどちらの軸にも埋め込まずに済む。#graph-panelはflex:3 1 0
-     なので、隣が縮んだ分は追加CSSなしで自動的に吸収する。 */
-  #folder-panel.collapsed {
-    flex: 0 0 auto;
-    padding: 12px 8px;
-    /* .layoutのalign-items:stretchで縦積み時以外は#graph-panel等と同じ高さ
-       まで伸びる。中身を消しただけだとボタンが上端に張り付いて下が
-       縦長の空白になり不自然だったため（のっち指摘、2026-08-28）、
-       #folder-panel自体をcolumn方向のflexにしてボタンを帯の中央へ。 */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  #folder-panel.collapsed .panel-title,
-  #folder-panel.collapsed #new-folder-btn,
-  #folder-panel.collapsed #sidebar-body {
-    display: none;
-  }
-  #folder-panel.collapsed .panel-head-row { justify-content: center; margin-bottom: 0; }
+     広く使えるように）。開閉ボタンは#folder-toggle-row（#folder-panelの外・
+     真上）にあるので、折りたたみ時は#folder-panel自体をdisplay:noneでき、
+     ボタン側に特別な中央寄せ処理は要らない——#folder-colはflex:0 0 autoで
+     コンテンツ（#folder-toggle-rowの1ボタン分）に合わせて自動的に幅
+     （横並び時）/高さ（縦積み時）を縮める。#graph-panelはflex:3 1 0なので、
+     隣が縮んだ分は追加CSSなしで自動的に吸収する。 */
+  #folder-col.collapsed { flex: 0 0 auto; }
+  #folder-col.collapsed #folder-panel { display: none; }
   #resizer-left.collapsed { display: none; }
 
   #graph-panel {
@@ -535,13 +530,17 @@
   </div>
 
   <div class="layout">
-    <div id="folder-panel">
-      <div class="panel-head-row">
-        <div class="panel-title" style="margin:0;">ビルド一覧</div>
-        <button class="icon-btn" id="new-folder-btn" title="新規フォルダ"></button>
+    <div id="folder-col">
+      <div id="folder-toggle-row">
         <button class="icon-btn" id="sidebar-toggle-btn"></button>
       </div>
-      <div id="sidebar-body"></div>
+      <div id="folder-panel">
+        <div class="panel-head-row">
+          <div class="panel-title" style="margin:0;">ビルド一覧</div>
+          <button class="icon-btn" id="new-folder-btn" title="新規フォルダ"></button>
+        </div>
+        <div id="sidebar-body"></div>
+      </div>
     </div>
     <div id="resizer-left" title="ドラッグして比率を変更"><div class="grip"></div></div>
     <div id="graph-panel">

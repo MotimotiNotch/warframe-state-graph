@@ -12,9 +12,10 @@ interface SavedPanelWidths {
   folderWidth?: number;
   graphWidth?: number;
   panelWidth?: number;
-  /** エクスプローラー風の折りたたみ状態（2026-08-28）。#graph-panelは
-   * flex:3 1 0なので、折りたたみ時に#folder-panel/#resizer-leftをdisplay:none
-   * にするだけで空いた幅を自動的に吸収する——widthの再計算は不要。 */
+  /** エクスプローラー風の折りたたみ状態（2026-08-28）。#folder-col（幅の
+   * flexアイテム）にcollapsedを立てると#folder-panelがdisplay:noneになり、
+   * #folder-col自身もflex:0 0 autoでボタン1個分まで縮む——#graph-panelは
+   * flex:3 1 0なので、空いた幅は追加のwidth再計算なしで自動的に吸収する。 */
   folderCollapsed?: boolean;
 }
 
@@ -42,7 +43,7 @@ function saveWidths(next: SavedPanelWidths): void {
 
 function restorePanelWidths(): void {
   const saved = loadSavedWidths();
-  if (typeof saved.folderWidth === "number") el("folder-panel").style.flex = `0 0 ${saved.folderWidth}px`;
+  if (typeof saved.folderWidth === "number") el("folder-col").style.flex = `0 0 ${saved.folderWidth}px`;
   if (typeof saved.graphWidth === "number") el("graph-panel").style.flex = `0 0 ${saved.graphWidth}px`;
   if (typeof saved.panelWidth === "number") el("panel").style.flex = `0 0 ${saved.panelWidth}px`;
 }
@@ -52,17 +53,17 @@ function restorePanelWidths(): void {
 // row layout (or even just the CSS default) would otherwise apply as a
 // *height* once the main axis turns vertical, leaving a tall empty gap under
 // a short build list (2026-08-28, real bug hit testing the sidebar-collapse
-// toggle at a narrow width: #folder-panel rendered ~220px tall with mostly
+// toggle at a narrow width: #folder-col rendered ~220px tall with mostly
 // blank space before Chain View even though it only held 2 short rows).
-// Clearing the inline flex-basis here lets #folder-panel/#panel fall back to
+// Clearing the inline flex-basis here lets #folder-col/#panel fall back to
 // the mobile media rule's `flex: 0 0 auto` (content-height, capped via
-// #folder-panel's max-height) instead of leaking a desktop width in as
+// #folder-col's max-height) instead of leaking a desktop width in as
 // height. Re-entering desktop width restores the saved/default pixel basis.
 const MOBILE_MQ = window.matchMedia("(max-width: 800px)");
 
 function applyLayoutForBreakpoint(): void {
   if (MOBILE_MQ.matches) {
-    el("folder-panel").style.flex = "";
+    el("folder-col").style.flex = "";
     el("panel").style.flex = "";
   } else {
     restorePanelWidths();
@@ -117,17 +118,17 @@ function wireResizer(
 }
 
 function applySidebarCollapsed(collapsed: boolean): void {
-  const folderPanel = el("folder-panel");
-  folderPanel.classList.toggle("collapsed", collapsed);
+  const folderCol = el("folder-col");
+  folderCol.classList.toggle("collapsed", collapsed);
   el("resizer-left").classList.toggle("collapsed", collapsed);
   if (collapsed) {
     // Same inline-style-always-wins issue as applyLayoutForBreakpoint()
     // above: restorePanelWidths()/a live resizer drag may have left an
-    // inline `style.flex` (e.g. a dragged 400px) on #folder-panel, which
+    // inline `style.flex` (e.g. a dragged 400px) on #folder-col, which
     // would silently defeat the .collapsed CSS rule's `flex: 0 0 auto` —
     // the rail rendered at the old dragged width instead of shrinking to
     // just the button (real bug hit right after building this, 2026-08-28).
-    folderPanel.style.flex = "";
+    folderCol.style.flex = "";
   } else if (!MOBILE_MQ.matches) {
     restorePanelWidths();
   }
@@ -140,7 +141,7 @@ function wireSidebarToggle(): void {
   const collapsed = loadSavedWidths().folderCollapsed ?? false;
   applySidebarCollapsed(collapsed);
   el("sidebar-toggle-btn").addEventListener("click", () => {
-    const next = !el("folder-panel").classList.contains("collapsed");
+    const next = !el("folder-col").classList.contains("collapsed");
     applySidebarCollapsed(next);
     saveWidths({ folderCollapsed: next });
   });
@@ -151,7 +152,7 @@ export function initResizer(): void {
   MOBILE_MQ.addEventListener("change", applyLayoutForBreakpoint);
   wireSidebarToggle();
 
-  wireResizer("resizer-left", el("folder-panel"), el("graph-panel"), 160, 300, (folderWidth, graphWidth) => {
+  wireResizer("resizer-left", el("folder-col"), el("graph-panel"), 160, 300, (folderWidth, graphWidth) => {
     saveWidths({ folderWidth, graphWidth });
   });
   wireResizer("resizer", el("graph-panel"), el("panel"), 300, 220, (graphWidth, panelWidth) => {
