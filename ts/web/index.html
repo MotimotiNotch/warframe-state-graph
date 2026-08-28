@@ -236,6 +236,13 @@
   #folder-panel.collapsed {
     flex: 0 0 auto;
     padding: 12px 8px;
+    /* .layoutのalign-items:stretchで縦積み時以外は#graph-panel等と同じ高さ
+       まで伸びる。中身を消しただけだとボタンが上端に張り付いて下が
+       縦長の空白になり不自然だったため（のっち指摘、2026-08-28）、
+       #folder-panel自体をcolumn方向のflexにしてボタンを帯の中央へ。 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   #folder-panel.collapsed .panel-title,
   #folder-panel.collapsed #new-folder-btn,
