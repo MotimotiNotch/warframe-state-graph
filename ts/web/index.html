@@ -634,6 +634,12 @@
   <div id="node-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="node-modal-title">ノード追加</h3>
+      <div class="row">
+        <div>
+          <label>種別</label>
+          <select id="node-type"></select>
+        </div>
+      </div>
       <div id="node-id-row">
         <label>ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
         <input type="text" id="node-id">
@@ -642,12 +648,6 @@
       <div class="combobox">
         <input type="text" id="node-name" autocomplete="off">
         <div id="node-name-suggest" class="suggest-list hidden"></div>
-      </div>
-      <div class="row">
-        <div>
-          <label>種別</label>
-          <select id="node-type"></select>
-        </div>
       </div>
       <div id="node-requires-section">
         <label>前提（Requires、名前で検索して追加）</label>
