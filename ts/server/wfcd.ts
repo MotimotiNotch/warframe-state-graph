@@ -256,9 +256,65 @@ export async function cachedActiveRelicNames(cacheDir: string): Promise<Set<stri
   return new Set(list);
 }
 
+/** relicName (normalized) -> count of distinct mission/rotation reward slots
+ * currently dropping it (2026-08-28, wfcd-wizard.ts's 入手先 selection —
+ * のっち wanted to see how many missions a chosen relic drops from, but a
+ * full location list turned out huge — 8〜127 slots per relic, median 80 —
+ * so just the count). A relic absent from missionRewards.json (same signal
+ * fetchActiveRelicNames() uses for Vaulted) simply has no entry / count 0.
+ *
+ * `path.slice(0, -1).join("/")` (everything above the leaf itemName key,
+ * array indices included) is used as the per-slot uniqueness key rather
+ * than reconstructing a human-readable "planet/node, Rotation X" string —
+ * the count is all that's displayed, so the key only needs to be unique per
+ * JSON location, not readable, which keeps this robust to missionRewards.json's
+ * nesting shifting between versions (same reasoning as the structure-agnostic
+ * walk above). */
+export async function fetchRelicMissionCounts(): Promise<Map<string, number>> {
+  const res = await fetch(MISSION_REWARDS_URL);
+  if (!res.ok) throw new Error(`fetch ${MISSION_REWARDS_URL}: status ${res.status}`);
+  const raw: unknown = await res.json();
+
+  const slotsByRelic = new Map<string, Set<string>>();
+  function walk(v: unknown, path: string[]): void {
+    if (typeof v === "string") {
+      if (RELIC_NAME_PATTERN.test(v)) {
+        const name = normalizeRelicName(v);
+        const slotKey = path.slice(0, -1).join("/");
+        const slots = slotsByRelic.get(name);
+        if (slots) slots.add(slotKey);
+        else slotsByRelic.set(name, new Set([slotKey]));
+      }
+    } else if (Array.isArray(v)) {
+      v.forEach((e, i) => walk(e, path.concat(String(i))));
+    } else if (v && typeof v === "object") {
+      for (const [k, e] of Object.entries(v)) walk(e, path.concat(k));
+    }
+  }
+  walk(raw, []);
+
+  const counts = new Map<string, number>();
+  for (const [name, slots] of slotsByRelic) counts.set(name, slots.size);
+  return counts;
+}
+
+export async function cachedRelicMissionCounts(cacheDir: string): Promise<Map<string, number>> {
+  const entries = await cachedJSON(cacheDir, "relic-mission-counts.json", async () => [...(await fetchRelicMissionCounts()).entries()]);
+  return new Map(entries);
+}
+
 /** relicName may carry a refinement suffix or "Relic" suffix; normalized before the lookup. */
 export function isRelicVaulted(activeRelics: Set<string>, relicName: string): boolean {
   return !activeRelics.has(normalizeRelicName(relicName));
+}
+
+/** relicName may carry a refinement suffix or "Relic" suffix; normalized
+ * before the lookup, same as isRelicVaulted. 0 for a relic missing from the
+ * map — Vaulted relics never appear in missionRewards.json in the first
+ * place, so this is already the correct "not currently mission-droppable"
+ * answer rather than a fallback needing special-casing. */
+export function relicMissionCount(counts: Map<string, number>, relicName: string): number {
+  return counts.get(normalizeRelicName(relicName)) ?? 0;
 }
 
 const VAULT_TRADER_URL = "https://api.warframestat.us/pc/vaultTrader";

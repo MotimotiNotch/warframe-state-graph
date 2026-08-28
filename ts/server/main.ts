@@ -50,6 +50,7 @@ import {
   cachedItemsFull,
   cachedJSON,
   cachedNames,
+  cachedRelicMissionCounts,
   cachedSyndicates,
   cachedVaultTrader,
   CategoryWarframes,
@@ -64,6 +65,7 @@ import {
   isRelicVaulted,
   lookupI18nName,
   refreshCache,
+  relicMissionCount,
   weaponCategories,
   type Item,
 } from "./wfcd.ts";
@@ -1415,15 +1417,21 @@ const server = Bun.serve({
       },
     },
 
-    // Whether a relic is Vaulted (outside the current drop table).
+    // Whether a relic is Vaulted (outside the current drop table), and how
+    // many mission/rotation slots currently drop it (wfcd-wizard.ts's
+    // 入手先 selection — のっち依頼, 2026-08-28; 0 for a Vaulted relic, same
+    // "absent from missionRewards.json" signal both fields read).
     "/api/wfcd/relic-status": {
       GET: async (req) => {
         const url = new URL(req.url);
         const name = url.searchParams.get("name") ?? "";
         if (!name) return new Response("missing ?name=", { status: 400 });
         try {
-          const activeRelics = await cachedActiveRelicNames(wfcdCacheDir);
-          return json({ vaulted: isRelicVaulted(activeRelics, name) });
+          const [activeRelics, missionCounts] = await Promise.all([
+            cachedActiveRelicNames(wfcdCacheDir),
+            cachedRelicMissionCounts(wfcdCacheDir),
+          ]);
+          return json({ vaulted: isRelicVaulted(activeRelics, name), missionCount: relicMissionCount(missionCounts, name) });
         } catch (err) {
           return errorResponse(err, 502);
         }

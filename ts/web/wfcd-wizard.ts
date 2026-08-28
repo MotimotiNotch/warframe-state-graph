@@ -44,6 +44,11 @@ interface WfcdSuggestion {
   questChain?: Node[];
 }
 
+interface RelicStatusResponse {
+  vaulted?: boolean;
+  missionCount?: number;
+}
+
 let wfcdSuggestion: WfcdSuggestion | null = null;
 
 // /api/wfcd/generate's server-side type restriction (main.ts) — the only
@@ -213,7 +218,8 @@ function renderWfcdPreview(): void {
              <select data-part-value="${i}">
                <option value="">（未選択）</option>
                ${candidateOptions}
-             </select>`
+             </select>
+             <div class="wfcd-relic-info" data-relic-info="${i}"></div>`
             : `<div class="empty">WFCD側にこのパーツの入手先データなし（既定素材として通常のミッション/敵ドロップで入手する想定）</div>`
         }
       </div>`;
@@ -288,6 +294,40 @@ function renderWfcdPreview(): void {
     ${questChain}
     ${parts}
   `;
+
+  // 入手先で選んだレリックの現在のドロップ状況を件数だけ表示（のっち依頼、
+  // 2026-08-28）。フルの入手ミッション一覧は1レリックあたり8〜127件
+  // （中央値80件）と実用的な量を超えるため、件数のみに絞った経緯は
+  // /api/wfcd/relic-status（server/wfcd.tsのrelicMissionCount）参照。
+  preview.querySelectorAll<HTMLSelectElement>("[data-part-value]").forEach((sel) => {
+    const partIdx = Number(sel.dataset.partValue);
+    sel.addEventListener("change", () => void updateRelicInfo(partIdx, sel));
+  });
+}
+
+async function updateRelicInfo(partIdx: number, sel: HTMLSelectElement): Promise<void> {
+  const info = document.querySelector<HTMLElement>(`[data-relic-info="${partIdx}"]`);
+  if (!info) return;
+  // sel.value === "" for the "（未選択）" placeholder — Number("") is 0, not
+  // NaN, so skipping this check would silently re-fetch candidate index 0's
+  // info instead of clearing (real bug hit testing this, 2026-08-28).
+  const candidate = sel.value === "" ? undefined : wfcdSuggestion?.parts?.[partIdx]?.relicCandidates?.[Number(sel.value)];
+  if (!candidate || !candidate.isRelic) {
+    info.textContent = "";
+    return;
+  }
+  info.textContent = "確認中…";
+  try {
+    const res = await fetch(`/api/wfcd/relic-status?name=${encodeURIComponent(candidate.name)}`);
+    const data = res.ok ? ((await res.json()) as RelicStatusResponse) : null;
+    if (!data) {
+      info.textContent = "";
+      return;
+    }
+    info.textContent = data.vaulted ? "Vault済み（現在のミッションドロップ対象外）" : `現在${data.missionCount ?? 0}ミッションでドロップ中`;
+  } catch {
+    info.textContent = "";
+  }
 }
 
 el("wfcd-modal-import").addEventListener("click", async () => {

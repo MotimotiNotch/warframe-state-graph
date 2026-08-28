@@ -474,6 +474,9 @@
      文字サイズが本文と同じで浮いていた（のっち指摘、2026-08-28）ため専用クラスに。 */
   .wfcd-note { display: flex; align-items: flex-start; gap: 5px; font-size: 0.75rem; color: var(--blocked); margin-top: 4px; }
   .wfcd-note svg { flex-shrink: 0; margin-top: 1px; }
+  /* 入手先で選んだレリックの現在のドロップ状況（件数のみ、2026-08-28）。
+     警告ではないので.wfcd-noteの--blocked色は使わず素の--muted。 */
+  .wfcd-relic-info { font-size: 0.75rem; color: var(--muted); margin-top: 4px; min-height: 1em; }
   .wfcd-part { border: 1px solid var(--border); border-radius: 14px; padding: 8px; margin-top: 8px; }
   .wfcd-part .part-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
   .badge-vaulted { display: inline-flex; align-items: center; gap: 3px; background: #e88c9322; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
