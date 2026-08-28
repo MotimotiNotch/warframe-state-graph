@@ -175,11 +175,33 @@ function renderWfcdPreview(): void {
       // 縦に長くなりがちなカード一覧をやめてネイティブ<select>に変更
       // （のっち指摘、2026-08-28）。Vault済みバッジ（アイコン付き）は
       // <option>に差し込めないため、テキストの「・Vault済み」に格下げ。
-      const candidateOptions = (p.relicCandidates ?? [])
-        .map((c, ci) => {
-          const kindText = c.isRelic ? "・レリック" : "・通常ミッション";
-          const vaultedText = c.vaulted ? "・Vault済み" : "";
-          return `<option value="${ci}">${locationJa(c.name)}（${c.chance}%${kindText}${vaultedText}）</option>`;
+      //
+      // 同じレリックが精錬度（無精錬/上鍛錬/超鍛錬/完全鍛錬）ごとに違う
+      // ドロップ率で複数エントリ持つことがある（例: Uncommon枠なら
+      // 11/13/17/20%の4本、Rare枠なら2/4/6/10%の4本——WFCDの生データを
+      // そのまま列挙すると「同じレリックが%違いで何回も出てくる」ように
+      // 見えて紛らわしい、とののっち指摘、2026-08-28）。value（元の
+      // relicCandidates配列のindex）は変えず、表示だけレリック名で
+      // optgroupにまとめる。
+      const grouped = new Map<string, { c: RelicCandidate; idx: number }[]>();
+      (p.relicCandidates ?? []).forEach((c, ci) => {
+        const arr = grouped.get(c.name);
+        if (arr) arr.push({ c, idx: ci });
+        else grouped.set(c.name, [{ c, idx: ci }]);
+      });
+      const candidateOptions = Array.from(grouped.entries())
+        .map(([name, entries]) => {
+          const jaName = locationJa(name);
+          if (entries.length === 1) {
+            const { c, idx } = entries[0]!;
+            const kindText = c.isRelic ? "・レリック" : "・通常ミッション";
+            const vaultedText = c.vaulted ? "・Vault済み" : "";
+            return `<option value="${idx}">${jaName}（${c.chance}%${kindText}${vaultedText}）</option>`;
+          }
+          const inner = entries
+            .map(({ c, idx }) => `<option value="${idx}">${c.chance}%${c.vaulted ? "・Vault済み" : ""}</option>`)
+            .join("");
+          return `<optgroup label="${jaName}">${inner}</optgroup>`;
         })
         .join("");
       return `
