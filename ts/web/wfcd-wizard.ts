@@ -8,7 +8,7 @@
 
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
-import { gameIcon } from "./icons.ts";
+import { gameIcon, icon } from "./icons.ts";
 import { questJa } from "./quest-i18n.ts";
 import { itemJa } from "./item-i18n.ts";
 import { locationJa } from "./location-i18n.ts";
@@ -57,6 +57,12 @@ const WFCD_GEN_NODE_TYPES = ["Frame", "Weapon", "Quest"] as const;
 el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
   (t) => `<option value="${t}">${NODE_TYPE_LABEL_JA[t] ?? t}</option>`,
 ).join("");
+
+// Companion/Archwing/Necramechの英字表記はweb/loadouts.html/tsの種別
+// プルダウン・見出し文言と同じもの（「相棒」等の和訳を独自に当てない——
+// のっち指摘、2026-08-28: そのカテゴリの呼称は元々アプリ内で英字のまま
+// 統一されている）をそのまま踏襲する。
+el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>Companion/Archwing/Necramechはこの一覧にありません（Chain Viewのノードを持たない仕様）。Loadoutsの見出し横の＋アイコンから登録してください。</span>`;
 
 // Reference data pool for the name-field keyword filter, swapped per node
 // type (Frame/Weapon/Quest) — same pattern as the Loadouts/Collections

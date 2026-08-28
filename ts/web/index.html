@@ -470,6 +470,10 @@
   .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .modal .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.82rem; }
   .modal .checkbox-row input { width: auto; }
+  /* 種別プルダウンの対象外説明（Companion/Archwing/Necramech）。素の.ph-row流用は
+     文字サイズが本文と同じで浮いていた（のっち指摘、2026-08-28）ため専用クラスに。 */
+  .wfcd-note { display: flex; align-items: flex-start; gap: 5px; font-size: 0.75rem; color: var(--blocked); margin-top: 4px; }
+  .wfcd-note svg { flex-shrink: 0; margin-top: 1px; }
   .wfcd-part { border: 1px solid var(--border); border-radius: 14px; padding: 8px; margin-top: 8px; }
   .wfcd-part .part-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
   .badge-vaulted { display: inline-flex; align-items: center; gap: 3px; background: #e88c9322; color: var(--blocked); border: 1px solid var(--blocked); border-radius: 8px; padding: 1px 6px; font-size: 0.7rem; margin-left: 6px; }
@@ -653,13 +657,13 @@
           </div>
         </div>
       </div>
-      <!-- 種別プルダウンがフレーム/武器/クエストの3つしかない理由（アークウィング/
-           相棒/ネクラメックが無い）を明示——のっち指摘（2026-08-28、プルダウンだけ
+      <!-- 種別プルダウンがフレーム/武器/クエストの3つしかない理由（Companion/
+           Archwing/Necramechが無い）を明示——のっち指摘（2026-08-28、プルダウンだけ
            見ると欠けているように見える）。/api/wfcd/generateはこの3種別のみサーバー側
-           で受け付ける仕様（wfcd-wizard.tsのWFCD_GEN_NODE_TYPES参照）。 -->
-      <div class="ph-row" style="opacity:.8;">
-        アークウィング/相棒/ネクラメックはこの一覧にありません（Chain Viewのノードを持たない仕様）。Loadoutsの見出し横の＋アイコンから登録してください。
-      </div>
+           で受け付ける仕様（wfcd-wizard.tsのWFCD_GEN_NODE_TYPES参照）。中身は
+           wfcd-wizard.tsからicon()経由で差し込む（triangle-alertアイコン、
+           文字サイズも他の注意書きと揃える）。 -->
+      <div class="wfcd-note" id="wfcd-note"></div>
       <div class="actions" style="justify-content:flex-start;margin-top:8px;">
         <button class="toggle" id="wfcd-fetch-btn">候補を取得</button>
       </div>
