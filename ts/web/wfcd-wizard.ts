@@ -201,7 +201,11 @@ function renderWfcdPreview(): void {
         if (arr) arr.push({ c, idx: ci });
         else grouped.set(c.name, [{ c, idx: ci }]);
       });
+      // Vault済みは今すぐ入手できない側なので下に沈める（のっち指摘、
+      // 2026-08-28）——非Vault済み同士/Vault済み同士の相対順はWFCDの元の
+      // 並びのまま（Array.sortは安定ソート）。
       const candidateOptions = Array.from(grouped.entries())
+        .sort((a, b) => Number(a[1][0]!.c.vaulted ?? false) - Number(b[1][0]!.c.vaulted ?? false))
         .map(([name, entries]) => {
           const jaName = locationJa(name);
           const first = entries[0]!.c;
