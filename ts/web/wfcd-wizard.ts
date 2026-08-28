@@ -175,6 +175,13 @@ el("wfcd-fetch-btn").addEventListener("click", async () => {
 function renderWfcdPreview(): void {
   const s = wfcdSuggestion!;
   const preview = el("wfcd-preview");
+  // パーツごとに全く同じ説明文が繰り返し表示されて目障りだった（のっち
+  // 指摘、2026-08-28）ため、1回だけ出す共通の注記に格上げ——各パーツの
+  // ラベルは「入手先」のみに簡略化。
+  const anyCandidates = (s.parts ?? []).some((p) => (p.relicCandidates ?? []).length > 0);
+  const partsNote = anyCandidates
+    ? `<div class="ph-row" style="opacity:.8;margin-top:10px;">入手先は1つ選択（OR関係なのでどれか1つでよい。レリックとは限らず通常ミッションのドロップも含む）</div>`
+    : "";
   const parts = (s.parts ?? [])
     .map((p, i) => {
       // 縦に長くなりがちなカード一覧をやめてネイティブ<select>に変更
@@ -226,7 +233,7 @@ function renderWfcdPreview(): void {
         <div class="part-name">${itemJa(p.node.name)}</div>
         ${
           (p.relicCandidates ?? []).length
-            ? `<label style="margin:0 0 2px;">入手先（1つ選択、OR関係なのでどれか1つでよい。レリックとは限らず通常ミッションのドロップも含む）</label>
+            ? `<label style="margin:0 0 2px;">入手先</label>
              <select data-part-value="${i}">
                <option value="">（未選択）</option>
                ${candidateOptions}
@@ -304,6 +311,7 @@ function renderWfcdPreview(): void {
     ${loadoutsRow}
     ${syndicateRow}
     ${questChain}
+    ${partsNote}
     ${parts}
   `;
 
