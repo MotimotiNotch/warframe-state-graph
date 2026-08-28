@@ -50,7 +50,7 @@ export function renderPanel(): void {
     <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
       ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${node.satisfied ? "取り消す" : "達成にする"}</button>`}
-      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "Gild済み" : "Gildする"}</button>` : ""}
+      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "メッキ済み" : "メッキする"}</button>` : ""}
       <button class="toggle" id="edit-btn">編集</button>
       ${
         node.type === "Build" || node.type === "Goal"
