@@ -183,11 +183,18 @@ function renderWfcdPreview(): void {
       //
       // 同じレリックが精錬度（無精錬/上鍛錬/超鍛錬/完全鍛錬）ごとに違う
       // ドロップ率で複数エントリ持つことがある（例: Uncommon枠なら
-      // 11/13/17/20%の4本、Rare枠なら2/4/6/10%の4本——WFCDの生データを
-      // そのまま列挙すると「同じレリックが%違いで何回も出てくる」ように
-      // 見えて紛らわしい、とののっち指摘、2026-08-28）。value（元の
-      // relicCandidates配列のindex）は変えず、表示だけレリック名で
-      // optgroupにまとめる。
+      // 11/13/17/20%の4本、Rare枠なら2/4/6/10%の4本）ため、value（元の
+      // relicCandidates配列のindex）は変えず、表示だけレリック名でまとめる。
+      //
+      // レリック側の%はそのミッションの確率ではなくレリック自体の報酬
+      // テーブル内の確率で紛らわしく、かつ入手先ミッション件数（下記
+      // updateRelicInfo）を別途表示するようになったので不要——レリックは
+      // 名前のみ表示に統一（のっち指摘、2026-08-28）。この結果、精錬度
+      // 違いの複数エントリは表示上区別する情報が無くなるため1件に統合する
+      // （import時に読むのはcandidate.name/isRelicのみでchanceは未使用
+      // なので、代表indexを1つ残すだけで機能上の影響はない）。通常
+      // ミッション側の%はそのミッション自体の確率でそのまま意味を持つため
+      // 従来どおり表示・optgroupでまとめる。
       const grouped = new Map<string, { c: RelicCandidate; idx: number }[]>();
       (p.relicCandidates ?? []).forEach((c, ci) => {
         const arr = grouped.get(c.name);
@@ -197,15 +204,16 @@ function renderWfcdPreview(): void {
       const candidateOptions = Array.from(grouped.entries())
         .map(([name, entries]) => {
           const jaName = locationJa(name);
+          const first = entries[0]!.c;
+          if (first.isRelic) {
+            const vaultedText = first.vaulted ? "・Vault済み" : "";
+            return `<option value="${entries[0]!.idx}">${jaName}（レリック${vaultedText}）</option>`;
+          }
           if (entries.length === 1) {
             const { c, idx } = entries[0]!;
-            const kindText = c.isRelic ? "・レリック" : "・通常ミッション";
-            const vaultedText = c.vaulted ? "・Vault済み" : "";
-            return `<option value="${idx}">${jaName}（${c.chance}%${kindText}${vaultedText}）</option>`;
+            return `<option value="${idx}">${jaName}（${c.chance}%・通常ミッション）</option>`;
           }
-          const inner = entries
-            .map(({ c, idx }) => `<option value="${idx}">${c.chance}%${c.vaulted ? "・Vault済み" : ""}</option>`)
-            .join("");
+          const inner = entries.map(({ c, idx }) => `<option value="${idx}">${c.chance}%</option>`).join("");
           return `<optgroup label="${jaName}">${inner}</optgroup>`;
         })
         .join("");
