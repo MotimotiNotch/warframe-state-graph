@@ -3,6 +3,7 @@
 // from /api/reference/quests (WFCD Quests.json). 3 entries (Clan Key/
 // Mutalist Alad V Assassinate/The Hex Finale) had no matching page entry and
 // are deliberately left untranslated rather than guessed.
+import { itemJa } from "./item-i18n.ts";
 const QUEST_JA: Record<string, string> = {
   Awakening: "目覚め",
   "Vor's Prize": "Vorの秘宝",
@@ -67,20 +68,36 @@ export function questEn(name: string): string {
   return QUEST_EN[name] ?? name;
 }
 
-/** Node display-name helper: Quest nodes show their wiki-confirmed Japanese
- * name wherever a node name is rendered (graph label, sidebar list,
- * Inspector, requires/contains tag combobox); every other node type keeps
- * its stored WFCD English name unchanged (same "storage stays English,
- * translate only at display" convention as itemJa()/locationJa()).
+/** Node display-name helper: wherever a node name is rendered (graph label,
+ * sidebar list, Inspector, requires/contains tag combobox), show the
+ * wiki-confirmed Japanese name for a Quest, or the WFCD-part/material name
+ * for anything matching item-i18n.ts's dictionary (Blueprint/Chassis/
+ * Neuroptics/Systems/Oxium/etc. — the exact names wfcd-wizard.ts's part
+ * generation and DSL-authored material nodes both use); everything else
+ * keeps its stored WFCD English name unchanged (same "storage stays
+ * English, translate only at display" convention as itemJa()/locationJa()
+ * themselves already follow).
+ *
+ * wfcd-wizard.ts's own preview screen already calls itemJa() directly on
+ * parts before import, but that only covers the preview — once a part node
+ * is actually created and rendered elsewhere (graph/sidebar/Inspector), it
+ * had no display-time translation at all until this (found 2026-08-29:
+ * generated frame parts showed as raw "Blueprint"/"Chassis"/... everywhere
+ * outside the wizard's own preview).
  *
  * A WFCD-generated Quest not attached to the current Build gets stored as
  * type "Goal" instead (wfcd-wizard.ts's willAttach branch — done so it
  * isn't orphaned from the graph), which is the common case for quests added
  * this way and would otherwise silently fall through untranslated. Since it
  * still carries the exact WFCD quest name, an exact QUEST_JA key match is
- * treated as a quest too, regardless of stored type. */
+ * treated as a quest too, regardless of stored type. Same reasoning extends
+ * to itemJa() below — a WFCD-generated part or a DSL-authored material node
+ * gets type "Resource"/"Goal", never a dedicated "Part" type, so matching by
+ * exact name (not type) is the only way to catch it. */
 export function nodeDisplayName(node: { type: string; name: string }): string {
   if (node.type === "Quest") return questJa(node.name);
   const ja = questJa(node.name);
-  return ja !== node.name ? ja : node.name;
+  if (ja !== node.name) return ja;
+  const itemName = itemJa(node.name);
+  return itemName !== node.name ? itemName : node.name;
 }
