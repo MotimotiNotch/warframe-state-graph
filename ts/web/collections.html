@@ -138,8 +138,8 @@
   /* トースト通知（window.alert()廃止、ADR05実装、2026-08-28）。
      #toast-containerはtoast.tsが遅延生成する。 */
   #toast-container {
-    position: fixed; bottom: 16px; right: 16px; z-index: 500;
-    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 500;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
   }
   .toast {
     background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
