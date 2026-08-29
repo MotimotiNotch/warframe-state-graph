@@ -43,6 +43,7 @@ const MISSION_JA: Record<string, string> = {
   Disruption: "分裂",
   Defense: "防衛",
   Interception: "傍受",
+  Skirmish: "小戦",
 };
 
 /** Replaces only the leading "Planet/" segment with its Japanese name.
@@ -67,8 +68,8 @@ export function missionJa(location: string): string {
  * inside a WFCD Drop.Location string; everything else (node names,
  * Rotation labels, level ranges, boss names) is left as-is — e.g.
  * "Pluto/Fenton's Field (Skirmish), Rotation A" becomes
- * "冥王星/Fenton's Field (Skirmish), Rotation A", a deliberately partial
- * substitution. */
+ * "冥王星/Fenton's Field (小戦), Rotation A", but an unconfirmed node name
+ * stays untouched, a deliberately partial substitution. */
 export function locationJa(location: string): string {
   return missionJa(planetJa(location));
 }
