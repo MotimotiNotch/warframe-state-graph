@@ -279,13 +279,22 @@ function renderWfcdPreview(): void {
   // never shows up in Chain View's Build-rooted BFS display ("doesn't feel
   // like it took effect" report, 2026-08-23). When the currently-selected
   // Build is known, offer to auto-attach it to that Build's contains.
+  //
+  // Default unchecked (のっち指摘、2026-08-29): this checkbox attaches the
+  // generated root itself (the Frame/Weapon/Quest, not its WFCD parts) into
+  // whatever Build happens to be focused right now — semantically wrong
+  // most of the time (e.g. auto-generating "Mag Prime" or a Quest while
+  // "Ash Prime" is focused doesn't mean Ash Prime "contains" either of
+  // those). Defaulting to checked silently created bogus contains edges
+  // between unrelated nodes. Still opt-in-able for the cases where it's
+  // actually correct (e.g. deliberately nesting a real sub-goal).
   const currentBuild = state.graph?.nodes?.[state.report?.buildId ?? ""];
   const attachRow = currentBuild
     ? `
     <div class="wfcd-part">
       <label style="display:flex;align-items:flex-start;gap:6px;">
-        <input type="checkbox" id="wfcd-attach-check" checked style="margin-top:3px;">
-        <span>現在のBuild「<b>${currentBuild.name}</b>」の中身（contains）に追加する（チェックを外すと種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）</span>
+        <input type="checkbox" id="wfcd-attach-check" style="margin-top:3px;">
+        <span>現在のBuild「<b>${currentBuild.name}</b>」の中身（contains）に追加する（チェックを入れない場合は種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）</span>
       </label>
     </div>`
     : `
