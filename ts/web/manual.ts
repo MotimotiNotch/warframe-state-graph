@@ -172,10 +172,20 @@ const MANUAL_TOPICS: ManualTopic[] = [
     targetId: "theme-toggle-btn",
   },
   {
+    id: "privacy",
+    title: "通信・データについて",
+    body: `<ul>
+        <li>外部通信はWFCD・calamity-inc（いずれも公開Warframeデータプロジェクト）からアイテム/MOD/クエスト等のゲームデータを読み取り専用で取得するのみ。個人情報の送受信は行いません</li>
+        <li>達成状態・MOD構成・Riven記録・メモ等、入力した内容はすべてローカルの<code>data/*.json</code>に保存されるだけで、外部には一切送信されません。エラー診断用ログも同様にローカル保存のみです</li>
+        <li>不具合・バグが発生した場合、原因調査のためこれらのJSONファイルの提出をお願いすることがあります（こちらから依頼した時のみ・任意提出）</li>
+        <li>連絡先・バグ報告: <a href="https://x.com/motimotinotch" target="_blank" rel="noopener noreferrer">X @motimotinotch</a></li>
+      </ul>`,
+    section: "その他",
+  },
+  {
     id: "easter-egg",
     title: "おまけ",
     body: "このツールにはイースターエッグがあります。探してみてください。",
-    section: "その他",
   },
 ];
 
