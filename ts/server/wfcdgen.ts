@@ -236,7 +236,17 @@ export function BuildSuggestion(
   for (const c of item.components ?? []) {
     const partNode: Node = {
       id: `${root.id}-${Slug(c.name)}`,
-      name: c.name,
+      // Prefixed with the item name, not just c.name — WFCD returns
+      // generic per-item labels ("Blueprint", "Chassis", ...) for most
+      // frames, and resolveNodeIds() (server/model.ts) dedups new nodes
+      // against the existing graph by exact name match. An unprefixed
+      // name meant importing e.g. Volt Prime silently merged its
+      // Blueprint part into an unrelated existing Ash Prime Blueprint
+      // node (real bug, found 2026-08-29 during a design-doc review's
+      // live verification pass). web/item-i18n.ts's itemJa() has a
+      // matching suffix-match fallback so the JA translation still finds
+      // "Blueprint" etc. inside this longer name.
+      name: `${item.name} ${c.name}`,
       type: "Resource",
       satisfied: false,
       requires: [],

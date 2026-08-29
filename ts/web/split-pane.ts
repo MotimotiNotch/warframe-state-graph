@@ -43,9 +43,21 @@ function saveWidths(next: SavedPanelWidths): void {
 
 function restorePanelWidths(): void {
   const saved = loadSavedWidths();
+  // folder-col: truly fixed (flex-grow 0), same as its CSS default — a
+  // file/folder list doesn't need to keep expanding with the window.
   if (typeof saved.folderWidth === "number") el("folder-col").style.flex = `0 0 ${saved.folderWidth}px`;
-  if (typeof saved.graphWidth === "number") el("graph-panel").style.flex = `0 0 ${saved.graphWidth}px`;
-  if (typeof saved.panelWidth === "number") el("panel").style.flex = `0 0 ${saved.panelWidth}px`;
+  // graph-panel/panel: restore the dragged pixel width as flex-BASIS only,
+  // grow-weights (3/1) kept matching index.html's CSS defaults — a drag
+  // used to hard-pin `flex: 0 0 Npx`, which is correct while the drag is
+  // live but wrong to persist: on reload in a wider/maximized window, a
+  // no-grow basis leaves the extra width unclaimed (2026-08-29 report:
+  // 3-pane layout only reaching the screen's center after maximizing,
+  // traced to a saved graphWidth/panelWidth pinned from an earlier
+  // narrower session). Keeping grow enabled lets both panes reclaim
+  // leftover space in the same 3:1 ratio the CSS default already uses,
+  // while still starting from the user's last dragged proportion.
+  if (typeof saved.graphWidth === "number") el("graph-panel").style.flex = `3 1 ${saved.graphWidth}px`;
+  if (typeof saved.panelWidth === "number") el("panel").style.flex = `1 1 ${saved.panelWidth}px`;
 }
 
 // .layout switches from row to column under this breakpoint (index.html).
@@ -134,7 +146,7 @@ function applySidebarCollapsed(collapsed: boolean): void {
   }
   const btn = el("sidebar-toggle-btn");
   btn.innerHTML = icon(collapsed ? "panel-left-open" : "panel-left-close");
-  btn.title = collapsed ? "ビルド一覧を表示" : "ビルド一覧を隠す";
+  btn.title = collapsed ? "目標一覧を表示" : "目標一覧を隠す";
 }
 
 function wireSidebarToggle(): void {

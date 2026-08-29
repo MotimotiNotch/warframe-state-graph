@@ -33,6 +33,7 @@ import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
+import "./kofi-link.ts";
 
 // Shared shape for WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry
 // (FrameEntry-like, no helminthFed) so renderEquipList/openEquipModal/

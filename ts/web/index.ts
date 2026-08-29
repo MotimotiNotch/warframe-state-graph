@@ -10,13 +10,16 @@ import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
+import "./kofi-link.ts";
 import "./graph-nav.ts";
 import "./graph-layout.ts";
 import "./graph-render.ts";
+import "./graph-pan.ts";
 import "./inspector.ts";
 import "./node-modal.ts";
 import "./wfcd-wizard.ts";
 import "./dsl-import.ts";
+import "./compact-mode.ts";
 
 // loadGraph() already triggers one loadReport() internally via
 // initSidebar() -> selectBuild when a build exists; this second call is the

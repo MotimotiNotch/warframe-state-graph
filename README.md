@@ -1,5 +1,7 @@
 # Warframe State Graph
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/motimotinotch)
+
 ゲーム内の依存関係グラフ（アイテム/MOD/シンジケート等）と自分の所持状態・目標を接続し、
 放置しても「次の1手」を動的に再構成する個人用ツール。
 
@@ -13,7 +15,7 @@ Warframeには個人インベントリを取得できる公式APIが存在しな
 **まだプレイしていないコンテンツの名称が画面に表示されることがある**。自分の進行に合わせて、
 先の情報を見たくないページ（特にChain ViewのWFCD自動生成インポートウィザード）の利用は
 控えることを推奨する。初回起動時（各ページ初回アクセス時）にも同内容の確認モーダルが出る
-（`web/spoiler-warning.js`、`localStorage`で1回だけ表示）。
+（`ts/web/spoiler-warning.ts`、`localStorage`で1回だけ表示）。
 
 Statsページの一部セクションは、対応する前提クエストをクリアするまで機能名を伏せた
 「未解放セクション」表示のまま折りたたまれる（`initCollapsiblePanel`、`revealedTitle`
@@ -24,57 +26,75 @@ Statsページの一部セクションは、対応する前提クエストをク
 
 ## 使い方（開発時）
 
+現行の実装はTypeScript/Bun版（`ts/`配下）。旧Go版（`pkg/`/`cmd/`）は2026-08-25で開発が止まった凍結済みの過去実装として残っているだけで、現在は使わない。
+
 ```
-go run ./cmd/server
+cd ts
+bun run dev
 ```
 
-`http://127.0.0.1:8787` にローカルWebサーバーが立ち上がり、既定のブラウザが自動で開く。
+`http://127.0.0.1:8788` にローカルWebサーバーが立ち上がる（`--hot`でサーバー側の変更も自動反映、`web/*.ts`は毎リクエスト再ビルドなので保存するだけでブラウザ側リロードだけで最新反映される）。
 
 - **Chain View** (`/`): 依存関係グラフの表示・ドリルダウン・ワンタップトグル・WFCD自動ノード生成（フレーム/武器/クエスト/シンジケート等）
 - **Loadouts** (`/loadouts.html`): フレーム/武器/コンパニオンのMODコンフィグ(A/B/C、コンパニオンは単一構成)・ビルドセットの管理
 - **Collections** (`/collections.html`): Riven / Kuva・Tenet・Coda武器の入手ログ、フレーム入手状況、デュビリ進捗
 - **Standing** (`/standing.html`): 16シンジケート（6大シンジケート＋オープンワールド等10）の現在ランク・最高到達実績管理
 - **Stats** (`/stats.html`): 星図/Steel Path進捗、Intrinsics、4データソース横断の読み取り専用集計（進行度に応じて解放される追加セクションもあり、詳細は下記「⚠️ ネタバレについての注意」参照）
+- **Note** (`/note.html`): 1ページ丸ごとの永続Markdownメモ（定期的に見返す用）
 
-全ページ共通のヘッダーウィジェット: ブースタータイマー、ライト/ダーク切替、壁紙/アイコン/ぼかし設定、用語マッピング編集、クイックメモ（どのデータにも紐づかない自由記述メモ＋手動カウンター）。
-
-**注意（2026-08-19〜）**: `web/` はビルド時にバイナリへ埋め込まれる（`webassets.go`）。
-`go run ./cmd/server` はコマンド自体が毎回ソースから再ビルドするため、`html`/`js`を編集して
-`go run`を再実行すれば最新の`web/`が反映されるが、**プロセスを起動したまま`web/`だけ編集して
-ブラウザをリロードしても変更は反映されない**（以前の`http.Dir`直読み時代との違い）。必ず
-`go run`を再実行すること。
+全ページ共通のヘッダーウィジェット: ブースタータイマー、ライト/ダーク切替、壁紙/アイコン/ぼかし設定、用語マッピング編集、クイックメモ（どのデータにも紐づかない自由記述メモ＋手動カウンター、Noteページとは別物）、マニュアル（別ウィンドウで開くヘルプ）。
 
 ## 配布用ビルド（非技術者への配布向け）
 
 ```
-go build -o warframe-state-graph.exe ./cmd/server
+cd ts
+bun run compile
 ```
 
-`web/` の静的ファイルはこのビルドにバイナリごと埋め込まれるため（`webassets.go`）、
-生成された `warframe-state-graph.exe` 1本だけを渡せば動く。渡す相手は好きな場所に置いて
+`ts/web/` の静的ファイルはこのビルドにバイナリごと埋め込まれるため、生成された
+`ts/dist/warframe-state-graph.exe` 1本だけを渡せば動く。渡す相手は好きな場所に置いて
 ダブルクリックするだけでよい——`data/`（グラフ・Loadouts・Collectionsの保存先）はexeと
 同じフォルダに実行時に自動生成される。フォルダごとコピーすればデータも一緒に移動する。
 
-終了はコンソールウィンドウを閉じるだけ。
+ダブルクリックすると、コンソールウィンドウ無しでURLバーの無いブラウザウィンドウ
+（Microsoft Edgeの`--app`モード）が自動で開く。終了はそのウィンドウを閉じるだけ——
+裏で動いているサーバー本体もウィンドウが閉じたタイミングで自動的に終了する。
+
+### ⚠️ 初回起動時に「アクセスが拒否されました」等で弾かれる場合
+
+配布される `warframe-state-graph.exe` はコード署名なし（未署名バイナリ）。ビルド直後や
+ダウンロード直後にセキュリティソフト（Windows Defender、Norton等）のリアルタイムスキャンが
+ファイルを一時的にロック/検疫し、「アクセスが拒否されました」等のエラーで起動に失敗する
+ことがある。数秒〜数十秒待ってから再度実行すると通常は解決する。改善しない場合は
+セキュリティソフトの検疫履歴・通知を確認し、誤検知として復元/除外設定を行うこと。
+
+コード署名証明書での恒久対応も検討したが、無名の個人配布ツールでは通常のOV証明書は
+SmartScreenの警告解除に必要な「ダウンロード実績（レピュテーション）」が積み上がらず
+効果が薄く、即時に警告を解除できるEV証明書は法人登記必須・高額なため見送り。
 
 ## 構成
 
-- `pkg/model`: ノード/グラフの型定義（フラットなノード集合＋有向エッジ）
-- `pkg/engine`: DAG探索・Next Action導出・requiresカスケード
-- `pkg/persist`: 各FileStore共通の永続化基盤（アトミック書き込み・世代バックアップ・破損時の自動復旧）
-- `pkg/store`: `data/graph.json` の永続化
-- `pkg/loadout`: MODコンフィグ・ビルドセットの永続化
-- `pkg/collection`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
-- `pkg/standing`: 16シンジケートの現在ランク・最高到達実績永続化
-- `pkg/questchain`: クエストの前提関係（Wiki由来の静的テーブル）
-- `pkg/stats`: 星図/Steel Path進捗・Intrinsicsおよび進行度に応じて解放される追加セクションの永続化、4データソース横断集計
-- `pkg/starchart`: 星図（惑星単位）の総ノード数集計
-- `pkg/glossary`: ゲーム内用語の英→日対応マッピング（編集可能な設定データ）
-- `pkg/scratch`: どのデータにも紐づかないクイックメモ（自由記述メモ＋手動カウンター）の永続化
-- `pkg/wfcd`: WFCD公開データ（フレーム/武器/レリック等）の取得・キャッシュ
-- `pkg/wfcdgen`: WFCDデータからノード候補を自動生成するロジック
-- `cmd/server`: ローカルREST API + 静的ファイル配信（`web/`は常にバイナリへ埋め込み済み、開発時もビルドし直せば最新反映）
-- `webassets.go`: `web/`をバイナリへ埋め込む`embed.FS`（モジュールルート直下に置く必要がある、詳細はファイル内コメント参照）
+現行実装は`ts/`配下（TypeScript/Bun）。`ts/server/`がバックエンド、`ts/web/`がフロントエンド。
+
+- `server/model.ts`: ノード/グラフの型定義（フラットなノード集合＋有向エッジ、`requires`/`contains`の2種のみ）。ノードIDは8桁ランダム英数字（`generateRandomId()`）で、名前ベースの重複解決（`resolveNodeIds()`）を別途持つ
+- `server/engine.ts`: DAG探索・Next Action導出・requiresカスケード（状態はノードに保存せず読み取り時に都度導出）
+- `server/persist.ts`: 各Store共通の永続化基盤（アトミック書き込み・世代バックアップ・破損時の自動復旧）
+- `server/store.ts`: `data/graph.json` の永続化、ノードの付け替え/独立させる機能（循環参照ガード付き）
+- `server/loadout.ts`: MODコンフィグ・ビルドセットの永続化
+- `server/collection.ts`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
+- `server/standing.ts`: 16シンジケートの現在ランク・最高到達実績永続化
+- `server/questchain.ts`: クエストの前提関係（Wiki由来の静的テーブル）
+- `server/stats.ts`: 星図/Steel Path進捗・Intrinsicsおよび進行度に応じて解放される追加セクションの永続化、4データソース横断集計
+- `server/starchart.ts`: 星図（惑星単位）の総ノード数集計
+- `server/glossary.ts`: ゲーム内用語の英→日対応マッピング（編集可能な設定データ）
+- `server/scratch.ts`: どのデータにも紐づかないクイックメモ（自由記述メモ＋手動カウンター）の永続化
+- `server/note.ts`: Noteページ用の単一Markdownドキュメントの永続化
+- `server/folder.ts`: Chain Viewサイドバーのフォルダ（目標の分類）永続化
+- `server/wfcd.ts`: WFCD公開データ（フレーム/武器/レリック等）の取得・キャッシュ
+- `server/wfcdgen.ts`: WFCDデータからノード候補を自動生成するロジック
+- `server/dsl.ts`: テキストDSLからのノード一括生成パーサー
+- `server/log.ts`: ファイルログ機構（`<dataDir>/logs/`、直近14日分保持）
+- `server/main.ts`: ローカルREST API + 静的ファイル配信、コンパイル済みバイナリ実行時の自動設定（`DATA_DIR`判定、Edge自動起動等）
 
 設計背景の詳細は `moti_base` Vault側の `Works/plans/WarframeStateGraph/` を参照
 （このリポジトリは実装コードのみ、設計ドキュメントはVault側で管理）。

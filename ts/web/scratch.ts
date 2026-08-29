@@ -376,7 +376,8 @@ function init(): void {
 
   const btn = document.createElement("button");
   btn.id = "scratch-toggle-btn";
-  btn.innerHTML = icon("pencil") + "クイックメモ";
+  // .btn-label span, same reason as booster.ts's タイマー button (2026-08-29).
+  btn.innerHTML = icon("pencil") + '<span class="btn-label">クイックメモ</span>';
   // Explicit placement, not append/prepend: both this module and booster.ts
   // are bundled modules now, executing (deferred) after the still-classic
   // siblings (theme/scroll-top/debug-grid) have already appended their own

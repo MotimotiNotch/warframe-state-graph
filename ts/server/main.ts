@@ -4,11 +4,17 @@
 // Phase 9 was implemented first); Chain View/Standing/Glossary in 4/6/6.
 // See the migration plan for the full phase order.
 //
-// Dev/test only — never point DATA_DIR at the real, git-tracked data/
-// directory (see CONTRIBUTING.md's isolated-test discipline, which this
-// server extends). Defaults to ./scratch-data next to this file.
+// Dev/test (bun run dev) — never point DATA_DIR at the real, git-tracked
+// data/ directory (see CONTRIBUTING.md's isolated-test discipline, which
+// this server extends). Defaults to ./scratch-data next to this file.
+// A compiled binary gets a different default (see isCompiledExe below) —
+// scratch-data wouldn't even be reachable there (import.meta.dir resolves
+// to a virtual embedded path once compiled, not real disk — see this
+// file's embedded-assets comment further down), and it's the wrong default
+// anyway for an actual end-user run, not a test.
 
 import * as path from "node:path";
+import { initLogging, logError, logInfo, pruneOldLogs } from "./log.ts";
 import {
   ArchwingEntrySchema,
   CollectionStore,
@@ -27,6 +33,7 @@ import { EntrySchema, GlossaryStore } from "./glossary.ts";
 import { BuildSetSchema, ItemSchema, LoadoutStore } from "./loadout.ts";
 import type { NodeType } from "./model.ts";
 import { CounterSchema, NodeSchema, resolveNodeIds } from "./model.ts";
+import { NoteStore } from "./note.ts";
 import { MainQuestNames, ResolveChain } from "./questchain.ts";
 import { ScratchStore } from "./scratch.ts";
 import { FetchPlanets, FetchProxima } from "./starchart.ts";
@@ -93,6 +100,7 @@ import embeddedStandingHtml from "../web/.embed/standing.html.txt" with { type: 
 import embeddedLoadoutsHtml from "../web/.embed/loadouts.html.txt" with { type: "text" };
 import embeddedStatsHtml from "../web/.embed/stats.html.txt" with { type: "text" };
 import embeddedCollectionsHtml from "../web/.embed/collections.html.txt" with { type: "text" };
+import embeddedNoteHtml from "../web/.embed/note.html.txt" with { type: "text" };
 import embeddedManualHtml from "../web/.embed/manual.html.txt" with { type: "text" };
 import embeddedIndexJs from "../web/.embed/index.js.txt" with { type: "text" };
 import embeddedGlossaryJs from "../web/.embed/glossary.js.txt" with { type: "text" };
@@ -100,6 +108,7 @@ import embeddedStandingJs from "../web/.embed/standing.js.txt" with { type: "tex
 import embeddedLoadoutsJs from "../web/.embed/loadouts.js.txt" with { type: "text" };
 import embeddedStatsJs from "../web/.embed/stats.js.txt" with { type: "text" };
 import embeddedCollectionsJs from "../web/.embed/collections.js.txt" with { type: "text" };
+import embeddedNoteJs from "../web/.embed/note.js.txt" with { type: "text" };
 import embeddedManualJs from "../web/.embed/manual.js.txt" with { type: "text" };
 import embeddedFaviconSvg from "../web/.embed/favicon.svg.txt" with { type: "text" };
 import embeddedManifestJson from "../web/.embed/manifest.json.txt" with { type: "text" };
@@ -116,6 +125,7 @@ const embeddedHtmlByEntry: Record<string, string> = {
   loadouts: embeddedLoadoutsHtml,
   stats: embeddedStatsHtml,
   collections: embeddedCollectionsHtml,
+  note: embeddedNoteHtml,
   manual: embeddedManualHtml,
 };
 const embeddedJsByEntry: Record<string, string> = {
@@ -125,6 +135,7 @@ const embeddedJsByEntry: Record<string, string> = {
   loadouts: embeddedLoadoutsJs,
   stats: embeddedStatsJs,
   collections: embeddedCollectionsJs,
+  note: embeddedNoteJs,
   manual: embeddedManualJs,
 };
 // Keyed by the same URL-pathname basename the legacy passthrough serves
@@ -139,12 +150,33 @@ const embeddedLegacyByBasename: Record<string, string> = {
   "debug-grid.js": embeddedDebugGridJs,
 };
 
-const dataDir = process.env.DATA_DIR ?? path.join(import.meta.dir, "..", "scratch-data");
+// process.execPath is "bun.exe" (or "bun") under `bun run dev`, and the
+// compiled binary's own path (e.g. "...\warframe-state-graph.exe") once
+// compiled — synchronous and reliable, unlike the async Bun.file(...).exists()
+// compiled-detection used elsewhere in this file, which isn't usable this
+// early (top-level store construction can't await).
+const isCompiledExe = !/^bun(\.exe)?$/i.test(path.basename(process.execPath));
+const defaultDataDir = isCompiledExe
+  ? path.join(path.dirname(process.execPath), "data")
+  : path.join(import.meta.dir, "..", "scratch-data");
+const dataDir = process.env.DATA_DIR ?? defaultDataDir;
+
+initLogging(dataDir);
+await pruneOldLogs(dataDir);
+// Catches anything outside the request lifecycle (a detached async
+// operation whose promise nobody awaits, a callback throwing after its
+// triggering request already returned) — without these, such an error
+// would otherwise vanish silently, especially now that the compiled exe
+// runs with --windows-hide-console and has no visible console to show it
+// on even in the cases where it wouldn't have vanished.
+process.on("uncaughtException", (err) => logError("uncaughtException", err));
+process.on("unhandledRejection", (reason) => logError("unhandledRejection", reason));
 const graphStore = new GraphStore(path.join(dataDir, "graph.json"));
 const folderStore = new FolderStore(path.join(dataDir, "folders.json"));
 const glossaryStore = new GlossaryStore(path.join(dataDir, "glossary.json"));
 const standingStore = new StandingStore(path.join(dataDir, "standing.json"));
 const scratchStore = new ScratchStore(path.join(dataDir, "scratch.json"));
+const noteStore = new NoteStore(path.join(dataDir, "note.json"));
 const loadoutStore = new LoadoutStore(path.join(dataDir, "loadouts.json"));
 const statsStore = new StatsStore(path.join(dataDir, "stats.json"));
 const collectionStore = new CollectionStore(path.join(dataDir, "collections.json"));
@@ -200,6 +232,9 @@ function json(v: unknown, init?: ResponseInit): Response {
 
 function errorResponse(err: unknown, status: number): Response {
   const message = err instanceof Error ? err.message : String(err);
+  // Only 5xx — 4xx here is expected client-input rejection (bad JSON,
+  // not-found lookups), not a bug worth cluttering the log with.
+  if (status >= 500) logError("errorResponse", err);
   return new Response(message, { status });
 }
 
@@ -240,6 +275,7 @@ const pages: { path: string; entry: string }[] = [
   { path: "/loadouts.html", entry: "loadouts" },
   { path: "/stats.html", entry: "stats" },
   { path: "/collections.html", entry: "collections" },
+  { path: "/note.html", entry: "note" },
   { path: "/manual.html", entry: "manual" },
 ];
 
@@ -261,6 +297,13 @@ for (const { path: routePath, entry } of pages) {
 
 const server = Bun.serve({
   port: 8788,
+  // Bun defaults to 0.0.0.0 (all interfaces) when hostname is omitted — the
+  // Go version explicitly bound 127.0.0.1 only; this TS port silently lost
+  // that restriction, meaning anything else on the same LAN/Wi-Fi could
+  // reach this local personal tool's API (found during a 2026-08-29 design
+  // doc review, see 03_Data_Source_Research.md's security note). Restoring
+  // localhost-only matches the original intent for a single-user local app.
+  hostname: "127.0.0.1",
   // Bun's default idle timeout (10s) was killing the browser-facing
   // connection while /api/reference/* was still waiting on a slow upstream
   // fetch — this host's TLS-inspecting security software throttles larger
@@ -400,6 +443,24 @@ const server = Bun.serve({
         const note = (body as { note?: unknown } | null)?.note;
         if (typeof note !== "string") return new Response("note must be a string", { status: 400 });
         return json(await scratchStore.setNote(note));
+      },
+    },
+
+    // Single persistent Markdown document behind note.html (2026-08-29) —
+    // not to be confused with /api/scratch/note above (that's クイックメモ,
+    // the small floating widget shared across every page).
+    "/api/note": {
+      GET: async () => json(await noteStore.load()),
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const content = (body as { content?: unknown } | null)?.content;
+        if (typeof content !== "string") return new Response("content must be a string", { status: 400 });
+        return json(await noteStore.setContent(content));
       },
     },
 
@@ -1590,9 +1651,19 @@ const server = Bun.serve({
     }
     return new Response("Not found", { status: 404 });
   },
+
+  // Catches exceptions from any route handler that doesn't have its own
+  // try/catch (most GET handlers don't — see the ~90 POST/PUT/DELETE
+  // handlers above that already funnel through errorResponse() instead).
+  // Without this, such an exception would otherwise crash the whole
+  // request with no trace of what happened.
+  error(err) {
+    logError("route", err);
+    return new Response("Internal Server Error", { status: 500 });
+  },
 });
 
-console.log(`listening on http://127.0.0.1:${server.port} (data: ${dataDir})`);
+logInfo(`listening on http://127.0.0.1:${server.port} (data: ${dataDir})`);
 
 // Compiled-binary launch UX (2026-08-29, のっち依頼): "GitHubからビルドした
 // exeを叩くとURLバーの無いウィンドウで開く" — a downloaded end-user won't
@@ -1612,6 +1683,16 @@ console.log(`listening on http://127.0.0.1:${server.port} (data: ${dataDir})`);
 // back to the OS's normal "open with default browser" if Edge isn't at
 // either path — some Windows installs do remove it — so the app still
 // opens either way, just with a URL bar in that fallback case.
+//
+// `--user-data-dir=<dataDir>/edge-app-profile` forces Chromium to start a
+// genuinely new msedge.exe process with its own singleton lock, instead of
+// just handing the URL off to an Edge instance the user already has open
+// elsewhere and exiting immediately (Chromium's normal single-instance
+// behavior). That matters because --windows-hide-console (2026-08-29,
+// のっち依頼) means there's no visible window left to close once the exe
+// itself is running headless — the spawned Edge process's exit is now the
+// ONLY signal we get that the user is done, so it has to be the exit of
+// the actual app window, not an instant handoff-and-quit.
 if (!process.env.WSG_NO_AUTO_OPEN) {
   const isCompiled = !(await Bun.file(path.join(webDir, "index.html")).exists());
   if (isCompiled) {
@@ -1623,12 +1704,35 @@ if (!process.env.WSG_NO_AUTO_OPEN) {
     let opened = false;
     for (const edgePath of edgePaths) {
       if (await Bun.file(edgePath).exists()) {
-        Bun.spawn([edgePath, `--app=${appUrl}`, "--new-window"], { stdio: ["ignore", "ignore", "ignore"] });
+        const profileDir = path.join(dataDir, "edge-app-profile");
+        const proc = Bun.spawn(
+          [
+            edgePath,
+            `--app=${appUrl}`,
+            "--new-window",
+            `--user-data-dir=${profileDir}`,
+            // Without an explicit size, Chromium's --app mode opens at a
+            // small default (2026-08-29 report: Chain View's detail panel
+            // looked cramped) — 1280x860 gives the 3-pane layout (folder/
+            // graph/detail, ~3:1 graph:detail ratio) comfortable room on a
+            // typical 1080p display. The user can still resize/maximize —
+            // this only sets the size on first open of this profile.
+            "--window-size=1280,860",
+          ],
+          { stdio: ["ignore", "ignore", "ignore"] },
+        );
         opened = true;
+        proc.exited.then(() => {
+          logInfo("app window closed, exiting");
+          process.exit(0);
+        });
         break;
       }
     }
     if (!opened) {
+      // Can't track this one's window lifetime (it's just "open with
+      // default browser", not a process we control) — the server stays
+      // up until the user closes it some other way in this fallback case.
       Bun.spawn(["cmd", "/c", "start", "", appUrl], { stdio: ["ignore", "ignore", "ignore"] });
     }
   }

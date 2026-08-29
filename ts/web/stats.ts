@@ -12,6 +12,7 @@ import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
+import "./kofi-link.ts";
 
 // Collections (pkg/collection) is Phase 10 scope, not yet ported — /api/collections
 // 404s for now and renderCollectionsAgg falls back to its empty defaults, same
@@ -143,7 +144,7 @@ function renderChainViewAgg(): void {
     .map((b) => ({ node: b, ...requiresClosureSize(b.id) }))
     .map((b) => ({ ...b, pct: b.total ? Math.round((b.satisfied / b.total) * 100) : 0 }));
   if (!builds.length) {
-    container.innerHTML = `<div class="empty">Buildノードがまだありません</div>`;
+    container.innerHTML = `<div class="empty">目標ノードがまだありません</div>`;
     return;
   }
   // Least-progressed first (today's most-actionable), name as the stable tie-break (2026-08-22).

@@ -15,6 +15,7 @@ import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
+import "./kofi-link.ts";
 import { autoGenerateChainViewNode, autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
 
 const state: {
@@ -292,7 +293,15 @@ function renderItems(): void {
       const typeItems = (byType[type] ?? []).sort((a, b) => {
         const aUsed = a.id in itemsSortSnapshot! ? itemsSortSnapshot![a.id]! : (a.lastUsedAt ?? 0);
         const bUsed = b.id in itemsSortSnapshot! ? itemsSortSnapshot![b.id]! : (b.lastUsedAt ?? 0);
-        return (Number(b.favorite) - Number(a.favorite)) || (bUsed - aUsed) || a.name.localeCompare(b.name);
+        // favorite is optional (server/loadout.ts's ItemSchema), so an
+        // item that's never been touched has it as `undefined`, not
+        // `false` — Number(undefined) is NaN, and NaN is falsy in JS, so
+        // the `||` chain below silently skipped straight to the recency
+        // comparison whenever either side was unset. Favoriting an item
+        // then never actually moved it to the front (real bug, found
+        // 2026-08-29 re-verifying the TS migration checklist). !! coerces
+        // both sides to a real boolean first.
+        return (Number(!!b.favorite) - Number(!!a.favorite)) || (bUsed - aUsed) || a.name.localeCompare(b.name);
       });
       if (!typeItems.length) return "";
       const userExpanded = expandedItemTypes.has(type);

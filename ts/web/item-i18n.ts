@@ -60,6 +60,21 @@ const ITEM_JA: Record<string, string> = {
   Tellurium: "テルル",
 };
 
+// Longest-key-first so a name ending in e.g. "Left Gauntlet" matches that
+// entry rather than the shorter "Gauntlet" also being a valid suffix.
+const ITEM_JA_KEYS_BY_LENGTH = Object.keys(ITEM_JA).sort((a, b) => b.length - a.length);
+
+/** WFCD component nodes are stored as "<item name> <part name>" (e.g.
+ * "Volt Prime Blueprint") since 2026-08-29 — generic part names alone
+ * (just "Blueprint") collided across different frames/weapons in the
+ * node-id resolver's name-based dedup (server/model.ts's resolveNodeIds,
+ * real bug: importing Volt Prime silently merged its Blueprint part into
+ * an existing Ash Prime Blueprint node). Falls back to a suffix match so
+ * translation still finds the part name inside that longer string. */
 export function itemJa(name: string): string {
-  return ITEM_JA[name] ?? name;
+  if (ITEM_JA[name]) return ITEM_JA[name];
+  for (const key of ITEM_JA_KEYS_BY_LENGTH) {
+    if (name.endsWith(` ${key}`)) return name.slice(0, -key.length) + ITEM_JA[key];
+  }
+  return name;
 }

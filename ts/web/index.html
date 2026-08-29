@@ -84,6 +84,25 @@
     .btn-label { display: none; } /* icon()+テキストのボタンをアイコンのみに畳む、titleでラベルは保持 */
   }
 
+  /* コンパクト/ミニモード（2026-08-29、のっち依頼）。上の480px幅クエリと
+     同じ縮小内容を、幅に関係なく手動で強制できるようclass版として複製
+     （compact-mode.tsが幅監視＋トグルボタンの両方からbody.compactを
+     付け外しする——CSS単体では「メディアクエリ OR クラス」を1ルールに
+     まとめられないため、意図的な二重定義）。加えてパネル見出し・詳細欄
+     など、480px単体では触っていなかった文字要素も一段階小さくする。 */
+  body.compact { padding-top: 54px; }
+  body.compact .app-icon { width: 36px; height: 36px; }
+  body.compact h1 { font-size: 1.05rem; gap: 8px; }
+  body.compact h1 .subtitle { display: none; }
+  body.compact .btn-label { display: none; }
+  body.compact nav { font-size: 0.75rem; }
+  body.compact .toolbar { gap: 4px; }
+  body.compact .panel-title { font-size: 0.68rem; margin-bottom: 6px; }
+  body.compact .progress-label { font-size: 0.7rem; }
+  body.compact .breadcrumb { font-size: 0.75rem; }
+  body.compact #panel { font-size: 0.78rem; }
+  #compact-toggle.active { color: var(--accent); border-color: var(--accent); }
+
   select {
     background: var(--bg);
     color: var(--text);
@@ -409,7 +428,12 @@
     overflow: auto;
     height: 75vh;
     min-height: 320px;
+    cursor: grab;
   }
+  /* :active（マウス押下中）に伝播するので、ノード上でmousedownしても
+     手のひらカーソルになる——circle.node/text.node-labelは自前で
+     cursor:pointer等を明示しているのでそちらが優先され、上書きされない。 */
+  #graph-wrap:active { cursor: grabbing; }
   #graph-svg { display: block; }
 
   circle.node { cursor: pointer; transition: stroke-width 0.15s ease; }
@@ -575,6 +599,7 @@
     <a href="/collections.html">Collections</a>
     <a href="/standing.html">Standing</a>
     <a href="/stats.html">Stats</a>
+    <a href="/note.html">Note</a>
   </nav>
 
   <div class="toolbar">
@@ -583,11 +608,12 @@
     <button class="toggle" id="dsl-import-btn"></button>
     <span style="flex:1"></span>
     <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <button class="icon-btn" id="compact-toggle" title="コンパクト表示（狭いウィンドウ幅では自動でも切り替わります）"></button>
     <div class="popover-wrap">
       <button class="icon-btn" id="legend-toggle" title="凡例"></button>
       <div class="popover hidden" id="legend-popover">
         <div class="legend">
-          <span><i class="dot" style="background:var(--root)"></i>Build（ビルド）</span>
+          <span><i class="dot" style="background:var(--root)"></i>Build（目標）</span>
           <span><i class="dot" style="background:var(--actionable)"></i>Actionable（実行可能）</span>
           <span><i class="dot" style="background:var(--blocked)"></i>Blocked（前提待ち）</span>
           <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
@@ -611,7 +637,7 @@
       </div>
       <div id="folder-panel">
         <div class="panel-head-row">
-          <div class="panel-title" style="margin:0;">ビルド一覧</div>
+          <div class="panel-title" style="margin:0;">目標一覧</div>
           <button class="icon-btn" id="new-folder-btn" title="新規フォルダ"></button>
         </div>
         <div id="sidebar-body"></div>

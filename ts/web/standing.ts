@@ -8,6 +8,7 @@ import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
+import "./kofi-link.ts";
 
 interface StandingResponse {
   data: Data;

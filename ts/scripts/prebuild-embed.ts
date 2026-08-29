@@ -37,7 +37,7 @@ const embedDir = path.join(webDir, ".embed");
 const legacyWebDir = path.join(import.meta.dir, "..", "..", "web");
 
 // Keep in sync with main.ts's `pages` array.
-const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "collections", "manual"];
+const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "collections", "note", "manual"];
 
 // Keep in sync with main.ts's legacy static passthrough / Phase 7's
 // still-unwired shared-script list.

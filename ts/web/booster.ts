@@ -499,7 +499,10 @@ function init(): void {
 
   const btn = document.createElement("button");
   btn.id = "booster-toggle-btn";
-  btn.innerHTML = icon("zap") + "タイマー";
+  // .btn-label span (not a raw text node) so compact-mode.ts's
+  // body.compact .btn-label{display:none} can collapse this to icon-only
+  // too, same as every other labeled button (2026-08-29).
+  btn.innerHTML = icon("zap") + '<span class="btn-label">タイマー</span>';
   // prepend, not appendChild: see the file-header comment for why this can't
   // rely on script-execution order to land left of theme.js/scratch.js/etc.
   getTopRightBar().prepend(btn);

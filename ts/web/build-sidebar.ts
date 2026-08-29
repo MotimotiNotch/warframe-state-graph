@@ -134,7 +134,7 @@ function render(): void {
   const sections = folderList
     .map((f) => folderSectionHtml(f.id, f.name, (byFolder.get(f.id) ?? []).sort(byNameJa), true))
     .concat(folderSectionHtml(UNFILED_KEY, "未分類", unfiled.sort(byNameJa), false));
-  container.innerHTML = builds.length ? sections.join("") : `<div class="sb-empty">Buildノードがまだありません</div>`;
+  container.innerHTML = builds.length ? sections.join("") : `<div class="sb-empty">目標ノードがまだありません</div>`;
   wireInteractions(container);
 }
 
@@ -261,7 +261,7 @@ function wireInteractions(container: HTMLElement): void {
       e.stopPropagation();
       const id = btn.dataset.folderDelete!;
       const name = folders[id]?.name ?? "";
-      if (!(await confirmInline(btn, `「${name}」を削除する？（中のビルドは未分類に戻ります）`))) return;
+      if (!(await confirmInline(btn, `「${name}」を削除する？（中の目標は未分類に戻ります）`))) return;
       await fetch(`/api/folders/${encodeURIComponent(id)}`, { method: "DELETE" });
       delete folders[id];
       // The server also clears folderId off every affected node
