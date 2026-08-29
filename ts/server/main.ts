@@ -1593,3 +1593,43 @@ const server = Bun.serve({
 });
 
 console.log(`listening on http://127.0.0.1:${server.port} (data: ${dataDir})`);
+
+// Compiled-binary launch UX (2026-08-29, のっち依頼): "GitHubからビルドした
+// exeを叩くとURLバーの無いウィンドウで開く" — a downloaded end-user won't
+// have manually run a browser's "install as app" flow first, so the exe
+// itself opens one. Only for the compiled binary (same isCompiled-style
+// disk-read check used throughout this file for the embedded-asset
+// fallback) — `bun run dev`'s hot reload restarts the server constantly
+// during normal iteration, and popping a fresh window on every restart
+// would make development unusable. Opt out with WSG_NO_AUTO_OPEN=1.
+//
+// Launches Microsoft Edge specifically (not "whatever the user's default
+// browser is") because it ships with every Windows install at one of two
+// predictable paths, so this works out of the box for any GitHub-release
+// user without registry lookups or guessing which browser they have —
+// `--app=` is the flag every Chromium-based browser (Edge included) uses
+// for a chrome-less single-purpose window (no tabs, no URL bar). Falls
+// back to the OS's normal "open with default browser" if Edge isn't at
+// either path — some Windows installs do remove it — so the app still
+// opens either way, just with a URL bar in that fallback case.
+if (!process.env.WSG_NO_AUTO_OPEN) {
+  const isCompiled = !(await Bun.file(path.join(webDir, "index.html")).exists());
+  if (isCompiled) {
+    const appUrl = `http://127.0.0.1:${server.port}`;
+    const edgePaths = [
+      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+      "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    ];
+    let opened = false;
+    for (const edgePath of edgePaths) {
+      if (await Bun.file(edgePath).exists()) {
+        Bun.spawn([edgePath, `--app=${appUrl}`, "--new-window"], { stdio: ["ignore", "ignore", "ignore"] });
+        opened = true;
+        break;
+      }
+    }
+    if (!opened) {
+      Bun.spawn(["cmd", "/c", "start", "", appUrl], { stdio: ["ignore", "ignore", "ignore"] });
+    }
+  }
+}
