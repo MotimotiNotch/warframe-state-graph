@@ -102,6 +102,7 @@ import embeddedStatsJs from "../web/.embed/stats.js.txt" with { type: "text" };
 import embeddedCollectionsJs from "../web/.embed/collections.js.txt" with { type: "text" };
 import embeddedManualJs from "../web/.embed/manual.js.txt" with { type: "text" };
 import embeddedFaviconSvg from "../web/.embed/favicon.svg.txt" with { type: "text" };
+import embeddedManifestJson from "../web/.embed/manifest.json.txt" with { type: "text" };
 import embeddedNotemdJs from "../web/.embed/notemd.js.txt" with { type: "text" };
 import embeddedWallpaperJs from "../web/.embed/wallpaper.js.txt" with { type: "text" };
 import embeddedThemeJs from "../web/.embed/theme.js.txt" with { type: "text" };
@@ -130,6 +131,7 @@ const embeddedJsByEntry: Record<string, string> = {
 // (e.g. "favicon.svg", "notemd.js") — see the catch-all `fetch()` handler below.
 const embeddedLegacyByBasename: Record<string, string> = {
   "favicon.svg": embeddedFaviconSvg,
+  "manifest.json": embeddedManifestJson,
   "notemd.js": embeddedNotemdJs,
   "wallpaper.js": embeddedWallpaperJs,
   "theme.js": embeddedThemeJs,
@@ -1573,12 +1575,16 @@ const server = Bun.serve({
         if (await file.exists()) return new Response(file);
       }
       // Compiled-binary fallback (see the embedded-assets import block
-      // above) — only the known 9 shared scripts + favicon.svg are embedded,
-      // matching what this passthrough is actually ever asked for.
+      // above) — only the known shared scripts + favicon.svg + manifest.json
+      // are embedded, matching what this passthrough is actually ever asked for.
       const basename = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
       const embedded = embeddedLegacyByBasename[basename];
       if (embedded) {
-        const contentType = basename.endsWith(".svg") ? "image/svg+xml" : "text/javascript";
+        const contentType = basename.endsWith(".svg")
+          ? "image/svg+xml"
+          : basename.endsWith(".json")
+            ? "application/json"
+            : "text/javascript";
         return new Response(embedded, { headers: { "Content-Type": contentType } });
       }
     }

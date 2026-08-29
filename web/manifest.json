@@ -1,0 +1,13 @@
+{
+  "name": "Warframe State Graph",
+  "short_name": "WSG",
+  "description": "個人用の依存グラフ完了トラッカー",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1b1e27",
+  "theme_color": "#1b1e27",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

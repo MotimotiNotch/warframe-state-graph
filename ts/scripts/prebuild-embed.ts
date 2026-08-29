@@ -41,7 +41,7 @@ const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "coll
 
 // Keep in sync with main.ts's legacy static passthrough / Phase 7's
 // still-unwired shared-script list.
-const legacyBasenames = ["favicon.svg", "notemd.js", "wallpaper.js", "theme.js", "scroll-top.js", "debug-grid.js"];
+const legacyBasenames = ["favicon.svg", "manifest.json", "notemd.js", "wallpaper.js", "theme.js", "scroll-top.js", "debug-grid.js"];
 
 await fs.mkdir(embedDir, { recursive: true });
 
