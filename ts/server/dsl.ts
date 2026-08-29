@@ -38,7 +38,14 @@ function tokenize(input: string): Token[] {
   let buf = "";
   let bufStart = 0;
   const flush = (): void => {
-    const trimmed = buf.trim();
+    // Collapse internal whitespace (including a line break from the name
+    // wrapping mid-identifier in the <textarea>) to a single space, not just
+    // trim the ends — otherwise "Mag Prime" typed on one visual line and
+    // "Mag\n  Prime" wrapped across two both flow into the identifier buffer
+    // verbatim and become two distinct node ids that render identically,
+    // silently defeating the "same name = same node" dedup this DSL exists
+    // for (found 2026-08-29: a single paste produced two "Mag Prime" nodes).
+    const trimmed = buf.replace(/\s+/g, " ").trim();
     if (trimmed) tokens.push({ type: "IDENT", value: trimmed, pos: bufStart });
     buf = "";
   };

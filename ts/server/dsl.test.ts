@@ -40,6 +40,13 @@ test("item 29's own example: A -> B -> [A' -> B'], A -> D", () => {
   expect(d.type).toBe("Resource");
 });
 
+test("a line break inside a name (textarea wrap) collapses to a space so it still dedups (2026-08-29 bug: 'Mag Prime' and 'Mag\\n  Prime' from one paste became two nodes)", () => {
+  const { nodes, errors } = parseDsl("Mag Prime -> [B], Mag\n  Prime -> [C]");
+  expect(errors).toEqual([]);
+  expect(nodes.filter((n) => n.id === "Mag Prime")).toHaveLength(1);
+  expect(byId(nodes, "Mag Prime").contains.sort()).toEqual(["B", "C"]);
+});
+
 test("a name repeated across branches resolves to one node, not a duplicate", () => {
   const { nodes, errors } = parseDsl("A -> B, A -> C");
   expect(errors).toEqual([]);
