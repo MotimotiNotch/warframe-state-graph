@@ -1,10 +1,13 @@
 name: Release
 
 # Tag push (e.g. `v1.0.0`) triggers a build of the distributable Windows exe
-# and attaches it to a new GitHub Release. Cross-compiles from ubuntu-latest
-# via bun build --compile --target=bun-windows-x64 (verified locally
-# 2026-08-29 — this produces a real, runnable Windows exe without needing a
-# windows-latest runner).
+# and attaches it to a new GitHub Release. Runs on windows-latest (not a
+# cross-compile from ubuntu-latest) — bun build --compile's --windows-icon
+# flag errors out ("only available when compiling on Windows") unless the
+# build itself actually runs on a Windows host, found the hard way on the
+# first real run of this workflow (2026-08-29): an earlier local "verified
+# cross-compile" test was run from an already-Windows machine, which never
+# actually exercised that restriction.
 on:
   push:
     tags:
@@ -15,9 +18,10 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     defaults:
       run:
+        shell: bash
         working-directory: ts
     steps:
       - name: Checkout
@@ -40,7 +44,7 @@ jobs:
       - name: Build Windows executable
         run: |
           bun run prebuild-embed
-          bun build --compile --target=bun-windows-x64 \
+          bun build --compile \
             --windows-hide-console \
             --windows-icon=./assets/app-icon.ico \
             --windows-title="Warframe State Graph" \
