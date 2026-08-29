@@ -5,52 +5,61 @@
 
 ## 開発環境
 
-Go以外の依存はない（npm/ビルドツール不要）。
+現行実装は`ts/`配下（TypeScript、[Bun](https://bun.sh/)ランタイム）。npmフレームワークは使って
+いない。旧Go版（リポジトリ直下`pkg/`/`cmd/`）は2026-08-25で開発が止まった凍結済みの過去実装で、
+現在は変更しない。
 
 ```
-go run ./cmd/server
+cd ts
+bun install
+bun run dev
 ```
 
-`http://127.0.0.1:8787` にサーバーが立ち上がり、既定のブラウザが自動で開く。
-
-`web/` はビルド時にバイナリへ埋め込まれる（`webassets.go`）。`go run` はコマンド自体が毎回
-ソースから再ビルドするため、HTML/JSを編集したら `go run` を再実行すること——プロセスを
-起動したまま `web/` だけ書き換えてブラウザをリロードしても変更は反映されない。
+`http://127.0.0.1:8788` にサーバーが立ち上がる。`--hot`でサーバー側（`server/`）の変更も
+自動反映され、フロント側（`web/*.ts`）は毎リクエスト再ビルドするため、保存してブラウザを
+リロードするだけで最新の内容が反映される（Go版のような「go runの再実行が必要」という制約は無い）。
 
 ## ⚠️ 実データについて（最初に必ず読んでほしい）
 
 `data/*.json`（`graph.json`/`loadouts.json`/`collections.json`/`standing.json`/`stats.json`/
-`glossary.json`）はリポジトリ作者本人の実際のプレイ進行データで、**gitで追跡されている**。
-`go run ./cmd/server` をそのまま実行すると、動作確認のクリックがこのファイルを直接書き換える。
+`glossary.json`/`scratch.json`/`note.json`）はリポジトリ作者本人の実際のプレイ進行データで、
+**gitで追跡されている**。リポジトリ直下で`bun run dev`をそのまま実行すると、動作確認の
+クリックがこのファイルを直接書き換える。
 
-コードの動作確認は、`data/` ごと別ディレクトリへコピーしてポートを変えたインスタンスで行うこと:
+TS版は`DATA_DIR`環境変数でデータ保存先を切り替えられるため、隔離手順はGo版よりずっと単純
+——コード自体をコピーする必要はない:
 
 ```bash
-# 1. リポジトリ全体を作業用ディレクトリへコピー（.gitは除外してよい）
-cp -r cmd pkg web go.mod webassets.go data /path/to/scratch/
-# 2. コピー先の cmd/server/main.go でポート番号だけ変える（127.0.0.1:8787 → 別の空きポート）
-# 3. コピー先で go build && ./server を実行し、そちらで確認する
+cd ts
+DATA_DIR=/path/to/scratch-data bun run dev
 ```
+
+（`bun run dev`は`DATA_DIR`未指定時もデフォルトで`ts/scratch-data/`を使う設計になっている
+ため、素の`bun run dev`をそのまま実行するだけでも実データには触れない。上記は特定の検証
+データセットを使い回したい場合向け。）
 
 PRの差分に `data/*.json` の変更が紛れ込んでいないか、`git diff` で必ず確認してから提出してほしい。
 新しいノード種別やフィールドを試すためのサンプルデータが必要な場合は、PRの説明にその旨を書いて
-テストデータであることを明示するか、`_test.go` 内のフィクスチャとして持たせてほしい。
+テストデータであることを明示するか、`*.test.ts` 内のフィクスチャとして持たせてほしい。
 
 ## コーディング規約・設計原則
 
-- **flat DAGモデル**: `pkg/model.Node` はフラットなノード集合＋有向エッジ（`requires`/`contains`）
-  で完結させる。`contains` はUI上のグループ化表現に限定し、達成状態（`satisfied`）の意味論には
-  一切関与しない（`requires` のみが「前提が終わっていること」を意味する）。
-- **各データ種別は独立したFileStore**: `pkg/loadout`/`pkg/collection`/`pkg/standing`/`pkg/stats`/
-  `pkg/glossary`/`pkg/scratch` はいずれも `pkg/persist` 共通の単一JSONファイル永続化パターン
-  （アトミック書き込み・世代バックアップ）を使う。新しいデータ種別を追加するときはこのどれかを
-  テンプレートにするのが早い。
-- **Web UIはVanilla HTML/CSS/JS**: フレームワーク・ビルドステップなし。絵文字はUIアイコンとして
-  使わない（Lucideアイコン、`web/icons.js`）。テーマ（ライト/ダーク）はCSS変数（`--panel`/
-  `--accent`等）で切り替わる設計なので、色は決め打ちせず変数を使うこと。
-- **全ページ共通ウィジェットは自己完結スクリプト**: `web/booster.js`/`web/scratch.js`等、複数
-  ページで使う機能は単一の `<script>` として実装し、各ページの `</body>` 直前で読み込むだけで
-  動くようにする（`icons.js` の `getTopRightBar()` で右上共有バーへボタンを追加する等）。
+- **flat DAGモデル**: `ts/server/model.ts`の`Node`型はフラットなノード集合＋有向エッジ
+  （`requires`/`contains`）で完結させる。`contains` はUI上のグループ化表現に限定し、達成状態
+  （`satisfied`）の意味論には一切関与しない（`requires` のみが「前提が終わっていること」を意味
+  する）。状態（SATISFIED/ACTIONABLE/BLOCKED）はノードに保存せず、`ts/server/engine.ts`が
+  読み取り時に都度導出する。
+- **各データ種別は独立したStore**: `ts/server/loadout.ts`/`collection.ts`/`standing.ts`/
+  `stats.ts`/`glossary.ts`/`scratch.ts`/`note.ts` はいずれも`ts/server/persist.ts`共通の
+  単一JSONファイル永続化パターン（アトミック書き込み・世代バックアップ）を使う。新しいデータ
+  種別を追加するときはこのどれか（最も単純なのは`note.ts`）をテンプレートにするのが早い。
+- **Web UIはVanilla TypeScript + HTML/CSS**: フレームワーク・仮想DOM無し。絵文字はUIアイコンと
+  して使わない（Lucideアイコン、`ts/web/icons.ts`）。テーマ（ライト/ダーク）はCSS変数
+  （`--panel`/`--accent`等）で切り替わる設計なので、色は決め打ちせず変数を使うこと。
+- **全ページ共通ウィジェットは自己完結モジュール**: `ts/web/booster.ts`/`scratch.ts`等、複数
+  ページで使う機能は単一のTSモジュールとして実装し、各ページの entry ts（`index.ts`等）から
+  `import "./booster.ts";`のように副作用インポートするだけで動くようにする（`icons.ts` の
+  `getTopRightBar()` で右上共有バーへボタンを追加する等）。
 - **情報に音量差をつける**: 操作頻度の低い要素（凡例、補足説明文等）は常時全文表示せず、
   折りたたみ・ポップオーバー・アイコン化で格下げする。1画面の全要素を同じ強さで並べない
   ——主役（グラフ本体、選択中の詳細パネル等）に視線が集まるよう、周辺のヘッダー・操作領域は
@@ -85,27 +94,36 @@ PRの差分に `data/*.json` の変更が紛れ込んでいないか、`git diff
 アンロックされる大きなストーリー展開の前提クエストをクリアするまで、機能名自体を隠す設計に
 なっている）。
 
-新しいセクションを追加する際、それが特定のメインストーリークエスト（`pkg/questchain`を参照）を
-前提とする機能なら、`web/stats.html` の `initCollapsiblePanel()` と同じパターン（前提クエスト
-未クリアの間は機能名を伏せて折りたたむ）を適用してほしい。既存の4実装（Focus School / Railjack
-本体 / Railjack Intrinsics / Drifter Intrinsics）がリファレンスになる。
+新しいセクションを追加する際、それが特定のメインストーリークエスト（`ts/server/questchain.ts`の
+`MainStoryChain`を参照）を前提とする機能なら、`ts/web/stats.ts` の `initCollapsiblePanel()` と
+同じパターン（前提クエスト未クリアの間は機能名を伏せて折りたたむ）を適用してほしい。既存の4実装
+（Focus School / Railjack本体 / Railjack Intrinsics / Drifter Intrinsics）がリファレンスになる。
 
 ## テスト・ビルド確認
 
 PRを出す前に以下を通しておくこと（CIでも同じチェックが走る）。
 
 ```bash
-go build ./...
-go vet ./...
-gofmt -l .          # 出力が空であること
-go test ./...
+cd ts
+bun run typecheck
+bun test
 ```
 
 ## コードオーナー
 
-`pkg/engine/`（DAG探索・Next Action導出）と `pkg/model/`（flat DAGの型定義）はこのプロジェクトの
-核となる設計判断が詰まっている領域のため、`.github/CODEOWNERS` で作者のレビューを必須にしている。
-他の領域は通常のPRフローで問題ない。
+`ts/server/engine.ts`（DAG探索・Next Action導出）と `ts/server/model.ts`（flat DAGの型定義）は
+このプロジェクトの核となる設計判断が詰まっている領域のため、`.github/CODEOWNERS` で作者の
+レビューを必須にしている。他の領域は通常のPRフローで問題ない。
+
+## ブランチ戦略
+
+[GitHub Flow](https://docs.github.com/ja/get-started/using-github/github-flow)。`main`が常に
+デプロイ可能なトレンク、develop/releaseのような常設ブランチは無い。
+
+- 外部からの変更は、フォーク→トピックブランチ→`main`へのPRで送ってほしい。CI（typecheck/test）
+  が通ることが前提、`ts/server/engine.ts`/`model.ts`に触れる場合はCODEOWNERSにより作者の
+  レビューが必須になる。
+- リリースは`main`上のタグ（`vX.Y.Z`）push契機で自動化されている（`.github/workflows/release.yml`）。
 
 ## PR
 

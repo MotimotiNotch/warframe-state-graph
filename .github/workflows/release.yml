@@ -1,0 +1,57 @@
+name: Release
+
+# Tag push (e.g. `v1.0.0`) triggers a build of the distributable Windows exe
+# and attaches it to a new GitHub Release. Cross-compiles from ubuntu-latest
+# via bun build --compile --target=bun-windows-x64 (verified locally
+# 2026-08-29 — this produces a real, runnable Windows exe without needing a
+# windows-latest runner).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      - name: Build Windows executable
+        run: |
+          bun run prebuild-embed
+          bun build --compile --target=bun-windows-x64 \
+            --windows-hide-console \
+            --windows-icon=./assets/app-icon.ico \
+            --windows-title="Warframe State Graph" \
+            ./server/main.ts \
+            --outfile ./dist/warframe-state-graph
+
+      - name: Rename asset with version
+        run: mv dist/warframe-state-graph.exe "dist/warframe-state-graph-${{ github.ref_name }}.exe"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ts/dist/warframe-state-graph-${{ github.ref_name }}.exe
+          generate_release_notes: true

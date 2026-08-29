@@ -2,5 +2,10 @@
 # 本人を必須レビュアーに指定する（2026-08-19、OSS公開時のガバナンス方針）。
 # 他の領域は無指定（誰でもレビューなしでマージされうる）——このリポジトリを汚したくないのは
 # 「本流(main)」であって「全フォークでの改変」ではない、という整理に基づく意図的な範囲。
+#
+# 2026-08-29: 実装がTypeScript/Bun版（ts/）に移行したため対象パスを更新。旧Go版（pkg/）は
+# 開発が凍結済みだが、過去のコミット履歴・フォークとの整合のためエントリ自体は残す。
+/ts/server/engine.ts @MotimotiNotch
+/ts/server/model.ts  @MotimotiNotch
 /pkg/engine/ @MotimotiNotch
 /pkg/model/  @MotimotiNotch

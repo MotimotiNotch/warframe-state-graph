@@ -59,6 +59,12 @@ bun run dev
 
 ## 配布用ビルド（非技術者への配布向け）
 
+非技術者に渡す場合は、自分でビルドする必要はない。**[Releases](../../releases)から最新の
+`warframe-state-graph-vX.Y.Z.exe`をダウンロードするだけでよい**——タグをpushすると
+GitHub Actionsが自動でビルドしてReleaseに添付する（`.github/workflows/release.yml`）。
+
+自分でビルドする場合は:
+
 ```
 cd ts
 bun run compile
