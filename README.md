@@ -60,7 +60,7 @@ bun run dev
 ## 配布用ビルド（非技術者への配布向け）
 
 非技術者に渡す場合は、自分でビルドする必要はない。**[Releases](../../releases)から最新の
-`warframe-state-graph-vX.Y.Z.exe`をダウンロードするだけでよい**——タグをpushすると
+`warframe-state-graph-vX.Y.Z.zip`をダウンロードするだけでよい**——タグをpushすると
 GitHub Actionsが自動でビルドしてReleaseに添付する（`.github/workflows/release.yml`）。
 
 自分でビルドする場合は:
@@ -71,9 +71,13 @@ bun run compile
 ```
 
 `ts/web/` の静的ファイルはこのビルドにバイナリごと埋め込まれるため、生成された
-`ts/dist/warframe-state-graph.exe` 1本だけを渡せば動く。渡す相手は好きな場所に置いて
-ダブルクリックするだけでよい——`data/`（グラフ・Loadouts・Collectionsの保存先）はexeと
-同じフォルダに実行時に自動生成される。フォルダごとコピーすればデータも一緒に移動する。
+`ts/dist/warframe-state-graph.exe` 1本だけで動く。ただし**exeを裸のまま渡さず、専用フォルダに
+入れてから渡す（またはzipで固める）こと**——`data/`（グラフ・Loadouts・Collectionsの保存先）は
+exeと同じフォルダに実行時に自動生成されるため、Downloads/Desktopに単体のexeを置いたまま使うと、
+後から素性不明のフォルダが隣に生えたように見えてしまう。Releaseのzipを展開してできる
+`WarframeStateGraph/`フォルダのように、**exeとdata/が同じフォルダの中で完結する状態**を保つのが
+安全——このフォルダごとコピー・バックアップすればデータも一緒に移動する。デスクトップに
+置きたい場合は、フォルダの中のexeへの**ショートカット**を作ること（exe自体は動かさない）。
 
 ダブルクリックすると、コンソールウィンドウ無しでURLバーの無いブラウザウィンドウ
 （Microsoft Edgeの`--app`モード）が自動で開く。終了はそのウィンドウを閉じるだけ——

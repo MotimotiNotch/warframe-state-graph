@@ -51,11 +51,22 @@ jobs:
             ./server/main.ts \
             --outfile ./dist/warframe-state-graph
 
-      - name: Rename asset with version
-        run: mv dist/warframe-state-graph.exe "dist/warframe-state-graph-${{ github.ref_name }}.exe"
+      - name: Package into a dedicated folder
+        # A bare .exe tends to end up loose in Downloads/Desktop, where the
+        # data/ folder it creates on first save looks like a mystery item
+        # dropped next to unrelated files (2026-08-29 のっち指摘). Zipping a
+        # single top-level folder means Windows' "Extract All" gives the
+        # user one self-contained folder to keep the exe and its data/ in
+        # from the start. PowerShell's Compress-Archive over bash's `zip`
+        # since the latter isn't guaranteed present on windows-latest.
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package/WarframeStateGraph | Out-Null
+          Copy-Item dist/warframe-state-graph.exe package/WarframeStateGraph/warframe-state-graph.exe
+          Compress-Archive -Path package/WarframeStateGraph -DestinationPath "dist/warframe-state-graph-${{ github.ref_name }}.zip"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: ts/dist/warframe-state-graph-${{ github.ref_name }}.exe
+          files: ts/dist/warframe-state-graph-${{ github.ref_name }}.zip
           generate_release_notes: true
