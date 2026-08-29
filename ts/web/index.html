@@ -719,6 +719,10 @@
       <div class="ph-row" style="opacity:.8;">
         <code>A -&gt; B</code>＝「AはBが前提」、<code>A -&gt; [B -&gt; C]</code>＝「Aの中身にB、BはCが前提」、<code>,</code>区切りで複数のチェーンをまとめて書けます。同じ名前は同一ノードとして扱われます。チェーンの先頭（他のどこからも参照されない名前）だけが左上プルダウンから辿れる探索起点になります。
       </div>
+      <div class="ph-row" style="opacity:.8;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <span>複雑な内容はChatGPT等のAIに下書きしてもらえます。ボタンでAI用の説明をコピーし、チャットに貼り付けて「〜を表すDSLを書いて」と頼んでください。</span>
+        <button class="toggle" id="dsl-ai-prompt-copy" title="AI用の説明をコピー">AI用の説明をコピー</button>
+      </div>
       <textarea id="dsl-input" rows="4" placeholder="例: フレーム入手 -> [パーツA -> パーツA用レリック開封], フレーム入手 -> パーツB"></textarea>
       <div class="actions" style="justify-content:flex-start;margin-top:8px;">
         <button class="toggle" id="dsl-preview-btn">プレビュー</button>

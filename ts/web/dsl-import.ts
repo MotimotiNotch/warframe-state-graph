@@ -5,6 +5,8 @@
 // /api/wfcd/import endpoint the WFCD wizard uses (see wfcd-wizard.ts).
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
+import { DSL_AI_PROMPT } from "./dsl-help.ts";
+import { copyTextToClipboard } from "./export.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { showToast } from "./toast.ts";
 
@@ -31,6 +33,25 @@ el("dsl-import-btn").addEventListener("click", () => {
 });
 el("dsl-modal-cancel").addEventListener("click", () => {
   el("dsl-modal-backdrop").classList.add("hidden");
+});
+
+el("dsl-ai-prompt-copy").addEventListener("click", (e) => {
+  const btn = e.currentTarget as HTMLButtonElement;
+  const originalText = btn.textContent;
+  copyTextToClipboard(DSL_AI_PROMPT)
+    .then(() => {
+      btn.textContent = "コピーしました";
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 1200);
+    })
+    .catch((err) => {
+      console.warn("クリップボードへのコピーに失敗", err);
+      btn.textContent = "コピーに失敗しました";
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    });
 });
 
 el("dsl-preview-btn").addEventListener("click", async () => {
