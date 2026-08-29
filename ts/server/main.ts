@@ -558,6 +558,18 @@ const server = Bun.serve({
       },
     },
 
+    // Inspector's "独立させる" action (2026-08-29) — reparentNode()'s
+    // inverse, detaching a node from wherever it's currently referenced.
+    "/api/nodes/:id/detach": {
+      POST: async (req) => {
+        try {
+          return json(await graphStore.detachNode(req.params.id));
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
     "/api/nodes/:id": {
       DELETE: async (req) => {
         await graphStore.deleteNode(req.params.id);

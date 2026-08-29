@@ -107,6 +107,30 @@ export class GraphStore {
     });
   }
 
+  /** The inverse of reparentNode() (2026-08-29, Inspector's "独立させる"
+   * action) — strips the node's id from every other node's requires/
+   * contains (same as reparentNode's first half, just with no new parent to
+   * add it to afterward), and promotes type "Resource" back to "Goal" so it
+   * reappears in the left-sidebar build list. Symmetric with reparentNode's
+   * own demotion: only ever touches Resource<->Goal, so a node whose type
+   * was never touched by a reparent (Frame/Quest/Weapon/etc., still nested
+   * under something) keeps its real type here too — this only undoes what
+   * reparentNode does, not a general "promote anything to Goal" tool. */
+  async detachNode(id: string): Promise<Node> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[id];
+      if (!n) throw new Error(`node "${id}" not found`);
+      for (const other of Object.values(g.nodes)) {
+        other.requires = other.requires.filter((x) => x !== id);
+        other.contains = other.contains.filter((x) => x !== id);
+      }
+      if (n.type === "Resource") n.type = "Goal";
+      await this.#saveLocked(g);
+      return n;
+    });
+  }
+
   /** Flips Gild state for a mastery-track part (Zaw/Kitgun/Amp Strike/
    * Chamber/Prism etc.) — independent of `satisfied` (owning/ranking the
    * part doesn't grant mastery until it's Gilded too). */

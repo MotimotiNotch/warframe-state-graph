@@ -79,6 +79,47 @@ test("reparentNode: leaves a non-Goal/Build type unchanged", async () => {
   expect(g.nodes["child"]!.type).toBe("Quest");
 });
 
+test("detachNode: strips the node from its parent's contains and promotes Resource back to Goal", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([{ ...node("child", "Child"), type: "Resource" }, node("parent", "Parent", [], ["child"])]);
+
+  await store.detachNode("child");
+
+  const g = await store.load();
+  expect(g.nodes["parent"]!.contains).toEqual([]);
+  expect(g.nodes["child"]!.type).toBe("Goal");
+});
+
+test("detachNode: leaves a non-Resource type unchanged", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([{ ...node("child", "Child"), type: "Quest" }, node("parent", "Parent", [], ["child"])]);
+
+  await store.detachNode("child");
+
+  const g = await store.load();
+  expect(g.nodes["child"]!.type).toBe("Quest");
+});
+
+test("detachNode: strips from every referencing node when multiply-referenced", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([
+    { ...node("child", "Child"), type: "Resource" },
+    node("parentA", "Parent A", [], ["child"]),
+    node("parentB", "Parent B", ["child"]),
+  ]);
+
+  await store.detachNode("child");
+
+  const g = await store.load();
+  expect(g.nodes["parentA"]!.contains).toEqual([]);
+  expect(g.nodes["parentB"]!.requires).toEqual([]);
+});
+
+test("detachNode: throws for a nonexistent node", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await expect(store.detachNode("missing")).rejects.toThrow();
+});
+
 test("reparentNode: throws for a nonexistent node", async () => {
   const store = new GraphStore(path.join(tmpDir, "graph.json"));
   await store.upsertNodes([node("new", "New Parent")]);

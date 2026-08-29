@@ -64,6 +64,7 @@ export function renderPanel(): void {
       <button class="toggle" id="add-requires-btn">前提を追加</button>
       <button class="toggle" id="add-contains-btn">中身を追加</button>
       <button class="toggle" id="reparent-btn">付け替え</button>
+      <button class="toggle" id="detach-btn">独立させる</button>
     </div>
     <div id="reparent-form" class="hidden" style="margin-top:6px;padding:8px;border:1px solid var(--border);border-radius:8px;">
       <div class="ph-row" style="opacity:.8;margin:0 0 6px;">このノード（中身も含めて丸ごと）を、指定したIDのノードの下へ移動します。現在の繋がりからは外れます。</div>
@@ -196,6 +197,23 @@ export function renderPanel(): void {
       refreshSidebar();
       await loadReport();
       showToast(`付け替えました（${relation === "contains" ? "中身" : "前提"}として）`, "success");
+    };
+  }
+
+  // "独立させる" (2026-08-29) — reparentNode()の逆。今の参照元から外し、
+  // Resourceに格下げされていたら左サイドバーの一覧に戻れるようGoalへ戻す。
+  const detachBtn = document.getElementById("detach-btn") as HTMLButtonElement | null;
+  if (detachBtn) {
+    detachBtn.onclick = async () => {
+      const res = await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/detach`, { method: "POST" });
+      if (!res.ok) {
+        showToast("独立させるのに失敗しました");
+        return;
+      }
+      await refreshGraph();
+      refreshSidebar();
+      await loadReport();
+      showToast("独立させました", "success");
     };
   }
 
