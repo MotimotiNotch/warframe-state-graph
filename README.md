@@ -8,6 +8,16 @@
 Warframeには個人インベントリを取得できる公式APIが存在しないため、全自動同期は行わず、
 登録したビルドに必要な数個のノードだけを手動でワンタップトグルする設計に割り切っている。
 
+## 💛 投げ銭について
+
+ゲームに関するデータ（WFCD等の公開データ取得）自体は無償。ただし**Chain View**は独自の思想
+（フラットなDAGモデルでゲーム内の依存関係と自分の状態を接続し、次の一手を動的に導き出す設計）
+のもとで作っているので、良いなと思ったら[Ko-fi](https://ko-fi.com/motimotinotch)で投げ銭して
+もらえると嬉しい。保守（不具合対応等）は基本的にできる範囲で頑張って対応する。
+
+Chain View以外のページ（Loadouts/Collections/Standing/Stats/Note）は「記録できたらいいな」
+くらいの温度感で実装した補助的な機能という位置づけ。
+
 ## 🔒 通信・データについて
 
 - **外部通信**: WFCD（`raw.githubusercontent.com/WFCD/...`、`api.warframestat.us`）およびcalamity-inc
