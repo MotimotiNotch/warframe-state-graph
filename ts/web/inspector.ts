@@ -189,7 +189,10 @@ export function renderPanel(): void {
           })
         : await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/detach`, { method: "POST" });
       if (!res.ok) {
-        showToast(targetId ? "付け替えに失敗しました（移動先IDが存在するか確認して）" : "独立させるのに失敗しました");
+        // サーバー側のエラー文言をそのまま表示（存在しないID、サイクルに
+        // なる付け替え等、理由ごとに変わるため固定文言にしない）。
+        const detail = await res.text();
+        showToast(`${targetId ? "付け替え" : "独立させる"}のに失敗しました${detail ? `：${detail}` : ""}`);
         return;
       }
       form.classList.add("hidden");

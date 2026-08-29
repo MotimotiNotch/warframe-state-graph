@@ -137,3 +137,128 @@ test("reparentNode: throws when targeting itself", async () => {
   await store.upsertNodes([node("a", "A")]);
   await expect(store.reparentNode("a", "a", "contains")).rejects.toThrow();
 });
+
+// --- 入れ子の組み合わせ（2026-08-29、のっち依頼のテストケース群） ---
+
+test("reparentNode: moving a subtree carries its own children along untouched", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([
+    node("oldParent", "Old Parent", [], ["mover"]),
+    node("mover", "Mover", ["grandchild-req"], ["grandchild-con"]),
+    node("grandchild-req", "Grandchild Req"),
+    node("grandchild-con", "Grandchild Con"),
+    node("newParent", "New Parent"),
+  ]);
+
+  await store.reparentNode("mover", "newParent", "contains");
+
+  const g = await store.load();
+  expect(g.nodes["oldParent"]!.contains).toEqual([]);
+  expect(g.nodes["newParent"]!.contains).toEqual(["mover"]);
+  // "mover" itself still has its own subtree intact — only its own
+  // *incoming* link moved, not its outgoing requires/contains.
+  expect(g.nodes["mover"]!.requires).toEqual(["grandchild-req"]);
+  expect(g.nodes["mover"]!.contains).toEqual(["grandchild-con"]);
+});
+
+test("reparentNode: reparenting into a node with existing contains appends without disturbing siblings", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([
+    node("mover", "Mover"),
+    node("sibling", "Existing Sibling"),
+    node("newParent", "New Parent", [], ["sibling"]),
+  ]);
+
+  await store.reparentNode("mover", "newParent", "contains");
+
+  const g = await store.load();
+  expect(g.nodes["newParent"]!.contains.sort()).toEqual(["mover", "sibling"]);
+});
+
+test("reparentNode: 3+ level deep nesting stays intact when the middle node moves", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([
+    node("root", "Root", [], ["mid"]),
+    node("mid", "Mid", [], ["leaf"]),
+    node("leaf", "Leaf"),
+    node("elsewhere", "Elsewhere"),
+  ]);
+
+  // Move "mid" (with "leaf" still nested under it) out from under "root" to "elsewhere".
+  await store.reparentNode("mid", "elsewhere", "contains");
+
+  const g = await store.load();
+  expect(g.nodes["root"]!.contains).toEqual([]);
+  expect(g.nodes["elsewhere"]!.contains).toEqual(["mid"]);
+  expect(g.nodes["mid"]!.contains).toEqual(["leaf"]); // leaf followed mid, untouched
+});
+
+test("reparentNode: refuses to reparent an ancestor under its own descendant (would create a cycle)", async () => {
+  // A contains B contains C. Reparenting A under C would make C (A's own
+  // grandchild) A's new parent — a cycle. Found via testing 2026-08-29
+  // that nothing stopped this; fixed with isDescendant() guard.
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("a", "A", [], ["b"]), node("b", "B", [], ["c"]), node("c", "C")]);
+
+  await expect(store.reparentNode("a", "c", "contains")).rejects.toThrow();
+
+  // Confirm nothing was mutated (the guard runs before any writes).
+  const g = await store.load();
+  expect(g.nodes["a"]!.contains).toEqual(["b"]);
+  expect(g.nodes["b"]!.contains).toEqual(["c"]);
+  expect(g.nodes["c"]!.contains).toEqual([]);
+});
+
+test("reparentNode: also refuses via the requires side of the cycle check (mixed contains/requires)", async () => {
+  // A requires B, B contains C — reparenting A under C (via either
+  // relation) would still create a cycle, since the descendant check walks
+  // both contains and requires outward from A.
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("a", "A", ["b"]), node("b", "B", [], ["c"]), node("c", "C")]);
+
+  await expect(store.reparentNode("a", "c", "requires")).rejects.toThrow();
+});
+
+test("reparentNode: a non-cyclic move to an unrelated branch still succeeds (guard isn't overly strict)", async () => {
+  // A contains B contains C, and a completely separate D. Moving C under D
+  // doesn't touch A/B's ancestry at all — must not be refused.
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("a", "A", [], ["b"]), node("b", "B", [], ["c"]), node("c", "C"), node("d", "D")]);
+
+  await store.reparentNode("c", "d", "contains");
+
+  const g = await store.load();
+  expect(g.nodes["b"]!.contains).toEqual([]);
+  expect(g.nodes["d"]!.contains).toEqual(["c"]);
+});
+
+test("detachNode: a mid-tree node keeps its own children when detached", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([
+    node("root", "Root", [], ["mid"]),
+    { ...node("mid", "Mid", [], ["leaf"]), type: "Resource" },
+    node("leaf", "Leaf"),
+  ]);
+
+  await store.detachNode("mid");
+
+  const g = await store.load();
+  expect(g.nodes["root"]!.contains).toEqual([]);
+  expect(g.nodes["mid"]!.type).toBe("Goal"); // promoted, now an independent entry point
+  expect(g.nodes["mid"]!.contains).toEqual(["leaf"]); // its own subtree is untouched
+});
+
+test("reparentNode then detachNode round-trips back to a fully independent node with no dangling references", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("a", "A"), node("b", "B")]);
+
+  await store.reparentNode("a", "b", "contains");
+  let g = await store.load();
+  expect(g.nodes["b"]!.contains).toEqual(["a"]);
+  expect(g.nodes["a"]!.type).toBe("Resource");
+
+  await store.detachNode("a");
+  g = await store.load();
+  expect(g.nodes["b"]!.contains).toEqual([]);
+  expect(g.nodes["a"]!.type).toBe("Goal");
+});

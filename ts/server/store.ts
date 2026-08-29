@@ -6,6 +6,28 @@ import { cascadeSatisfyContainsParents, cascadeSatisfyRequires, cascadeUnsatisfy
 import { CURRENT_SCHEMA_VERSION, GraphSchema, newGraph, type Counter, type Graph, type Node } from "./model.ts";
 import { loadJSON, saveJSON, NotFoundError } from "./persist.ts";
 
+/** Whether `candidateId` is reachable from `ancestorId` by walking
+ * contains/requires outward (i.e. candidateId is somewhere in ancestorId's
+ * own subtree). Used by reparentNode() to refuse a move that would create a
+ * cycle — reparenting a node under its own descendant. Cycle-safe itself
+ * via the usual `seen` guard (same pattern as engine.ts's cascades). */
+function isDescendant(g: Graph, ancestorId: string, candidateId: string): boolean {
+  const start = g.nodes[ancestorId];
+  if (!start) return false;
+  const seen = new Set<string>();
+  const stack = [...start.contains, ...start.requires];
+  while (stack.length > 0) {
+    const cur = stack.pop()!;
+    if (cur === candidateId) return true;
+    if (seen.has(cur)) continue;
+    seen.add(cur);
+    const n = g.nodes[cur];
+    if (!n) continue;
+    stack.push(...n.contains, ...n.requires);
+  }
+  return false;
+}
+
 export class GraphStore {
   readonly #path: string;
   readonly #mutex = new AsyncMutex();
@@ -86,7 +108,15 @@ export class GraphStore {
    * dsl.ts already applies to any node another node's requires/contains
    * reaches (the sidebar only lists Build/Goal — see build-sidebar.ts's
    * selectableBuilds()). Any other type is left untouched — a Frame/Quest/
-   * etc. being reparented is still that same kind of thing, just relocated. */
+   * etc. being reparented is still that same kind of thing, just relocated.
+   *
+   * Also refuses a move that would create a cycle (reparenting a node under
+   * its own descendant) — found via testing 2026-08-29: nothing stopped
+   * this before, and while every graph traversal in this codebase already
+   * guards against infinite-looping on a stored cycle (engine.ts's cascades,
+   * graph-layout.ts's containsCompletion — all carry their own `seen` set),
+   * a cycle would still silently truncate whatever walks it, which reads as
+   * "some of my nodes just disappeared" to the human looking at the graph. */
   async reparentNode(id: string, targetId: string, relation: "requires" | "contains"): Promise<Node> {
     return this.#mutex.run(async () => {
       const g = await this.#loadLocked();
@@ -95,6 +125,9 @@ export class GraphStore {
       const target = g.nodes[targetId];
       if (!target) throw new Error(`node "${targetId}" not found`);
       if (targetId === id) throw new Error("cannot reparent a node under itself");
+      if (isDescendant(g, id, targetId)) {
+        throw new Error("cannot reparent a node under its own descendant (would create a cycle)");
+      }
       for (const other of Object.values(g.nodes)) {
         other.requires = other.requires.filter((x) => x !== id);
         other.contains = other.contains.filter((x) => x !== id);
