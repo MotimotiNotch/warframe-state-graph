@@ -53,6 +53,20 @@ export function questJa(name: string): string {
   return QUEST_JA[name] ?? name;
 }
 
+// Reverse of QUEST_JA, for resolving a displayed Japanese name back to the
+// WFCD English name /api/wfcd/generate needs (exact-match lookup). Safe as a
+// straight Object.fromEntries — no two entries currently share the same JA
+// value, so this stays bijective; a future colliding addition to QUEST_JA
+// would silently keep only the last entry here (acceptable — worst case,
+// picking a duplicate-JA-name quest from the dropdown still round-trips
+// correctly since the dropdown always writes the EN name via data-value,
+// this reverse lookup only matters for free-typed Japanese text).
+const QUEST_EN: Record<string, string> = Object.fromEntries(Object.entries(QUEST_JA).map(([en, ja]) => [ja, en]));
+
+export function questEn(name: string): string {
+  return QUEST_EN[name] ?? name;
+}
+
 /** Node display-name helper: Quest nodes show their wiki-confirmed Japanese
  * name wherever a node name is rendered (graph label, sidebar list,
  * Inspector, requires/contains tag combobox); every other node type keeps

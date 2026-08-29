@@ -9,7 +9,7 @@
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
-import { questJa } from "./quest-i18n.ts";
+import { questEn, questJa } from "./quest-i18n.ts";
 import { itemJa } from "./item-i18n.ts";
 import { locationJa } from "./location-i18n.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
@@ -128,7 +128,11 @@ function updateWfcdNameSuggest(): void {
       itemEl.addEventListener("mousedown", (e) => {
         // fires before blur
         e.preventDefault();
-        wfcdNameInput.value = (itemEl as HTMLElement).dataset.value ?? "";
+        const raw = (itemEl as HTMLElement).dataset.value ?? "";
+        // Show the Japanese name once picked (のっち指摘、2026-08-29) — the
+        // raw WFCD English name /api/wfcd/generate needs is recovered via
+        // questEn() right before the fetch call below, not stored here.
+        wfcdNameInput.value = nodeType === "Quest" ? questJa(raw) : raw;
         hideWfcdNameSuggest();
       });
     });
@@ -155,7 +159,10 @@ el("wfcd-modal-cancel").addEventListener("click", () => {
 
 el("wfcd-fetch-btn").addEventListener("click", async () => {
   const nodeType = el<HTMLSelectElement>("wfcd-node-type").value;
-  const name = el<HTMLInputElement>("wfcd-name").value.trim();
+  const typed = el<HTMLInputElement>("wfcd-name").value.trim();
+  // Input may hold the Japanese name (picked from the suggestion list, or
+  // free-typed) — resolve back to the WFCD English name the API needs.
+  const name = nodeType === "Quest" ? questEn(typed) : typed;
   const preview = el("wfcd-preview");
   el("wfcd-modal-import").style.display = "none";
   if (!name) {
