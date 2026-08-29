@@ -71,7 +71,16 @@ export function questEn(name: string): string {
  * name wherever a node name is rendered (graph label, sidebar list,
  * Inspector, requires/contains tag combobox); every other node type keeps
  * its stored WFCD English name unchanged (same "storage stays English,
- * translate only at display" convention as itemJa()/locationJa()). */
+ * translate only at display" convention as itemJa()/locationJa()).
+ *
+ * A WFCD-generated Quest not attached to the current Build gets stored as
+ * type "Goal" instead (wfcd-wizard.ts's willAttach branch — done so it
+ * isn't orphaned from the graph), which is the common case for quests added
+ * this way and would otherwise silently fall through untranslated. Since it
+ * still carries the exact WFCD quest name, an exact QUEST_JA key match is
+ * treated as a quest too, regardless of stored type. */
 export function nodeDisplayName(node: { type: string; name: string }): string {
-  return node.type === "Quest" ? questJa(node.name) : node.name;
+  if (node.type === "Quest") return questJa(node.name);
+  const ja = questJa(node.name);
+  return ja !== node.name ? ja : node.name;
 }
