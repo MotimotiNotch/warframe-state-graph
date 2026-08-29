@@ -196,6 +196,11 @@ export function renderPanel(): void {
         return;
       }
       form.classList.add("hidden");
+      // 移動先が今フォーカス中のBuildの外だと、このノードはstate.reportの
+      // メンバーから外れる（node-modal.tsの削除フローと同じ理由でここも
+      // 選択解除する——found via console error 2026-08-29: state.selected
+      // が消えたノードを指したままrenderPanel()がnode.stateを読んで例外）。
+      state.selected = null;
       await refreshGraph();
       refreshSidebar();
       await loadReport();
