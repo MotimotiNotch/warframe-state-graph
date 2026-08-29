@@ -77,7 +77,16 @@ export class GraphStore {
    * `relation` array first (a node might be multiply-referenced; all of
    * those links move, not just one), then adds it to `targetId`'s. Throws
    * if either node doesn't exist, or if targetId === id (can't parent a
-   * node under itself). */
+   * node under itself).
+   *
+   * "付け替え" reads as a cut, not a copy (のっち指摘, 2026-08-29) — a
+   * Goal/Build being moved stops being an independent entry point, so it
+   * should stop cluttering the left-sidebar build list too. Demotes
+   * type "Goal"/"Build" to "Resource" on the way in, the same demotion
+   * dsl.ts already applies to any node another node's requires/contains
+   * reaches (the sidebar only lists Build/Goal — see build-sidebar.ts's
+   * selectableBuilds()). Any other type is left untouched — a Frame/Quest/
+   * etc. being reparented is still that same kind of thing, just relocated. */
   async reparentNode(id: string, targetId: string, relation: "requires" | "contains"): Promise<Node> {
     return this.#mutex.run(async () => {
       const g = await this.#loadLocked();
@@ -92,6 +101,7 @@ export class GraphStore {
       }
       const arr = target[relation];
       if (!arr.includes(id)) arr.push(id);
+      if (n.type === "Goal" || n.type === "Build") n.type = "Resource";
       await this.#saveLocked(g);
       return n;
     });

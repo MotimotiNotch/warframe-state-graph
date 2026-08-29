@@ -59,6 +59,26 @@ test("reparentNode: adding to requires leaves contains untouched, and vice versa
   expect(g.nodes["new"]!.contains).toEqual(["child"]);
 });
 
+test("reparentNode: demotes a Goal to Resource so it drops off the sidebar build list", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("child", "Child"), node("new", "New Parent")]);
+
+  await store.reparentNode("child", "new", "contains");
+
+  const g = await store.load();
+  expect(g.nodes["child"]!.type).toBe("Resource");
+});
+
+test("reparentNode: leaves a non-Goal/Build type unchanged", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([{ ...node("child", "Child"), type: "Quest" }, node("new", "New Parent")]);
+
+  await store.reparentNode("child", "new", "contains");
+
+  const g = await store.load();
+  expect(g.nodes["child"]!.type).toBe("Quest");
+});
+
 test("reparentNode: throws for a nonexistent node", async () => {
   const store = new GraphStore(path.join(tmpDir, "graph.json"));
   await store.upsertNodes([node("new", "New Parent")]);
