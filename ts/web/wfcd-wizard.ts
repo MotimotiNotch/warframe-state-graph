@@ -278,7 +278,7 @@ function renderWfcdPreview(): void {
     <div class="wfcd-part">
       <label style="display:flex;align-items:flex-start;gap:6px;">
         <input type="checkbox" id="wfcd-attach-check" checked style="margin-top:3px;">
-        <span>現在のBuild「<b>${currentBuild.name}</b>」のcontainsに追加する（チェックを外すと種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）</span>
+        <span>現在のBuild「<b>${currentBuild.name}</b>」の中身（contains）に追加する（チェックを外すと種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）</span>
       </label>
     </div>`
     : `
@@ -452,8 +452,8 @@ el("wfcd-modal-import").addEventListener("click", async () => {
   if (state.focus) await loadReport();
   showToast(
     attached
-      ? `「${root.name}」を追加し、現在のBuildのcontainsに繋げました。`
-      : `「${root.name}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存のBuildのcontainsに含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
+      ? `「${root.name}」を追加し、現在のBuildの中身（contains）に繋げました。`
+      : `「${root.name}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存のBuildの中身（contains）に含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
     "success",
   );
 });

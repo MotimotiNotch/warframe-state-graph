@@ -69,7 +69,7 @@ el("dsl-preview-btn").addEventListener("click", async () => {
 function renderDslPreview(): void {
   const preview = el("dsl-preview");
   const conflictWarning = dslConflicts.length
-    ? `<div class="wfcd-part" style="border-color:var(--blocked);color:var(--blocked);">既存の同名ノードを上書きします（requires/containsは新しい内容で置き換わります）: ${dslConflicts.join("、")}</div>`
+    ? `<div class="wfcd-part" style="border-color:var(--blocked);color:var(--blocked);">既存の同名ノードを上書きします（前提/中身（requires/contains）は新しい内容で置き換わります）: ${dslConflicts.join("、")}</div>`
     : "";
   const rows = dslPreviewNodes
     .map((n) => {
