@@ -1,7 +1,7 @@
 // Port of web/inspector.js. Right-side node detail panel.
 
 import { el } from "./dom.ts";
-import { gameIcon, icon } from "./icons.ts";
+import { gameIcon, icon, iconLabel } from "./icons.ts";
 import { STATE_COLOR, STATE_LABEL_JA, loadReport, refreshGraph, state } from "./graph-state.ts";
 import { refreshSidebar } from "./build-sidebar.ts";
 import { NODE_TYPE_LABEL_JA, openNodeModal } from "./node-modal.ts";
@@ -51,28 +51,27 @@ export function renderPanel(): void {
     <div class="ph-row">種別: ${NODE_TYPE_LABEL_JA[node.type] ?? node.type}${node.type === "Relic" ? `<span id="vault-badge"></span>` : ""}</div>
     <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-      ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${node.satisfied ? "取り消す" : "達成にする"}</button>`}
-      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${node.gilded ? "メッキ済み" : "メッキする"}</button>` : ""}
-      <button class="toggle" id="edit-btn">編集</button>
+      ${isRoot ? "" : `<button class="toggle" id="toggle-btn">${iconLabel(node.satisfied ? "x" : "check", node.satisfied ? "取り消す" : "達成にする", { size: 13 })}</button>`}
+      ${node.masteryTrack ? `<button class="toggle" id="gild-btn" style="${node.gilded ? "border-color:var(--satisfied);color:var(--satisfied);" : ""}">${iconLabel("check", node.gilded ? "メッキ済み" : "メッキする", { size: 13 })}</button>` : ""}
+      <button class="toggle" id="edit-btn">${iconLabel("pencil", "編集", { size: 13 })}</button>
       ${
         node.type === "Build" || node.type === "Goal"
-          ? `<button class="toggle" id="archive-btn">${node.archived ? "アーカイブ解除" : "アーカイブする"}</button>`
+          ? `<button class="toggle" id="archive-btn">${iconLabel("archive", node.archived ? "アーカイブ解除" : "アーカイブする", { size: 13 })}</button>`
           : ""
       }
     </div>
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-      <button class="toggle" id="add-requires-btn">前提を追加</button>
-      <button class="toggle" id="add-contains-btn">中身を追加</button>
-      <button class="toggle" id="reparent-btn">付け替え</button>
-      <button class="toggle" id="detach-btn">独立させる</button>
+      <button class="toggle" id="add-requires-btn">${iconLabel("plus", "前提を追加", { size: 13 })}</button>
+      <button class="toggle" id="add-contains-btn">${iconLabel("plus", "中身を追加", { size: 13 })}</button>
+      <button class="toggle" id="reparent-btn">${iconLabel("link-2", "付け替え", { size: 13 })}</button>
     </div>
     <div id="reparent-form" class="hidden" style="margin-top:6px;padding:8px;border:1px solid var(--border);border-radius:8px;">
-      <div class="ph-row" style="opacity:.8;margin:0 0 6px;">このノード（中身も含めて丸ごと）を、指定したIDのノードの下へ移動します。現在の繋がりからは外れます。</div>
+      <div class="ph-row" style="opacity:.8;margin:0 0 6px;">指定したIDのノードの下へ、このノード（中身も含めて丸ごと）を移動します。現在の繋がりからは外れます。IDを空欄のまま実行すると、繋がりを外すだけで独立した探索起点に戻します。</div>
       <select id="reparent-relation" style="margin-bottom:6px;">
         <option value="contains">中身（contains）として</option>
         <option value="requires">前提（requires）として</option>
       </select>
-      <input type="text" id="reparent-target-id" placeholder="移動先ノードのID（8桁）" style="margin-bottom:6px;">
+      <input type="text" id="reparent-target-id" placeholder="移動先ノードのID（空欄なら独立させる）" style="margin-bottom:6px;">
       <div class="actions" style="justify-content:flex-start;">
         <button class="toggle" id="reparent-confirm-btn">実行</button>
         <button class="toggle" id="reparent-cancel-btn">キャンセル</button>
@@ -167,6 +166,9 @@ export function renderPanel(): void {
   // nested under it, carried along automatically since a subtree is just
   // ids referenced from this node's own requires/contains) from wherever
   // it's currently linked to a different parent's requires or contains.
+  // 空欄のまま実行すると「独立させる」（reparentNodeの逆、detachNode）
+  // 扱いになる——ボタン列が多すぎるとの指摘（2026-08-29）を受けて、別々
+  // だった2ボタンを1つのフォームに統合。
   const reparentBtn = document.getElementById("reparent-btn") as HTMLButtonElement | null;
   if (reparentBtn) {
     const form = el("reparent-form");
@@ -175,45 +177,29 @@ export function renderPanel(): void {
     el("reparent-confirm-btn").onclick = async () => {
       const targetId = el<HTMLInputElement>("reparent-target-id").value.trim();
       const relation = el<HTMLSelectElement>("reparent-relation").value as "requires" | "contains";
-      if (!targetId) {
-        showToast("移動先ノードのIDを入力して");
-        return;
-      }
       if (targetId === state.selected) {
         showToast("自分自身へは付け替えできません");
         return;
       }
-      const res = await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/reparent`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetId, relation }),
-      });
+      const res = targetId
+        ? await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/reparent`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ targetId, relation }),
+          })
+        : await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/detach`, { method: "POST" });
       if (!res.ok) {
-        showToast("付け替えに失敗しました（移動先IDが存在するか確認して）");
+        showToast(targetId ? "付け替えに失敗しました（移動先IDが存在するか確認して）" : "独立させるのに失敗しました");
         return;
       }
       form.classList.add("hidden");
       await refreshGraph();
       refreshSidebar();
       await loadReport();
-      showToast(`付け替えました（${relation === "contains" ? "中身" : "前提"}として）`, "success");
-    };
-  }
-
-  // "独立させる" (2026-08-29) — reparentNode()の逆。今の参照元から外し、
-  // Resourceに格下げされていたら左サイドバーの一覧に戻れるようGoalへ戻す。
-  const detachBtn = document.getElementById("detach-btn") as HTMLButtonElement | null;
-  if (detachBtn) {
-    detachBtn.onclick = async () => {
-      const res = await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/detach`, { method: "POST" });
-      if (!res.ok) {
-        showToast("独立させるのに失敗しました");
-        return;
-      }
-      await refreshGraph();
-      refreshSidebar();
-      await loadReport();
-      showToast("独立させました", "success");
+      showToast(
+        targetId ? `付け替えました（${relation === "contains" ? "中身" : "前提"}として）` : "独立させました",
+        "success",
+      );
     };
   }
 
