@@ -48,7 +48,14 @@ export function confirmInline(anchor: HTMLElement, message: string, okLabel = "�
     const popRect = pop.getBoundingClientRect();
     let left = rect.left;
     if (left + popRect.width > window.innerWidth) left = window.innerWidth - popRect.width - 8;
-    pop.style.top = `${rect.bottom + 6}px`;
+    // position:fixedはビューポート基準で、topはここで一度決めたら以後動かない
+    // （スクロールしても追従しない）。下に置くと画面外にはみ出す場合はボタン
+    // 行ごと見えなくなり「削除ボタンが効かない」に見える不具合として報告
+    // された（2026-08-29、Loadoutsの一番下のカードで再現）——showFlyout()
+    // （graph-nav.ts）と同じ「下に入らなければ上に反転」を適用する。
+    let top = rect.bottom + 6;
+    if (top + popRect.height > window.innerHeight) top = rect.top - popRect.height - 6;
+    pop.style.top = `${Math.max(8, top)}px`;
     pop.style.left = `${Math.max(8, left)}px`;
 
     activePopover = pop;
