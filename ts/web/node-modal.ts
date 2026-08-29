@@ -11,7 +11,7 @@ import { confirmInline } from "./confirm-inline.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
-import { questJa } from "./quest-i18n.ts";
+import { nodeDisplayName, questJa } from "./quest-i18n.ts";
 import { showToast } from "./toast.ts";
 
 export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic", "Other"];
@@ -68,7 +68,8 @@ function renderNodeTagList(kind: "requires" | "contains"): void {
   tagsEl.innerHTML =
     list
       .map((id, i) => {
-        const label = state.graph!.nodes[id]?.name ?? id;
+        const n = state.graph!.nodes[id];
+        const label = n ? nodeDisplayName(n) : id;
         return `<span class="mod-tag">${label}<span class="x" data-remove-idx="${i}">${icon("x", { size: 12 })}</span></span>`;
       })
       .join("") || `<span class="empty">なし</span>`;
@@ -94,7 +95,12 @@ function updateNodeSuggest(kind: "requires" | "contains"): void {
   }
 
   const matches = Object.values(state.graph!.nodes)
-    .filter((n) => n.id !== nodeEditingId && !list.includes(n.id) && n.name.toLowerCase().includes(q))
+    .filter(
+      (n) =>
+        n.id !== nodeEditingId &&
+        !list.includes(n.id) &&
+        (n.name.toLowerCase().includes(q) || nodeDisplayName(n).toLowerCase().includes(q)),
+    )
     .slice(0, 30);
   if (!matches.length) {
     suggestEl.innerHTML = `<div class="suggest-empty">一致するノードなし</div>`;
@@ -102,7 +108,7 @@ function updateNodeSuggest(kind: "requires" | "contains"): void {
     suggestEl.innerHTML = matches
       .map(
         (n) =>
-          `<div class="suggest-item" data-id="${n.id}">${n.name}<span style="color:var(--muted);font-size:0.75em;"> （${NODE_TYPE_LABEL_JA[n.type] ?? n.type}）</span></div>`,
+          `<div class="suggest-item" data-id="${n.id}">${nodeDisplayName(n)}<span style="color:var(--muted);font-size:0.75em;"> （${NODE_TYPE_LABEL_JA[n.type] ?? n.type}）</span></div>`,
       )
       .join("");
     suggestEl.querySelectorAll(".suggest-item").forEach((itemEl) => {

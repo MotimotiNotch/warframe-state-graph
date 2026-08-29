@@ -7,6 +7,7 @@ import { refreshSidebar } from "./build-sidebar.ts";
 import { NODE_TYPE_LABEL_JA, openNodeModal } from "./node-modal.ts";
 import type { Counter } from "../server/model.ts";
 import { createLiveEditor } from "./notemd.ts";
+import { nodeDisplayName } from "./quest-i18n.ts";
 
 function genCounterId(): string {
   return `counter-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -45,7 +46,7 @@ export function renderPanel(): void {
   const badgeColor = isRoot ? STATE_COLOR.ROOT : STATE_COLOR[node.state];
 
   panel.innerHTML = `
-    <div class="ph-name">${node.name} <span style="color:var(--muted);font-weight:400;font-size:.75em;" title="ノードID">(${state.selected})</span> <span id="i18n-name" style="color:var(--muted);font-weight:400;font-size:.85em;"></span></div>
+    <div class="ph-name">${nodeDisplayName(node)} <span style="color:var(--muted);font-weight:400;font-size:.75em;" title="ノードID">(${state.selected})</span> <span id="i18n-name" style="color:var(--muted);font-weight:400;font-size:.85em;"></span></div>
     <div class="ph-row">種別: ${NODE_TYPE_LABEL_JA[node.type] ?? node.type}${node.type === "Relic" ? `<span id="vault-badge"></span>` : ""}</div>
     <div class="ph-state" style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}">${stateLabel}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">

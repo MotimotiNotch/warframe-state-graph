@@ -4,6 +4,7 @@
 import { el as domEl } from "./dom.ts";
 import { state, loadReport } from "./graph-state.ts";
 import { containsCompletion } from "./graph-layout.ts";
+import { nodeDisplayName } from "./quest-i18n.ts";
 
 interface FlyoutItem {
   id: string;
@@ -80,7 +81,7 @@ export function collectDescendants(nodeId: string, depth = 0, seen: Set<string> 
     if ((child.contains?.length ?? 0) > 0) {
       const c = containsCompletion(state.report!, childId);
       const satisfied = c.total > 0 && c.done === c.total;
-      results.push({ id: childId, name: child.name, depth, satisfied, clickable: true });
+      results.push({ id: childId, name: nodeDisplayName(child), depth, satisfied, clickable: true });
     }
     results = results.concat(collectDescendants(childId, depth + 1, seen));
   }
@@ -175,7 +176,8 @@ export function renderBreadcrumb(): void {
   breadcrumbEl.innerHTML = trail
     .map((id, i) => {
       const isLast = i === trail.length - 1;
-      const name = (id ? state.graph!.nodes[id]?.name : undefined) ?? id ?? "";
+      const crumbNode = id ? state.graph!.nodes[id] : undefined;
+      const name = (crumbNode ? nodeDisplayName(crumbNode) : undefined) ?? id ?? "";
       const cls = isLast ? "crumb current" : "crumb";
       return `<span class="${cls}" data-idx="${i}">${name}</span>`;
     })

@@ -52,3 +52,12 @@ const QUEST_JA: Record<string, string> = {
 export function questJa(name: string): string {
   return QUEST_JA[name] ?? name;
 }
+
+/** Node display-name helper: Quest nodes show their wiki-confirmed Japanese
+ * name wherever a node name is rendered (graph label, sidebar list,
+ * Inspector, requires/contains tag combobox); every other node type keeps
+ * its stored WFCD English name unchanged (same "storage stays English,
+ * translate only at display" convention as itemJa()/locationJa()). */
+export function nodeDisplayName(node: { type: string; name: string }): string {
+  return node.type === "Quest" ? questJa(node.name) : node.name;
+}

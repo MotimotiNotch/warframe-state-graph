@@ -5,6 +5,7 @@ import { state } from "./graph-state.ts";
 import { computeLayout, containsCompletion, nodeColor } from "./graph-layout.ts";
 import { collectDescendants, focusOn, scheduleHideFlyout, showFlyout } from "./graph-nav.ts";
 import { renderPanel } from "./inspector.ts";
+import { nodeDisplayName } from "./quest-i18n.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -164,7 +165,8 @@ export function renderGraph(): void {
     label.setAttribute("x", String(pos.x));
     label.setAttribute("y", String(pos.y + 34));
     label.setAttribute("class", `node-label${drillable ? " drillable" : ""}`);
-    label.textContent = node.name.length > 14 ? `${node.name.slice(0, 13)}…` : node.name;
+    const displayName = nodeDisplayName(node);
+    label.textContent = displayName.length > 14 ? `${displayName.slice(0, 13)}…` : displayName;
     label.addEventListener("click", handleNodeClick);
     if (drillable) {
       label.addEventListener("mouseenter", handleNodeEnter);

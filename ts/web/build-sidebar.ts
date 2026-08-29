@@ -20,6 +20,7 @@ import { icon } from "./icons.ts";
 import type { Folder } from "../server/folder.ts";
 import type { Node } from "../server/model.ts";
 import { refreshGraph, selectBuild, state } from "./graph-state.ts";
+import { nodeDisplayName } from "./quest-i18n.ts";
 
 let folders: Record<string, Folder> = {};
 
@@ -88,7 +89,7 @@ function buildRowHtml(n: Node): string {
   const current = n.id === state.buildId;
   return `
     <div class="sb-build-row${current ? " current" : ""}" data-build-id="${n.id}">
-      <span class="sb-build-name">${escapeHtml(n.name)}</span>
+      <span class="sb-build-name">${escapeHtml(nodeDisplayName(n))}</span>
       <button class="icon-btn sb-move-btn" data-move-toggle="${n.id}" title="フォルダへ移動">${icon("folder", { size: 13 })}</button>
       <button class="icon-btn sb-delete-btn" data-build-delete="${n.id}" title="削除">${icon("trash-2", { size: 13 })}</button>
     </div>`;
@@ -241,7 +242,7 @@ function wireInteractions(container: HTMLElement): void {
       const id = btn.dataset.buildDelete!;
       const node = state.graph!.nodes[id];
       if (!node) return;
-      if (!(await confirmInline(btn, `「${node.name}」を削除する？（他ノードからの参照も外れます）`))) return;
+      if (!(await confirmInline(btn, `「${nodeDisplayName(node)}」を削除する？（他ノードからの参照も外れます）`))) return;
       await fetch(`/api/nodes/${encodeURIComponent(id)}`, { method: "DELETE" });
       await refreshGraph();
       refreshSidebar();
