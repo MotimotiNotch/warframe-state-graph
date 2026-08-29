@@ -69,6 +69,34 @@ export class GraphStore {
     });
   }
 
+  /** Moves a node (and, implicitly, everything already nested under it —
+   * moving the node itself carries its own contains/requires along, no
+   * separate subtree walk needed) from wherever it's currently referenced
+   * to a new parent's requires or contains array (2026-08-29, Inspector's
+   * "付け替え" action). Strips the node's id from every other node's
+   * `relation` array first (a node might be multiply-referenced; all of
+   * those links move, not just one), then adds it to `targetId`'s. Throws
+   * if either node doesn't exist, or if targetId === id (can't parent a
+   * node under itself). */
+  async reparentNode(id: string, targetId: string, relation: "requires" | "contains"): Promise<Node> {
+    return this.#mutex.run(async () => {
+      const g = await this.#loadLocked();
+      const n = g.nodes[id];
+      if (!n) throw new Error(`node "${id}" not found`);
+      const target = g.nodes[targetId];
+      if (!target) throw new Error(`node "${targetId}" not found`);
+      if (targetId === id) throw new Error("cannot reparent a node under itself");
+      for (const other of Object.values(g.nodes)) {
+        other.requires = other.requires.filter((x) => x !== id);
+        other.contains = other.contains.filter((x) => x !== id);
+      }
+      const arr = target[relation];
+      if (!arr.includes(id)) arr.push(id);
+      await this.#saveLocked(g);
+      return n;
+    });
+  }
+
   /** Flips Gild state for a mastery-track part (Zaw/Kitgun/Amp Strike/
    * Chamber/Prism etc.) — independent of `satisfied` (owning/ranking the
    * part doesn't grant mastery until it's Gilded too). */

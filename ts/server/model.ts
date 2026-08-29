@@ -112,3 +112,55 @@ export type Graph = z.infer<typeof GraphSchema>;
 export function newGraph(): Graph {
   return { schemaVersion: CURRENT_SCHEMA_VERSION, nodes: {} };
 }
+
+const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+const ID_LENGTH = 8;
+
+/** Opaque random node id (2026-08-29 spec change — was previously the node's
+ * name or a WFCD-name-derived slug, e.g. "gyre-prime-blueprint"). 36^8 ≈
+ * 2.8e12 possibilities; resolveNodeIds() below still checks for collisions
+ * against the actual in-use id set before accepting one. */
+export function generateRandomId(): string {
+  let s = "";
+  for (let i = 0; i < ID_LENGTH; i++) s += ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)];
+  return s;
+}
+
+/** Resolves a freshly-generated node batch's ids against an existing graph
+ * by exact name match, then remaps every requires/contains reference to
+ * match — the mechanism that keeps "same name = same node" working (DSL
+ * bulk-generation's own dedup rule, and WFCD auto-generation re-running for
+ * an item you've already added) now that ids no longer derive from the
+ * name/slug and can't just be compared directly.
+ *
+ * A name already present in `existing` reuses that node's id (so a second
+ * DSL run or WFCD re-generation updates the same node instead of creating a
+ * duplicate); everything else gets a fresh generateRandomId(). Two nodes in
+ * the same incoming batch sharing a name also resolve to one id — the
+ * caller (dsl.ts, wfcd-wizard.ts) is expected to have already deduped those
+ * into one Node object, so this is a defensive fallback, not the primary
+ * dedup mechanism. */
+export function resolveNodeIds(nodes: Node[], existing: Graph): Node[] {
+  const nameToId = new Map<string, string>();
+  for (const n of Object.values(existing.nodes)) nameToId.set(n.name, n.id);
+  const usedIds = new Set(Object.keys(existing.nodes));
+
+  const remap = new Map<string, string>(); // incoming placeholder id -> final id
+  for (const n of nodes) {
+    let finalId = nameToId.get(n.name);
+    if (!finalId) {
+      finalId = generateRandomId();
+      while (usedIds.has(finalId)) finalId = generateRandomId();
+      usedIds.add(finalId);
+      nameToId.set(n.name, finalId);
+    }
+    remap.set(n.id, finalId);
+  }
+
+  return nodes.map((n) => ({
+    ...n,
+    id: remap.get(n.id) ?? n.id,
+    requires: n.requires.map((r) => remap.get(r) ?? r),
+    contains: n.contains.map((c) => remap.get(c) ?? c),
+  }));
+}

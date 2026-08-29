@@ -56,7 +56,12 @@ export async function autoGenerateChainViewNode(nodeType: string, name: string):
     body: JSON.stringify({ nodes }),
   });
   if (!importRes.ok) return null;
-  return root.id;
+  // The server resolves ids by name against the existing graph (2026-08-29
+  // — ids are opaque random strings now, not name-derived), so root.id as
+  // computed here before import may not be what it actually got saved
+  // under; read the real one back from the response.
+  const imported = (await importRes.json()) as WfcdGenerateNode[];
+  return imported.find((n) => n.name === root.name)?.id ?? root.id;
 }
 
 // Loadouts.Item type -> Collections registration API path. CompanionEntry/

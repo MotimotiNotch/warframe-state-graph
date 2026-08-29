@@ -8,6 +8,7 @@ import { NODE_TYPE_LABEL_JA, openNodeModal } from "./node-modal.ts";
 import type { Counter } from "../server/model.ts";
 import { createLiveEditor } from "./notemd.ts";
 import { nodeDisplayName } from "./quest-i18n.ts";
+import { showToast } from "./toast.ts";
 
 function genCounterId(): string {
   return `counter-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -62,6 +63,19 @@ export function renderPanel(): void {
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
       <button class="toggle" id="add-requires-btn">前提を追加</button>
       <button class="toggle" id="add-contains-btn">中身を追加</button>
+      <button class="toggle" id="reparent-btn">付け替え</button>
+    </div>
+    <div id="reparent-form" class="hidden" style="margin-top:6px;padding:8px;border:1px solid var(--border);border-radius:8px;">
+      <div class="ph-row" style="opacity:.8;margin:0 0 6px;">このノード（中身も含めて丸ごと）を、指定したIDのノードの下へ移動します。現在の繋がりからは外れます。</div>
+      <select id="reparent-relation" style="margin-bottom:6px;">
+        <option value="contains">中身（contains）として</option>
+        <option value="requires">前提（requires）として</option>
+      </select>
+      <input type="text" id="reparent-target-id" placeholder="移動先ノードのID（8桁）" style="margin-bottom:6px;">
+      <div class="actions" style="justify-content:flex-start;">
+        <button class="toggle" id="reparent-confirm-btn">実行</button>
+        <button class="toggle" id="reparent-cancel-btn">キャンセル</button>
+      </div>
     </div>
     <div class="s-section-title">メモ</div>
     <div id="insp-note-editor"></div>
@@ -147,6 +161,43 @@ export function renderPanel(): void {
     openNodeModal("create", null, { relation: "requires", parentId: state.selected! });
   el("add-contains-btn").onclick = () =>
     openNodeModal("create", null, { relation: "contains", parentId: state.selected! });
+
+  // "付け替え" (2026-08-29) — moves this node (and everything already
+  // nested under it, carried along automatically since a subtree is just
+  // ids referenced from this node's own requires/contains) from wherever
+  // it's currently linked to a different parent's requires or contains.
+  const reparentBtn = document.getElementById("reparent-btn") as HTMLButtonElement | null;
+  if (reparentBtn) {
+    const form = el("reparent-form");
+    reparentBtn.onclick = () => form.classList.remove("hidden");
+    el("reparent-cancel-btn").onclick = () => form.classList.add("hidden");
+    el("reparent-confirm-btn").onclick = async () => {
+      const targetId = el<HTMLInputElement>("reparent-target-id").value.trim();
+      const relation = el<HTMLSelectElement>("reparent-relation").value as "requires" | "contains";
+      if (!targetId) {
+        showToast("移動先ノードのIDを入力して");
+        return;
+      }
+      if (targetId === state.selected) {
+        showToast("自分自身へは付け替えできません");
+        return;
+      }
+      const res = await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/reparent`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId, relation }),
+      });
+      if (!res.ok) {
+        showToast("付け替えに失敗しました（移動先IDが存在するか確認して）");
+        return;
+      }
+      form.classList.add("hidden");
+      await refreshGraph();
+      refreshSidebar();
+      await loadReport();
+      showToast(`付け替えました（${relation === "contains" ? "中身" : "前提"}として）`, "success");
+    };
+  }
 
   // Relic node: show a Vault-status badge.
   if (node.type === "Relic") {

@@ -427,7 +427,18 @@ el("wfcd-modal-import").addEventListener("click", async () => {
     nodes.push(partNode);
   });
 
-  await fetch("/api/wfcd/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nodes }) });
+  const importRes = await fetch("/api/wfcd/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nodes }),
+  });
+  // The server resolves each node's id by name against the existing graph
+  // (2026-08-29 — ids are opaque random strings now, not name-derived, so
+  // the client's own pre-import root.id, computed before that resolution,
+  // may not be the id the node actually got saved under). Read the real one
+  // back from the response for every step below that needs to reference it.
+  const importedNodes = importRes.ok ? ((await importRes.json()) as Node[]) : [];
+  const finalRootId = importedNodes.find((n) => n.name === root.name)?.id ?? (root.id as string);
 
   // Cross-page linking (2026-08-25 item 27): Loadouts is optional (checkbox,
   // Frame/Weapon only), Collections is always forced regardless (skips if a
@@ -448,7 +459,7 @@ el("wfcd-modal-import").addEventListener("click", async () => {
           type: nodeType,
           configs: { A: [], B: [], C: [] },
           note: "",
-          chainViewNodeId: root.id,
+          chainViewNodeId: finalRootId,
         }),
       });
     }
@@ -457,8 +468,8 @@ el("wfcd-modal-import").addEventListener("click", async () => {
 
   // Attach to the current Build's contains (only when willAttach is true).
   let attached = false;
-  if (willAttach && currentBuild && !(currentBuild.contains ?? []).includes(root.id as string)) {
-    const updatedBuild = { ...currentBuild, contains: [...(currentBuild.contains ?? []), root.id as string] };
+  if (willAttach && currentBuild && !(currentBuild.contains ?? []).includes(finalRootId)) {
+    const updatedBuild = { ...currentBuild, contains: [...(currentBuild.contains ?? []), finalRootId] };
     await fetch("/api/nodes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedBuild) });
     attached = true;
   }

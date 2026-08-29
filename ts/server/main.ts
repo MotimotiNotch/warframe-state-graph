@@ -26,7 +26,7 @@ import { FolderSchema, FolderStore } from "./folder.ts";
 import { EntrySchema, GlossaryStore } from "./glossary.ts";
 import { BuildSetSchema, ItemSchema, LoadoutStore } from "./loadout.ts";
 import type { NodeType } from "./model.ts";
-import { CounterSchema, NodeSchema } from "./model.ts";
+import { CounterSchema, NodeSchema, resolveNodeIds } from "./model.ts";
 import { MainQuestNames, ResolveChain } from "./questchain.ts";
 import { ScratchStore } from "./scratch.ts";
 import { FetchPlanets, FetchProxima } from "./starchart.ts";
@@ -525,6 +525,33 @@ const server = Bun.serve({
         try {
           const n = await graphStore.toggleArchived(req.params.id);
           return json(n);
+        } catch (err) {
+          return errorResponse(err, 404);
+        }
+      },
+    },
+
+    // Inspector's "付け替え" action (2026-08-29) — moves a node (and every
+    // link already pointing at it) from wherever it currently sits to a new
+    // parent's requires or contains.
+    "/api/nodes/:id/reparent": {
+      PUT: async (req) => {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const targetId = (body as { targetId?: unknown } | null)?.targetId;
+        const relation = (body as { relation?: unknown } | null)?.relation;
+        if (typeof targetId !== "string" || !targetId) {
+          return new Response("targetId (string) is required", { status: 400 });
+        }
+        if (relation !== "requires" && relation !== "contains") {
+          return new Response('relation must be "requires" or "contains"', { status: 400 });
+        }
+        try {
+          return json(await graphStore.reparentNode(req.params.id, targetId, relation));
         } catch (err) {
           return errorResponse(err, 404);
         }
@@ -1389,8 +1416,18 @@ const server = Bun.serve({
           return new Response("nodes must not be empty", { status: 400 });
         }
         const parsed = nodes.map((n) => NodeSchema.parse(n));
-        await graphStore.upsertNodes(parsed);
-        return json(parsed);
+        // Incoming nodes carry placeholder ids (DSL: the node's own name;
+        // WFCD wizard: a name-derived slug) — resolve them against the real
+        // graph by name (2026-08-29 spec change: stored ids are opaque
+        // random strings, not name-derived, so a straight id match can't
+        // detect "this is the same node as before" any more) before
+        // persisting, and hand the caller back the resolved nodes so it can
+        // use their real final ids for any follow-up step (attach-to-Build,
+        // Loadouts/Collections cross-linking).
+        const existing = await graphStore.load();
+        const resolved = resolveNodeIds(parsed, existing);
+        await graphStore.upsertNodes(resolved);
+        return json(resolved);
       },
     },
 
@@ -1417,7 +1454,12 @@ const server = Bun.serve({
           return json({ nodes: [], errors, conflicts: [] });
         }
         const g = await graphStore.load();
-        const conflicts = nodes.filter((n) => g.nodes[n.id]).map((n) => n.id);
+        // Conflict detection is name-based, not id-based, for the same
+        // reason /api/wfcd/import resolves by name above — a DSL node's
+        // placeholder id (its own name) no longer matches a real existing
+        // node's id even when it's "the same" node by name.
+        const existingNames = new Set(Object.values(g.nodes).map((n) => n.name));
+        const conflicts = nodes.filter((n) => existingNames.has(n.name)).map((n) => n.id);
         return json({ nodes, errors: [], conflicts });
       },
     },

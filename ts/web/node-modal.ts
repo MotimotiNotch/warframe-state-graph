@@ -36,9 +36,19 @@ export const NODE_TYPE_LABEL_JA: Record<string, string> = {
 // while loop is a defensive duplicate check per のっち's request, not
 // something expected to ever actually loop (a real crypto.randomUUID()
 // collision is not a realistic occurrence).
+// 8-char lowercase-alphanumeric, matching server/model.ts's generateRandomId
+// (2026-08-29 spec change — node ids are opaque random strings now, not
+// name-derived). This client-side generator is only for the node-modal's
+// own single-node create flow (POST /api/nodes) — DSL/WFCD batch imports go
+// through the server-side resolveNodeIds() instead, since those need
+// same-name dedup against the existing graph, which this simple generator
+// doesn't do.
+const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 function generateNodeId(): string {
-  let id = crypto.randomUUID();
-  while (state.graph!.nodes[id]) id = crypto.randomUUID();
+  let id = "";
+  do {
+    id = Array.from({ length: 8 }, () => ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)]).join("");
+  } while (state.graph!.nodes[id]);
   return id;
 }
 
