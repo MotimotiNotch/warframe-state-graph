@@ -7,7 +7,7 @@
 // entry script instead of the legacy `<script src="/booster.js">` passthrough.
 // One consequence: a bundled module script defers to after the document is
 // parsed, while the sibling legacy scripts still on classic `<script src>`
-// (scratch/theme/debug-grid, also appending to the same top-right bar) run
+// (scratch/theme, also appending to the same top-right bar) run
 // synchronously as soon as they're encountered — i.e. *before* this module's
 // code runs, regardless of tag order in the HTML. `init()` below appends its
 // button with `prepend`, not `appendChild`, specifically so the button's

@@ -116,7 +116,6 @@ import embeddedNotemdJs from "../web/.embed/notemd.js.txt" with { type: "text" }
 import embeddedWallpaperJs from "../web/.embed/wallpaper.js.txt" with { type: "text" };
 import embeddedThemeJs from "../web/.embed/theme.js.txt" with { type: "text" };
 import embeddedScrollTopJs from "../web/.embed/scroll-top.js.txt" with { type: "text" };
-import embeddedDebugGridJs from "../web/.embed/debug-grid.js.txt" with { type: "text" };
 
 const embeddedHtmlByEntry: Record<string, string> = {
   index: embeddedIndexHtml,
@@ -147,7 +146,6 @@ const embeddedLegacyByBasename: Record<string, string> = {
   "wallpaper.js": embeddedWallpaperJs,
   "theme.js": embeddedThemeJs,
   "scroll-top.js": embeddedScrollTopJs,
-  "debug-grid.js": embeddedDebugGridJs,
 };
 
 // process.execPath is "bun.exe" (or "bun") under `bun run dev`, and the

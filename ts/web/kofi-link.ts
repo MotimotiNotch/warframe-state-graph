@@ -1,6 +1,6 @@
 // Ko-fi support link in the shared top-right-bar (2026-08-29, のっち依頼) —
 // this tool is free + Ko-fi tips (see the monetization notes in the project
-// MOC). Same simple icon-only pattern as theme.ts/debug-grid.ts, but an
+// MOC). Same simple icon-only pattern as theme.ts, but an
 // external <a> link rather than a state-toggling <button>.
 import { getTopRightBar, icon } from "./icons.ts";
 

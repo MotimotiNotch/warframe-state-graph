@@ -380,7 +380,7 @@ function init(): void {
   btn.innerHTML = icon("pencil") + '<span class="btn-label">クイックメモ</span>';
   // Explicit placement, not append/prepend: both this module and booster.ts
   // are bundled modules now, executing (deferred) after the still-classic
-  // siblings (theme/scroll-top/debug-grid) have already appended their own
+  // siblings (theme/scroll-top) have already appended their own
   // buttons — and relative to *each other*, execution order depends on
   // import order in whichever page bundled them, which isn't worth pinning
   // down here. Anchor directly to booster's button instead, so the intended

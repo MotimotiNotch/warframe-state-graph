@@ -96,7 +96,7 @@ export function getTopRightBar(): HTMLDivElement {
 }
 
 // The original web/icons.js was a plain (non-module) script, so booster.js/
-// scratch.js/theme.js/debug-grid.js/wallpaper.js/scroll-top.js call these as
+// scratch.js/theme.js/wallpaper.js/scroll-top.js call these as
 // window globals. Those 6 scripts aren't ported until Phase 7, so until then
 // this module (now bundled privately into index.js) re-exposes the same
 // globals as a bridge. Remove once Phase 7 ports every caller to `import`.

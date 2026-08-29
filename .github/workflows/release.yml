@@ -63,6 +63,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path package/WarframeStateGraph | Out-Null
           Copy-Item dist/warframe-state-graph.exe package/WarframeStateGraph/warframe-state-graph.exe
+          Copy-Item assets/release-readme.txt package/WarframeStateGraph/README.txt
           Compress-Archive -Path package/WarframeStateGraph -DestinationPath "dist/warframe-state-graph-${{ github.ref_name }}.zip"
 
       - name: Create release
