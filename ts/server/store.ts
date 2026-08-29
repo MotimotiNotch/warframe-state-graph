@@ -121,12 +121,12 @@ export class GraphStore {
     return this.#mutex.run(async () => {
       const g = await this.#loadLocked();
       const n = g.nodes[id];
-      if (!n) throw new Error(`node "${id}" not found`);
+      if (!n) throw new Error(`ノード "${id}" が見つかりません`);
       const target = g.nodes[targetId];
-      if (!target) throw new Error(`node "${targetId}" not found`);
-      if (targetId === id) throw new Error("cannot reparent a node under itself");
+      if (!target) throw new Error(`移動先ノード "${targetId}" が見つかりません`);
+      if (targetId === id) throw new Error("自分自身へは付け替えできません");
       if (isDescendant(g, id, targetId)) {
-        throw new Error("cannot reparent a node under its own descendant (would create a cycle)");
+        throw new Error("自分の中身（子孫）の下へは付け替えできません（循環参照になります）");
       }
       for (const other of Object.values(g.nodes)) {
         other.requires = other.requires.filter((x) => x !== id);
@@ -153,7 +153,7 @@ export class GraphStore {
     return this.#mutex.run(async () => {
       const g = await this.#loadLocked();
       const n = g.nodes[id];
-      if (!n) throw new Error(`node "${id}" not found`);
+      if (!n) throw new Error(`ノード "${id}" が見つかりません`);
       for (const other of Object.values(g.nodes)) {
         other.requires = other.requires.filter((x) => x !== id);
         other.contains = other.contains.filter((x) => x !== id);
