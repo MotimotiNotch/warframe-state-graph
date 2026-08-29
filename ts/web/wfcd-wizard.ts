@@ -262,7 +262,7 @@ function renderWfcdPreview(): void {
       <div class="part-name">前提クエストチェーン（Wiki要約ベース、精度は目視要確認）</div>
       ${
         s.questChain.length > 1
-          ? `<div class="ph-row">${s.questChain.map((n) => n.name).join(" → ")}</div>`
+          ? `<div class="ph-row">${s.questChain.map((n) => questJa(n.name)).join(" → ")}</div>`
           : `<div class="empty">本表に前提クエストの登録なし（単体で追加されます）</div>`
       }
     </div>`
@@ -307,7 +307,7 @@ function renderWfcdPreview(): void {
     <div class="ph-row" style="margin-top:10px;"><b>パラダイム:</b> ${s.paradigm}</div>
     ${s.richLich ? `<div class="ph-row"><b>リッチ系:</b> ${s.richLich}</div>` : ""}
     ${s.archetype ? `<div class="ph-row"><b>アーキタイプ:</b> ${s.archetype}</div>` : ""}
-    <div class="ph-row"><b>本体ノード:</b> ${s.root.name}（${s.root.id}）</div>
+    <div class="ph-row"><b>本体ノード:</b> ${s.root.type === "Quest" ? questJa(s.root.name) : s.root.name}（${s.root.id}）</div>
     ${attachRow}
     ${loadoutsRow}
     ${syndicateRow}
@@ -450,10 +450,12 @@ el("wfcd-modal-import").addEventListener("click", async () => {
   el("wfcd-modal-backdrop").classList.add("hidden");
   await loadGraph();
   if (state.focus) await loadReport();
+  const rootDisplayName =
+    wfcdSuggestion.root.type === "Quest" ? questJa(root.name as string) : (root.name as string);
   showToast(
     attached
-      ? `「${root.name}」を追加し、現在のBuildの中身（contains）に繋げました。`
-      : `「${root.name}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存のBuildの中身（contains）に含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
+      ? `「${rootDisplayName}」を追加し、現在のBuildの中身（contains）に繋げました。`
+      : `「${rootDisplayName}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存のBuildの中身（contains）に含めたい場合は、そのBuildノードを編集して手動で追加してください。`,
     "success",
   );
 });
