@@ -66,11 +66,37 @@ export class GraphStore {
     });
   }
 
-  /** Creates or overwrites several nodes at once (WFCD auto-import). */
+  /** Creates or overwrites several nodes at once (WFCD auto-import, DSL
+   * bulk-import). resolveNodeIds() (model.ts) resolves a re-run against the
+   * same item/relic to the SAME node id as before, on purpose — so a second
+   * WFCD-generate or DSL run updates the structure instead of creating a
+   * duplicate. But re-running it used to also reset every bit of the user's
+   * own state on that existing node — satisfied/note/counters/gilded/
+   * archived/folderId/priority all silently wiped back to the freshly-
+   * generated node's defaults (real data loss, found 2026-08-30 with no
+   * warning shown anywhere in this import path, unlike DSL's own `conflicts`
+   * list). Only the WFCD/DSL-sourced structural fields (name/type/requires/
+   * contains/masteryTrack/uniqueName) should actually come from the new
+   * batch; anything the user set by hand on the existing node carries
+   * forward untouched. */
   async upsertNodes(nodes: Node[]): Promise<void> {
     await this.#mutex.run(async () => {
       const g = await this.#loadLocked();
-      for (const n of nodes) g.nodes[n.id] = n;
+      for (const n of nodes) {
+        const existing = g.nodes[n.id];
+        g.nodes[n.id] = existing
+          ? {
+              ...n,
+              satisfied: existing.satisfied,
+              note: existing.note,
+              counters: existing.counters,
+              gilded: existing.gilded,
+              archived: existing.archived,
+              folderId: existing.folderId,
+              priority: existing.priority,
+            }
+          : n;
+      }
       await this.#saveLocked(g);
     });
   }

@@ -20,6 +20,36 @@ function node(id: string, name: string, requires: string[] = [], contains: strin
   return { id, name, type: "Goal", satisfied: false, requires, contains };
 }
 
+test("upsertNodes: re-importing an existing id preserves the user-state fields, not just structure", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([{ ...node("a", "A"), satisfied: true, note: "手動メモ", counters: [{ id: "c1", label: "x", value: 3 }], gilded: true, archived: true, folderId: "folder-1", priority: 5 }]);
+  // A re-generation (WFCD/DSL) resolves to the same id but only carries fresh
+  // structural fields — no note/counters/gilded/archived/folderId/priority set.
+  await store.upsertNodes([{ ...node("a", "Renamed A", ["req-1"]), type: "Build" }]);
+  const g = await store.load();
+  expect(g.nodes["a"]).toEqual({
+    id: "a",
+    name: "Renamed A",
+    type: "Build",
+    requires: ["req-1"],
+    contains: [],
+    satisfied: true,
+    note: "手動メモ",
+    counters: [{ id: "c1", label: "x", value: 3 }],
+    gilded: true,
+    archived: true,
+    folderId: "folder-1",
+    priority: 5,
+  });
+});
+
+test("upsertNodes: a brand-new id gets exactly the incoming node, untouched", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("a", "A")]);
+  const g = await store.load();
+  expect(g.nodes["a"]).toEqual(node("a", "A"));
+});
+
 test("reparentNode: strips the old parent's contains reference and adds it under the new parent", async () => {
   const store = new GraphStore(path.join(tmpDir, "graph.json"));
   await store.upsertNodes([node("old", "Old Parent", [], ["child"]), node("child", "Child"), node("new", "New Parent")]);
