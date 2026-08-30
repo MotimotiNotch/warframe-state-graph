@@ -8,7 +8,7 @@
     "dev": "bun run prebuild-embed && bun run --hot server/main.ts",
     "typecheck": "bun run prebuild-embed && tsc --noEmit",
     "test": "bun run prebuild-embed && bun test",
-    "compile": "bun run prebuild-embed && bun build --compile --windows-hide-console --windows-icon=./assets/app-icon.ico ./server/main.ts --outfile ./dist/warframe-state-graph"
+    "compile": "bun run prebuild-embed && bun build --compile --windows-hide-console --windows-icon=./assets/app-icon.ico ./server/main.ts --outfile ./dist/warframe-state-graph && bun run scripts/fix-windows-icon.ts ./dist/warframe-state-graph.exe ./assets/app-icon.ico"
   },
   "dependencies": {
     "zod": "^4"

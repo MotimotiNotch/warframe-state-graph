@@ -50,6 +50,11 @@ jobs:
             --windows-title="Warframe State Graph" \
             ./server/main.ts \
             --outfile ./dist/warframe-state-graph
+          # Bun 1.4.0 leaves its own template icon group in the exe next to
+          # ours, and Explorer picks the stale one (a 16px face stretched to
+          # desktop size). Rewrite the icon resources via the Win32 API so
+          # only the real 7-face group remains. See scripts/fix-windows-icon.ts.
+          bun run scripts/fix-windows-icon.ts ./dist/warframe-state-graph.exe ./assets/app-icon.ico
 
       - name: Package into a dedicated folder
         # A bare .exe tends to end up loose in Downloads/Desktop, where the
