@@ -141,6 +141,13 @@ export interface RelicCandidate {
   chance: number;
   isRelic: boolean;
   vaulted: boolean;
+  // Set only when this relic is currently purchasable via Prime Resurgence
+  // (Varzia) — the rotation's expiry (ISO string). A relic can be both
+  // vaulted and Resurgence-available at once (2026-08-30 — previously the
+  // WFCD-generate candidate list only ever showed "Vault済み" with no way to
+  // tell a still-obtainable-via-Resurgence relic apart from a fully
+  // unobtainable one, のっち報告).
+  resurgence?: string;
 }
 
 export interface PartSuggestion {
@@ -190,12 +197,15 @@ function extractRelicName(location: string): { name: string; isRelic: boolean } 
 /** Builds a node-generation suggestion for one item. An empty/undefined
  * activeRelics fixes vault status to false (so a relic-data fetch failure
  * doesn't block the rest of the suggestion). An empty/undefined syndicates
- * skips the syndicate-rank suggestion, same best-effort policy. */
+ * skips the syndicate-rank suggestion, same best-effort policy. An
+ * empty/undefined resurgenceRelics simply omits the resurgence marker on
+ * every candidate, same best-effort policy. */
 export function BuildSuggestion(
   item: Item,
   nodeType: NodeType,
   activeRelics: Set<string> | undefined,
   syndicates: Record<string, SyndicateEntry[]> | undefined,
+  resurgenceRelics?: Map<string, string>,
 ): Suggestion {
   const paradigm = classifyParadigm(item);
   const { kind: richLich, ok: hasRichLich } = detectRichLich(item.name);
@@ -258,7 +268,11 @@ export function BuildSuggestion(
     for (const d of c.drops ?? []) {
       const { name, isRelic } = extractRelicName(d.location);
       const cand: RelicCandidate = { name, chance: d.chance, isRelic, vaulted: false };
-      if (isRelic) cand.vaulted = activeRelics != null && isRelicVaulted(activeRelics, name);
+      if (isRelic) {
+        cand.vaulted = activeRelics != null && isRelicVaulted(activeRelics, name);
+        const expiry = resurgenceRelics?.get(name);
+        if (expiry) cand.resurgence = expiry;
+      }
       candidates.push(cand);
     }
     parts.push({ node: partNode, relicCandidates: candidates.length ? candidates : undefined });

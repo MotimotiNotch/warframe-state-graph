@@ -8,6 +8,84 @@
 // (mirroring pkg/collection/model.go field-for-field) rather than blocking
 // on that port, same pattern as wfcd-wizard.ts's RelicCandidate.
 import type { ConfigSlot, Item, BuildSet } from "../server/loadout.ts";
+import { effective } from "./locale.ts";
+
+interface ExportStrings {
+  unknownItem: (id: string) => string;
+  configWithMods: (name: string, config: string, mods: string) => string;
+  noMods: string;
+  rivenState: string;
+  rollFixed: string;
+  needsReroll: string;
+  ownedLabel: string;
+  obtainedLabel: string;
+  acquiredLabel: string;
+  yes: string;
+  noOwned: string;
+  noObtained: string;
+  noAcquired: string;
+  bonusStat: string;
+  rank30: string;
+  helminth: string;
+  incarnon: string;
+  shortYes: string;
+  shortNo: string;
+  copyFailedLog: string;
+  copyFailedTitle: string;
+}
+
+const STRINGS: Record<"ja" | "en", ExportStrings> = {
+  ja: {
+    unknownItem: (id) => `(不明なアイテム: ${id})`,
+    configWithMods: (name, config, mods) => `${name}（Config ${config}: ${mods}）`,
+    noMods: "MODなし",
+    rivenState: "状態",
+    rollFixed: "ロール確定",
+    needsReroll: "要リロール",
+    ownedLabel: "所持",
+    obtainedLabel: "取得",
+    acquiredLabel: "入手",
+    yes: "済み",
+    noOwned: "未所持",
+    noObtained: "未取得",
+    noAcquired: "未入手",
+    bonusStat: "ボーナス属性",
+    rank30: "ランク30",
+    helminth: "ヘルミンス",
+    incarnon: "インカーノン",
+    shortYes: "済み",
+    shortNo: "未",
+    copyFailedLog: "クリップボードへのコピーに失敗",
+    copyFailedTitle: "コピーに失敗しました（もう一度お試しください）",
+  },
+  en: {
+    unknownItem: (id) => `(unknown item: ${id})`,
+    configWithMods: (name, config, mods) => `${name} (Config ${config}: ${mods})`,
+    noMods: "no mods",
+    rivenState: "State",
+    rollFixed: "roll finalized",
+    needsReroll: "needs rerolling",
+    ownedLabel: "Owned",
+    obtainedLabel: "Obtained",
+    acquiredLabel: "Acquired",
+    yes: "yes",
+    noOwned: "no",
+    noObtained: "no",
+    noAcquired: "no",
+    bonusStat: "Bonus stat",
+    rank30: "Rank 30",
+    helminth: "Helminth",
+    incarnon: "Incarnon",
+    shortYes: "yes",
+    shortNo: "no",
+    copyFailedLog: "Failed to copy to the clipboard",
+    copyFailedTitle: "Copy failed (please try again)",
+  },
+};
+
+function t(): ExportStrings {
+  return STRINGS[effective()];
+}
 
 export function buildItemExportText(item: Item): string {
   const lines = [`${item.name} (${item.type})`];
@@ -27,9 +105,9 @@ export function buildItemExportText(item: Item): string {
 export function buildBuildSetExportText(set: BuildSet, items: Record<string, Item>): string {
   const resolve = (ref: { itemId: string; config: ConfigSlot }): string => {
     const item = items[ref.itemId];
-    if (!item) return `(不明なアイテム: ${ref.itemId})`;
+    if (!item) return t().unknownItem(ref.itemId);
     const mods = item.configs?.[ref.config] ?? [];
-    return `${item.name}（Config ${ref.config}: ${mods.length ? mods.join(", ") : "MODなし"}）`;
+    return t().configWithMods(item.name, ref.config, mods.length ? mods.join(", ") : t().noMods);
   };
   const lines = [`${set.name} (Build Set)`];
   if (set.frame) lines.push("", `Frame: ${resolve(set.frame)}`);
@@ -66,7 +144,7 @@ export function buildRivenExportText(entry: RivenEntry, jaFn?: (s: string) => st
     lines.push(`Positive: ${entry.positiveStats!.map((s, i) => formatRivenStat(s, values[i], jaFn)).join(", ")}`);
   }
   if (entry.negativeStat) lines.push(`Negative: ${formatRivenStat(entry.negativeStat, entry.negativeValue, jaFn)}`);
-  lines.push(`状態: ${entry.fixed ? "ロール確定" : "要リロール"}`);
+  lines.push(`${t().rivenState}: ${entry.fixed ? t().rollFixed : t().needsReroll}`);
   if (entry.note) lines.push("", "Note:", entry.note);
   return lines.join("\n");
 }
@@ -82,8 +160,8 @@ export interface KuvaEntry {
 
 export function buildKuvaExportText(entry: KuvaEntry): string {
   const lines = [`${entry.weaponName} (${entry.kind || "Kuva"})`];
-  lines.push(`所持: ${entry.owned ? "済み" : "未所持"}`);
-  if (entry.bonusStat) lines.push(`ボーナス属性: ${formatRivenStat(entry.bonusStat, entry.bonusValue)}`);
+  lines.push(`${t().ownedLabel}: ${entry.owned ? t().yes : t().noOwned}`);
+  if (entry.bonusStat) lines.push(`${t().bonusStat}: ${formatRivenStat(entry.bonusStat, entry.bonusValue)}`);
   if (entry.note) lines.push("", "Note:", entry.note);
   return lines.join("\n");
 }
@@ -99,9 +177,9 @@ export interface FrameEntry {
 /** Collections.FrameEntry — distinct from Loadouts.Item's buildItemExportText. */
 export function buildFrameEntryExportText(entry: FrameEntry): string {
   const lines = [`${entry.name} (Frame)`];
-  lines.push(`入手: ${entry.owned ? "済み" : "未入手"}`);
-  lines.push(`ランク30: ${entry.rankedThirty ? "済み" : "未"}`);
-  lines.push(`ヘルミンス: ${entry.helminthFed ? "済み" : "未"}`);
+  lines.push(`${t().acquiredLabel}: ${entry.owned ? t().yes : t().noAcquired}`);
+  lines.push(`${t().rank30}: ${entry.rankedThirty ? t().shortYes : t().shortNo}`);
+  lines.push(`${t().helminth}: ${entry.helminthFed ? t().shortYes : t().shortNo}`);
   if (entry.note) lines.push("", "Note:", entry.note);
   return lines.join("\n");
 }
@@ -116,8 +194,8 @@ export interface EquipEntry {
 /** Shared shape for WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry (no helminthFed). label is the caller-supplied category name. */
 export function buildEquipExportText(label: string, entry: EquipEntry): string {
   const lines = [`${entry.name} (${label})`];
-  lines.push(`入手: ${entry.owned ? "済み" : "未入手"}`);
-  lines.push(`ランク30: ${entry.rankedThirty ? "済み" : "未"}`);
+  lines.push(`${t().acquiredLabel}: ${entry.owned ? t().yes : t().noAcquired}`);
+  lines.push(`${t().rank30}: ${entry.rankedThirty ? t().shortYes : t().shortNo}`);
   if (entry.note) lines.push("", "Note:", entry.note);
   return lines.join("\n");
 }
@@ -131,8 +209,8 @@ export interface IncarnonEntry {
 
 export function buildIncarnonExportText(entry: IncarnonEntry): string {
   const lines = [`${entry.weaponName} (Incarnon)`];
-  lines.push(`取得: ${entry.obtained ? "済み" : "未取得"}`);
-  lines.push(`インカーノン: ${entry.completed ? "済み" : "未"}`);
+  lines.push(`${t().obtainedLabel}: ${entry.obtained ? t().yes : t().noObtained}`);
+  lines.push(`${t().incarnon}: ${entry.completed ? t().shortYes : t().shortNo}`);
   if (entry.note) lines.push("", "Note:", entry.note);
   return lines.join("\n");
 }
@@ -156,9 +234,9 @@ export function wireCopyButtons(root: ParentNode, selector: string, textFn: (btn
           setTimeout(() => btn.classList.remove("copied"), 1200);
         })
         .catch((err) => {
-          console.warn("クリップボードへのコピーに失敗", err);
+          console.warn(t().copyFailedLog, err);
           btn.classList.add("danger");
-          btn.title = "コピーに失敗しました（もう一度お試しください）";
+          btn.title = t().copyFailedTitle;
           setTimeout(() => {
             btn.classList.remove("danger");
             btn.title = originalTitle;

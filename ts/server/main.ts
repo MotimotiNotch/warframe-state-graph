@@ -75,6 +75,7 @@ import {
   lookupI18nName,
   refreshCache,
   relicMissionCount,
+  resurgenceRelicNames,
   weaponCategories,
   type Item,
 } from "./wfcd.ts";
@@ -84,8 +85,8 @@ import { BuildQuestSuggestion, BuildSuggestion, checkRiven, RivenStatChoices } f
 // `import.meta.dir` resolves to a virtual embedded path (verified
 // empirically 2026-08-25 — a real disk read off it throws ENOENT even for
 // files sitting right next to the exe), so the normal disk-reading code
-// paths below (buildBundle, pageRoutes, the legacy static passthrough) can't
-// find `web/*` when running compiled. A static `with { type: "text" }`
+// paths below (buildBundle, pageRoutes, serveStaticAsset) can't find `web/*`
+// when running compiled. A static `with { type: "text" }`
 // import is the one thing `--compile` actually embeds, so every asset that
 // must survive compilation is imported here and used only as a fallback when
 // the live disk read fails — `bun run dev` never touches these (its
@@ -112,10 +113,6 @@ import embeddedNoteJs from "../web/.embed/note.js.txt" with { type: "text" };
 import embeddedManualJs from "../web/.embed/manual.js.txt" with { type: "text" };
 import embeddedFaviconSvg from "../web/.embed/favicon.svg.txt" with { type: "text" };
 import embeddedManifestJson from "../web/.embed/manifest.json.txt" with { type: "text" };
-import embeddedNotemdJs from "../web/.embed/notemd.js.txt" with { type: "text" };
-import embeddedWallpaperJs from "../web/.embed/wallpaper.js.txt" with { type: "text" };
-import embeddedThemeJs from "../web/.embed/theme.js.txt" with { type: "text" };
-import embeddedScrollTopJs from "../web/.embed/scroll-top.js.txt" with { type: "text" };
 
 const embeddedHtmlByEntry: Record<string, string> = {
   index: embeddedIndexHtml,
@@ -137,17 +134,6 @@ const embeddedJsByEntry: Record<string, string> = {
   note: embeddedNoteJs,
   manual: embeddedManualJs,
 };
-// Keyed by the same URL-pathname basename the legacy passthrough serves
-// (e.g. "favicon.svg", "notemd.js") — see the catch-all `fetch()` handler below.
-const embeddedLegacyByBasename: Record<string, string> = {
-  "favicon.svg": embeddedFaviconSvg,
-  "manifest.json": embeddedManifestJson,
-  "notemd.js": embeddedNotemdJs,
-  "wallpaper.js": embeddedWallpaperJs,
-  "theme.js": embeddedThemeJs,
-  "scroll-top.js": embeddedScrollTopJs,
-};
-
 // process.execPath is "bun.exe" (or "bun") under `bun run dev`, and the
 // compiled binary's own path (e.g. "...\warframe-state-graph.exe") once
 // compiled — synchronous and reliable, unlike the async Bun.file(...).exists()
@@ -218,11 +204,6 @@ async function mergedQuestNames(): Promise<string[]> {
 }
 
 const webDir = path.join(import.meta.dir, "..", "web");
-// Shared page-chrome scripts (notemd/booster/scratch/wallpaper/theme/...) are
-// Phase 7 scope. Until then, serve them straight from the original Go
-// project's web/ directory so the ported page still looks and behaves like
-// the real app for browser verification.
-const legacyWebDir = path.join(import.meta.dir, "..", "..", "web");
 
 function json(v: unknown, init?: ResponseInit): Response {
   return Response.json(v, init);
@@ -287,7 +268,19 @@ async function servePageHtml(entry: string): Promise<Response> {
   return new Response(embedded, { headers: { "Content-Type": "text/html;charset=utf-8" } });
 }
 
-const pageRoutes: Record<string, { GET: () => Response | Promise<Response> }> = {};
+// Same "real file first, embedded snapshot fallback" shape as servePageHtml,
+// for the two static assets that don't belong to any single page bundle.
+async function serveStaticAsset(filename: string, contentType: string, embedded: string): Promise<Response> {
+  const filePath = path.join(webDir, filename);
+  const file = Bun.file(filePath);
+  if (await file.exists()) return new Response(file, { headers: { "Content-Type": contentType } });
+  return new Response(embedded, { headers: { "Content-Type": contentType } });
+}
+
+const pageRoutes: Record<string, { GET: () => Response | Promise<Response> }> = {
+  "/favicon.svg": { GET: () => serveStaticAsset("favicon.svg", "image/svg+xml", embeddedFaviconSvg) },
+  "/manifest.json": { GET: () => serveStaticAsset("manifest.json", "application/json", embeddedManifestJson) },
+};
 for (const { path: routePath, entry } of pages) {
   pageRoutes[routePath] = { GET: () => servePageHtml(entry) };
   pageRoutes[`/${entry}.js`] = { GET: () => buildBundle(entry) };
@@ -1470,7 +1463,15 @@ const server = Bun.serve({
           console.warn(`syndicate data unavailable, rank suggestion will be omitted: ${err}`);
         }
 
-        return json(BuildSuggestion(found, nodeType as NodeType, activeRelics, syndicates));
+        // Prime Resurgence marker is likewise best-effort.
+        let resurgenceRelics: Map<string, string> | undefined;
+        try {
+          resurgenceRelics = await resurgenceRelicNames(wfcdCacheDir);
+        } catch (err) {
+          console.warn(`resurgence data unavailable, resurgence marker will be omitted: ${err}`);
+        }
+
+        return json(BuildSuggestion(found, nodeType as NodeType, activeRelics, syndicates, resurgenceRelics));
       },
     },
 
@@ -1570,11 +1571,17 @@ const server = Bun.serve({
         const name = url.searchParams.get("name") ?? "";
         if (!name) return new Response("missing ?name=", { status: 400 });
         try {
-          const [activeRelics, missionCounts] = await Promise.all([
+          const [activeRelics, missionCounts, resurgence] = await Promise.all([
             cachedActiveRelicNames(wfcdCacheDir),
             cachedRelicMissionCounts(wfcdCacheDir),
+            resurgenceRelicNames(wfcdCacheDir),
           ]);
-          return json({ vaulted: isRelicVaulted(activeRelics, name), missionCount: relicMissionCount(missionCounts, name) });
+          const expiry = resurgence.get(name);
+          return json({
+            vaulted: isRelicVaulted(activeRelics, name),
+            missionCount: relicMissionCount(missionCounts, name),
+            resurgence: expiry ? { available: true, expiry } : null,
+          });
         } catch (err) {
           return errorResponse(err, 502);
         }
@@ -1622,31 +1629,14 @@ const server = Bun.serve({
     },
   },
 
-  async fetch(req) {
-    const url = new URL(req.url);
-    // Legacy static passthrough: any other GET is checked against the
-    // original Go project's web/ directory (favicon.svg, and the
-    // not-yet-ported shared scripts referenced from index.html).
-    if (req.method === "GET" && !url.pathname.startsWith("/api/")) {
-      const filePath = path.join(legacyWebDir, url.pathname);
-      if (filePath.startsWith(legacyWebDir)) {
-        const file = Bun.file(filePath);
-        if (await file.exists()) return new Response(file);
-      }
-      // Compiled-binary fallback (see the embedded-assets import block
-      // above) — only the known shared scripts + favicon.svg + manifest.json
-      // are embedded, matching what this passthrough is actually ever asked for.
-      const basename = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
-      const embedded = embeddedLegacyByBasename[basename];
-      if (embedded) {
-        const contentType = basename.endsWith(".svg")
-          ? "image/svg+xml"
-          : basename.endsWith(".json")
-            ? "application/json"
-            : "text/javascript";
-        return new Response(embedded, { headers: { "Content-Type": contentType } });
-      }
-    }
+  async fetch() {
+    // Every real route is registered above (pages, page bundles, favicon/
+    // manifest, /api/*) — anything else is a genuine 404, not a fallback.
+    // Used to fall through to a "legacy static passthrough" that quietly
+    // served files from the frozen Go version's web/ directory for any
+    // unmatched GET; that's how a typo'd deep-link URL (/index.html instead
+    // of the registered /) ended up silently rendering the old Go-era HTML
+    // instead of erroring (found 2026-08-30). Go and web/ are gone now.
     return new Response("Not found", { status: 404 });
   },
 

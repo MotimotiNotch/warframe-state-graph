@@ -5,8 +5,13 @@
 // （manual.ts/06_Manual_Content_Draft.mdと同じ「コード側が正、外部の
 // コピーは手動同期」という前例に倣う）。どちらかを直したらもう片方も
 // 直すこと。
+//
+// 英語版（2026-08-30、i18n展開時に追加）は日本語版の翻訳であって別仕様
+// ではない。日本語版を直したら英語版も同じ内容に揃えること。docs側は
+// 日本語のまま（リポジトリの正本は1つ）。
+import { effective } from "./locale.ts";
 
-export const DSL_AI_PROMPT = `Warframe State Graph（個人用の依存グラフ完了トラッカー）の「テキストから一括生成」機能で読み込めるDSLの仕様です。
+const DSL_AI_PROMPT_JA = `Warframe State Graph（個人用の依存グラフ完了トラッカー）の「テキストから一括生成」機能で読み込めるDSLの仕様です。
 
 ## 構文
 - \`A -> B\` : 「Aの前提（requires）はB」。矢印は連鎖できる（\`A -> B -> C\`）。
@@ -35,3 +40,39 @@ export const DSL_AI_PROMPT = `Warframe State Graph（個人用の依存グラフ
 上記の構文で、以下の内容を表すDSLテキストを1行で書いてください。説明は不要で、DSLのコードだけを出力してください。出力前に、開き括弧\`[\`と閉じ括弧\`]\`の数が一致しているか数えて確認してください。
 
 作りたい内容: `;
+
+const DSL_AI_PROMPT_EN = `This is the spec for the DSL accepted by the "bulk-create from text" feature of Warframe State Graph (a personal dependency-graph completion tracker).
+
+## Syntax
+- \`A -> B\` : "A requires B". Arrows can be chained (\`A -> B -> C\`).
+- \`A -> [B -> C]\` : "A contains B". Inside the brackets \`->\` still means requires, and brackets can nest (\`[B -> [C]]\`).
+- \`,\` : separates multiple expressions (chains). Write as many as you like in one text.
+- Node names: Japanese or English. Whatever string you write becomes the node's id.
+
+## Meaning and rules
+1. Identical names are merged into one node (their requires/contains are combined). If a node with the same name already exists in the graph, it is overwritten wholesale (not merged).
+2. Brackets attach to the *immediately preceding* node's contents. \`A -> [B -> C] -> D\` means "A contains B", "B requires C", and "A also requires D" (the \`-> D\` continues from A, not from B).
+3. Only names never referenced from anywhere else (the head of a chain) become entry points.
+4. Empty brackets \`[]\` and missing closing brackets are errors. Self-references (\`A -> A\`) are ignored.
+5. Express "the parts and materials needed to make this" as contents (contains, square brackets). Materials (Oxium, Neural Sensors, etc.) are treated the same way as parts — any "A is made of several elements" relation should be written as \`A -> [element]\`. Use requires (\`->\`) for "a separate step that must be finished before this one" (ordered relations, such as cracking a relic before building a part).
+6. Write it flat, not deeply nested. Once you've registered a part inside A with \`A -> [part]\`, write that part's own contents/prerequisites using the part's name directly, as \`part -> [material]\` (there's no need to re-nest from A each time as \`A -> [part -> [material]]\` — identical names are merged automatically). The deeper the nesting, the easier it is to mismatch a closing \`]\`.
+
+## Examples
+A simple prerequisite chain: \`Get Mag Prime -> Crack the Neuroptics relic -> Farm Neo N1 relics\`
+
+Part composition: \`Mag Prime -> [Blueprint -> Crack a Lith relic], Mag Prime -> [Chassis -> Crack a Meso relic]\` ("Mag Prime" is merged into one node, with both under its contents)
+
+Nesting a part's materials too: \`Neuroptics -> Crack a relic, Neuroptics -> [Neural Sensor], Neuroptics -> [Oxium]\` (cracking the relic is a prerequisite, the materials are contents. Rather than rewriting Neuroptics from its parent each time as \`A -> [Neuroptics -> ...]\`, use the part's name directly and keep it flat)
+
+Sharing a node by name: \`The Second Dream -> Natah, The War Within -> The Second Dream\`
+
+---
+Using the syntax above, write a single-line DSL text expressing the content below. No explanation is needed — output only the DSL code. Before you output it, count the opening \`[\` and closing \`]\` brackets to confirm they match.
+
+What I want to build: `;
+
+/** The AI-prompt text in the current display language. Was a plain exported
+ * constant before the i18n rollout. */
+export function dslAiPrompt(): string {
+  return effective() === "en" ? DSL_AI_PROMPT_EN : DSL_AI_PROMPT_JA;
+}

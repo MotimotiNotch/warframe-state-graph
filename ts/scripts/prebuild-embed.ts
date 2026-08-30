@@ -20,8 +20,9 @@
 // - `<entry>.js.txt`: the entry's TS bundled via Bun.build() (Bun.build()
 //   itself can't run against already-embedded content, so this has to
 //   happen now, at stage time, not inside the compiled binary).
-// - `<basename>.txt` for the 9 shared not-yet-ported legacy scripts +
-//   favicon.svg, copied verbatim from the original Go project's web/ dir.
+// - `favicon.svg.txt` / `manifest.json.txt`: verbatim copies of the two
+//   static assets that don't belong to any single page bundle
+//   (server/main.ts's serveStaticAsset()).
 //
 // Run before `bun build --compile` (and once before first `bun run dev`,
 // since main.ts's static imports need these files to exist to resolve at
@@ -34,14 +35,12 @@ import * as path from "node:path";
 
 const webDir = path.join(import.meta.dir, "..", "web");
 const embedDir = path.join(webDir, ".embed");
-const legacyWebDir = path.join(import.meta.dir, "..", "..", "web");
 
 // Keep in sync with main.ts's `pages` array.
 const pageEntries = ["index", "glossary", "standing", "loadouts", "stats", "collections", "note", "manual"];
 
-// Keep in sync with main.ts's legacy static passthrough / Phase 7's
-// still-unwired shared-script list.
-const legacyBasenames = ["favicon.svg", "manifest.json", "notemd.js", "wallpaper.js", "theme.js", "scroll-top.js"];
+// Keep in sync with main.ts's serveStaticAsset() calls.
+const staticAssets = ["favicon.svg", "manifest.json"];
 
 await fs.mkdir(embedDir, { recursive: true });
 
@@ -66,9 +65,9 @@ for (const entry of pageEntries) {
   await fs.writeFile(path.join(embedDir, `${entry}.js.txt`), await output.text(), "utf8");
 }
 
-for (const basename of legacyBasenames) {
-  const content = await fs.readFile(path.join(legacyWebDir, basename), "utf8");
+for (const basename of staticAssets) {
+  const content = await fs.readFile(path.join(webDir, basename), "utf8");
   await fs.writeFile(path.join(embedDir, `${basename}.txt`), content, "utf8");
 }
 
-console.log(`prebuild-embed: staged ${pageEntries.length * 2 + legacyBasenames.length} file(s) into ${embedDir}`);
+console.log(`prebuild-embed: staged ${pageEntries.length * 2 + staticAssets.length} file(s) into ${embedDir}`);

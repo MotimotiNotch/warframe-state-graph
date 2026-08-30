@@ -6,6 +6,12 @@ import { computeLayout, containsCompletion, nodeColor } from "./graph-layout.ts"
 import { collectDescendants, focusOn, scheduleHideFlyout, showFlyout } from "./graph-nav.ts";
 import { renderPanel } from "./inspector.ts";
 import { nodeDisplayName } from "./quest-i18n.ts";
+import { effective } from "./locale.ts";
+
+const STRINGS: Record<"ja" | "en", { flyoutLabel: string; containsDone: string }> = {
+  ja: { flyoutLabel: "中身（クリックで直接ジャンプ）", containsDone: "中身の完了" },
+  en: { flyoutLabel: "Contents (click to jump straight there)", containsDone: "Contents completed" },
+};
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -89,7 +95,7 @@ export function renderGraph(): void {
     // levels).
     const handleNodeEnter = () => {
       const items = collectDescendants(id);
-      showFlyout(circle, "中身（クリックで直接ジャンプ）", items, (it) => focusOn(it.id));
+      showFlyout(circle, STRINGS[effective()].flyoutLabel, items, (it) => focusOn(it.id));
     };
     if (drillable) {
       circle.addEventListener("mouseenter", handleNodeEnter);
@@ -145,7 +151,7 @@ export function renderGraph(): void {
       }
 
       const title = document.createElementNS(SVG_NS, "title");
-      title.textContent = `中身の完了: ${done} / ${total}`;
+      title.textContent = `${STRINGS[effective()].containsDone}: ${done} / ${total}`;
       track.appendChild(title);
     }
 

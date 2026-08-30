@@ -88,6 +88,7 @@ const MANUAL_TOPICS: ManualTopic[] = [
   {
     id: "wfcd-refresh",
     title: "WFCDデータ更新",
+    section: "Chain View — グラフ操作",
     body: "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください。",
     targetId: "refresh-wfcd-btn",
   },
@@ -103,13 +104,19 @@ const MANUAL_TOPICS: ManualTopic[] = [
   },
   {
     id: "legend",
-    title: "凡例（Chain View）",
+    title: "凡例",
     body: "ノードの色・アイコンが何を表しているかを確認できます。",
     targetId: "legend-toggle",
   },
   {
+    id: "compact-toggle",
+    title: "コンパクト表示",
+    body: "グラフ本体をより狭いスペースで表示します。ウィンドウ幅が狭い時は自動でも切り替わります。",
+    targetId: "compact-toggle",
+  },
+  {
     id: "requires-contains-editing",
-    title: "前提・中身を編集する3つの方法（Chain View）",
+    title: "前提・中身を編集する3つの方法",
     body: `<p>ノード同士の前提（requires）・中身（contains）の関係を作る方法は3つあり、用途が異なります。</p>
       <ul>
         <li><b>Inspectorの「前提を追加」「中身を追加」</b>: 選択中のノードの子として、新規ノードを1個作ってその場で繋ぐショートカットです。</li>
@@ -117,16 +124,70 @@ const MANUAL_TOPICS: ManualTopic[] = [
         <li><b>ノード編集モーダルの前提/中身欄</b>: 既存ノードの編集画面で、名前検索により既存の任意のノードを前提/中身として追加・削除できます。1つのノードを複数の親から参照させたい場合（共有素材など）はこちらを使ってください。</li>
       </ul>
       <p>最初のうちは付け替えは使わず、ゴールとWFCD自動生成だけで構成するのがおすすめです。自動生成した内容を「こなすべきタスク」としてそのまま扱うイメージです。グラフがどこまで複雑になっていくかは開発者本人もまだ未知数な部分があるので、興味があれば付け替えも試してみてください。</p>`,
+    targetId: "add-requires-btn",
+  },
+  {
+    // 中の4トピック（inspector-node-id以下）のtargetIdはどれもノード選択中
+    // にしかDOMへ存在しない（Inspectorがそもそも「ノードを選択してくだ
+    // さい」というプレースホルダーのままだと#ph-node-id等が無い）。
+    // セクション見出しはグループ先頭のトピックが表示されて初めて出る仕組み
+    // （render()参照）なので、先頭をこの常時表示トピックにして
+    // #panel-body（未選択時も存在する枠自体）に向けておく——じゃないと
+    // 何も選択していない状態でマニュアルを開くと「詳細パネル」セクション
+    // 自体が丸ごと消える（2026-08-30、のっち報告で発覚）。
+    id: "inspector-overview",
+    title: "詳細パネルについて",
+    section: "Chain View — 詳細パネル",
+    body: `<p>Chain View本体でノードをクリックすると、右側にこのパネルが開き、選択中のノードの操作ができます。上部には次の情報が並びます。</p>
+      <ul>
+        <li><b>名前・ID</b>: 詳細は「ノード名横のID」を参照</li>
+        <li><b>種別</b>: Build/Goal/Frame/Weapon/Relic等、ノードの種類</li>
+        <li><b>状態バッジ</b>: 色分けの意味は凡例（達成済み/実行可能/前提待ち、選択中のBuild自体なら「起点」）と共通です</li>
+        <li>Relicノードのみ、Vault済み（廃止済みレリック）・Resurgence在庫あり（Prime Resurgenceで今買える、両方同時に付くこともあります）のバッジが追加で出ます</li>
+      </ul>`,
+    targetId: "panel-body",
+  },
+  {
+    id: "inspector-node-id",
+    title: "ノード名横のID",
+    body: "名前の右にカッコ書きで出ている英数字が、このノードのID（内部的な一意識別子で、表示名とは別物）です。「付け替え」の「移動先ノードのID」欄など、IDを直接指定する操作で使います。",
+    targetId: "ph-node-id",
+  },
+  {
+    id: "inspector-toggle",
+    title: "達成状態の切り替え",
+    body: "選択中のノードを「達成にする/取り消す」で切り替えられます。マスタリー担当パーツのノードには、達成とは別に「メッキする/メッキ済み」ボタンも並びます。",
+    targetId: "toggle-btn",
+  },
+  {
+    id: "inspector-edit-archive",
+    title: "編集・アーカイブ",
+    body: "「編集」で選択中のノードの名前・種別・メモ等を変更できます。目標（Build/Goal）ノードには、一覧から一時的に隠す「アーカイブする/解除」ボタンも並びます（削除ではなく非表示——目標一覧・集計から外れるだけでデータは残ります）。",
+    targetId: "edit-btn",
+  },
+  {
+    id: "inspector-note-counter",
+    title: "メモ・カウントアップ",
+    body: "選択中のノードごとに、個別のメモとカウントアップを持たせられます（ヘッダーの「クイックメモ」とは別物で、こちらは特定のノードに紐づきます）。パネル下部の「連携元」には、このノードをLoadouts/Collectionsから紐付けているアイテムがあれば一覧表示されます。",
+    targetId: "insp-add-counter-btn",
   },
   {
     id: "sidebar-toggle",
     title: "目標一覧の折りたたみ",
+    section: "Chain View — 目標一覧",
     body: "左の目標一覧パネルを隠してChain View本体を広く使えます。ウィンドウが狭い時に便利です。状態は次回起動時も引き継がれます。",
     targetId: "sidebar-toggle-btn",
   },
   {
+    id: "sidebar-folder",
+    title: "フォルダ分け",
+    body: "「新規フォルダ」で、目標をグルーピングするフォルダを作れます（1階層のみ、入れ子は不可）。各行のフォルダアイコンから所属フォルダを変更、ゴミ箱アイコンからノードごと削除できます。フォルダ自体の名前変更・削除はフォルダ見出しの鉛筆/×アイコンから。",
+    targetId: "new-folder-btn",
+  },
+  {
     id: "quest-progress",
     title: "クエスト進行状況の登録",
+    section: "横断的な機能",
     body: "クリア済みのクエストにチェックを入れると、対応するネタバレ回避セクションの折りたたみが自動的に解除されます。Statsページの「クエスト進行状況」パネルでいつでも変更できます。",
     targetId: "quest-progress-panel",
   },
@@ -170,6 +231,24 @@ const MANUAL_TOPICS: ManualTopic[] = [
     title: "テーマ切替",
     body: "ライト/ダークテーマを切り替えられます。",
     targetId: "theme-toggle-btn",
+  },
+  {
+    id: "locale",
+    title: "言語切替",
+    body: "モーダル等の一部の文言を日本語/Englishで切り替えられます（現状、ページ本体のnav/ボタン等は対象外で、常に日本語表示のままです）。デフォルトはブラウザの言語設定に従い、選び直すとその選択が優先されます。",
+    targetId: "locale-switch-widget",
+  },
+  {
+    id: "scroll-top",
+    title: "一番上に戻る",
+    body: "ページを下までスクロールした状態から、ワンクリックで先頭へ戻れます。",
+    targetId: "scroll-top-btn",
+  },
+  {
+    id: "kofi",
+    title: "Ko-fi支援リンク",
+    body: "このツールへの投げ銭リンクです（任意）。",
+    targetId: "kofi-link-btn",
   },
   {
     id: "privacy",

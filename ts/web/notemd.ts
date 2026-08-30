@@ -5,15 +5,13 @@
 // substitution, and only fixed tag strings are ever spliced in — raw HTML
 // tags are never permitted through, so whatever a user types into a note
 // renders as inert text.
-//
-// Not yet wired into the bundled-JS routing (`/notemd.js` still serves the
-// original, unported web/notemd.js via the server's legacy static
-// passthrough) because loadouts.html/collections.html — Phase 9/10, not
-// ported yet — still load it as a plain classic `<script src>`, and an ESM
-// bundle's `export` syntax would be a SyntaxError there. This module exists
-// now so already-ported code (scratch.ts) can `import` it directly; the
-// `/notemd.js` route itself cuts over once Phase 9/10 replace those pages'
-// script tags with `type="module"`.
+
+import { effective, onLocaleChange } from "./locale.ts";
+
+const PLACEHOLDER: Record<"ja" | "en", string> = {
+  ja: "ここにメモを書く（Markdown対応、- [ ] でチェックリスト）",
+  en: "Write your note here (Markdown supported, - [ ] for a checklist)",
+};
 
 function escapeHtml(s: unknown): string {
   return String(s).replace(
@@ -128,7 +126,7 @@ export function createLiveEditor(
 
   function render(): void {
     if (activeLine === -1 && isEmpty()) {
-      container.innerHTML = `<div class="note-line note-placeholder" data-line="0">ここにメモを書く（Markdown対応、- [ ] でチェックリスト）</div>`;
+      container.innerHTML = `<div class="note-line note-placeholder" data-line="0">${PLACEHOLDER[effective()]}</div>`;
       return;
     }
     container.innerHTML = lines.map((line, i) => (i === activeLine ? lineToRawDiv(line, i) : lineToRenderedDiv(line, i))).join("");
@@ -324,6 +322,12 @@ export function createLiveEditor(
   container.addEventListener("compositionend", () => {
     syncActiveLineText();
     emitChange();
+  });
+
+  // Only the empty-state placeholder text is locale-dependent; re-render on
+  // a locale flip so it doesn't sit stale until the next real edit.
+  onLocaleChange(() => {
+    if (isEmpty() && activeLine === -1) render();
   });
 
   render();

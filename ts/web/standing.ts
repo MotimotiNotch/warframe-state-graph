@@ -9,10 +9,125 @@ import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
 import "./kofi-link.ts";
+import { applyI18nText, effective, onLocaleChange, type Locale } from "./locale.ts";
+import "./theme.ts";
+import "./wallpaper.ts";
+import "./scroll-top.ts";
 
 interface StandingResponse {
   data: Data;
   syndicates: SyndicateInfo[];
+}
+
+// UI-chrome strings (2026-08-30, part of the page-by-page i18n rollout —
+// see locale.ts). Game-data dicts (SYNDICATE_JA/SACRIFICE_ITEM_JA below) are
+// separate: English just falls back to their own EN keys, no new
+// translation needed there (のっち承認済み方針).
+interface UIStrings {
+  [key: string]: string; // lets this satisfy applyI18nText()'s Record<string, string> bound
+  refreshUpdating: string;
+  refreshDone: string;
+  refreshTitle: string;
+  helpToggleTitle: string;
+  helpPopover: string;
+  majorSynHeading: string;
+  otherSynHeading: string;
+  toggleOpenClose: string;
+  synWarning: string;
+  cancel: string;
+  save: string;
+  loading: string;
+  notReached: string;
+  hostile: string;
+  highestAchievementLabel: string;
+  highestAchievementNote: string;
+  correctHighestTitle: string;
+  savedFlash: string;
+  viewSacrifice: string;
+  unknownUnconfirmed: string;
+  none: string;
+  paid: string;
+  recoveryPrefix: string;
+  rankCorrectTitle: string; // {name} placeholder
+  rankCorrectHint: string; // {max} placeholder
+  invalidRankToast: string; // {max} placeholder
+}
+const STRINGS: Record<Locale, UIStrings> = {
+  ja: {
+    refreshUpdating: "更新中…",
+    refreshDone: "更新完了",
+    refreshTitle: "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください",
+    helpToggleTitle: "このページについて",
+    helpPopover:
+      "<div style='margin-bottom:8px;'>全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</div>" +
+      "<ul style='margin:0 0 10px;padding-left:18px;'>" +
+      "<li>6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）は2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）。そのためChain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新します</li>" +
+      "<li>他の10シンジケートは敵対関係を持たず、ランクは0以上のみ</li>" +
+      "<li>貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがあります</li>" +
+      "<li>武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使ってください</li>" +
+      "</ul>" +
+      "<div>⚠️ シンジケート武器名など、未プレイのコンテンツ名が表示されることがあります。</div>",
+    majorSynHeading: "6大シンジケート",
+    otherSynHeading: "その他のシンジケート",
+    toggleOpenClose: "開閉",
+    synWarning: "クエストやイベント進行で解放されるシンジケートです。ネタバレを含むため閲覧に注意してください。",
+    cancel: "キャンセル",
+    save: "保存",
+    loading: "読み込み中…",
+    notReached: "未到達",
+    hostile: "敵対",
+    highestAchievementLabel: "最高到達実績: ",
+    highestAchievementNote: "（降格しても下がらない）",
+    correctHighestTitle: "最高到達実績を訂正（誤って高いランクを選んでしまった時用）",
+    savedFlash: "保存済み",
+    viewSacrifice: "ランクアップ捧げ物アイテムを見る",
+    unknownUnconfirmed: "不明（未確認）",
+    none: "なし",
+    paid: "支払済",
+    recoveryPrefix: "マイナス圏からNeutralへの回復捧げ物: ",
+    rankCorrectTitle: "「{name}」の最高到達実績を訂正",
+    rankCorrectHint: "0〜{max}（間違って高いランクを選んでしまった時用）",
+    invalidRankToast: "0〜{max}の整数を入力して",
+  },
+  en: {
+    refreshUpdating: "Updating…",
+    refreshDone: "Updated",
+    refreshTitle: "Press this if a new frame/weapon etc. added by a game update isn't showing up as a candidate",
+    helpToggleTitle: "About this page",
+    helpPopover:
+      "<div style='margin-bottom:8px;'>Records your current rank across all 16 syndicates (excluding Conclave/Cephalon Simaris).</div>" +
+      "<ul style='margin:0 0 10px;padding-left:18px;'>" +
+      "<li>The 6 major syndicates (Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka) have 2 hostile pairs — raising one can lower its opposite (dropping below 0 demotes it, down to Rank -2). So unlike Chain View's <code>requires</code>-chain toggle, this page holds and updates the current rank value directly.</li>" +
+      "<li>The other 10 syndicates have no hostile relationship and only ever range from Rank 0 upward.</li>" +
+      "<li>The contribution-item breakdown couldn't be confirmed from the underlying data for a few syndicates, so those stay marked \"Unknown\".</li>" +
+      "<li>To track the specific rank needed to buy a weapon, use Chain View's own node generation (the WFCD auto-generated syndicate candidates) instead.</li>" +
+      "</ul>" +
+      "<div>⚠️ Syndicate weapon names and similar may be shown here even for content you haven't played yet.</div>",
+    majorSynHeading: "Major Syndicates",
+    otherSynHeading: "Other Syndicates",
+    toggleOpenClose: "Toggle",
+    synWarning: "These syndicates unlock through quest/event progress. May contain spoilers — view with care.",
+    cancel: "Cancel",
+    save: "Save",
+    loading: "Loading…",
+    notReached: "Not reached",
+    hostile: "Hostile",
+    highestAchievementLabel: "Highest reached: ",
+    highestAchievementNote: "(doesn't drop back down on demotion)",
+    correctHighestTitle: "Correct your highest-reached rank (for when you picked too high a rank by mistake)",
+    savedFlash: "Saved",
+    viewSacrifice: "View rank-up sacrifice items",
+    unknownUnconfirmed: "Unknown (unconfirmed)",
+    none: "None",
+    paid: "Paid",
+    recoveryPrefix: "Recovery sacrifice (negative rank back to Neutral): ",
+    rankCorrectTitle: "Correct “{name}”'s highest-reached rank",
+    rankCorrectHint: "0–{max} (for when you picked too high a rank by mistake)",
+    invalidRankToast: "Enter a whole number between 0 and {max}",
+  },
+};
+function t(): UIStrings {
+  return STRINGS[effective()];
 }
 
 const state: { syndicates: SyndicateInfo[]; ranks: Record<string, number>; highest: Record<string, number> } = {
@@ -41,8 +156,11 @@ const SYNDICATE_JA: Record<string, string> = {
   "The Holdfasts": "ホールドファスト",
   "The Quills": "クイル",
 };
+// English mode just falls back to the (already-English) dict key — no
+// separate translation needed for this or SACRIFICE_ITEM_JA below
+// (2026-08-30 i18n rollout, のっち承認済み方針).
 function synJa(name: string): string {
-  return SYNDICATE_JA[name] || name;
+  return effective() === "en" ? name : SYNDICATE_JA[name] || name;
 }
 
 const SACRIFICE_ITEM_JA: Record<string, string> = {
@@ -57,6 +175,7 @@ const SACRIFICE_ITEM_JA: Record<string, string> = {
   Aya: "アヤ",
 };
 function itemJa(item: string): string {
+  if (effective() === "en") return item;
   const i = item.indexOf("×");
   if (i === -1) return SACRIFICE_ITEM_JA[item] || item;
   const name = item.slice(0, i);
@@ -68,17 +187,17 @@ el("refresh-wfcd-btn").addEventListener("click", async () => {
   const btn = el("refresh-wfcd-btn") as HTMLButtonElement;
   btn.disabled = true;
   btn.classList.add("spinning");
-  btn.title = "更新中…";
+  btn.title = t().refreshUpdating;
   await fetch("/api/wfcd/refresh", { method: "POST" });
   btn.classList.remove("spinning");
   btn.classList.add("success");
   btn.innerHTML = icon("check");
-  btn.title = "更新完了";
+  btn.title = t().refreshDone;
   setTimeout(() => {
     btn.classList.remove("success");
     btn.innerHTML = icon("refresh-cw");
     btn.disabled = false;
-    btn.title = "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください";
+    btn.title = t().refreshTitle;
   }, 2000);
 });
 
@@ -127,7 +246,7 @@ function maxRank(s: SyndicateInfo): number {
 // フロント側で複製している（選択の度にサーバー往復して確認する必要をなくすため）。
 function rankLabel(syndicateName: string, rank: number): string {
   if (rank === 0) return "Neutral (Rank 0)";
-  if (rank < 0) return `敵対 (Rank ${rank})`;
+  if (rank < 0) return `${t().hostile} (Rank ${rank})`;
   const syn = state.syndicates.find((s) => s.name === syndicateName);
   if (syn && rank >= 1 && rank <= maxRank(syn)) return `${syn.ranks[rank - 1]} (Rank ${rank})`;
   return `Rank ${rank}`;
@@ -145,9 +264,9 @@ function rankOptions(syndicateName: string, current: number): string {
 
 function sacrificeLabel(rs: SyndicateInfo["sacrifices"][number] | undefined): string {
   if (!rs) return "";
-  if (rs.unconfirmed) return "不明（未確認）";
-  if (rs.none) return "なし";
-  return (rs.items || []).map(itemJa).join("、");
+  if (rs.unconfirmed) return t().unknownUnconfirmed;
+  if (rs.none) return t().none;
+  return (rs.items || []).map(itemJa).join(effective() === "en" ? ", " : "、");
 }
 
 // ランクアップ貢献はそのランクへ初めて到達した時のみ必要（降格→再昇格では不要、
@@ -166,13 +285,13 @@ function sacrificeTable(s: SyndicateInfo, highest: number, current: number): str
       <tr class="${paid ? "paid" : ""}">
         <td>Rank ${rank}</td>
         <td class="sac-item">${escapeHtml(sacrificeLabel(rs))}</td>
-        <td class="sac-status">${paid ? "支払済" : ""}</td>
+        <td class="sac-status">${paid ? t().paid : ""}</td>
       </tr>`;
     })
     .join("");
   const note = s.note ? `<div class="syn-note">${escapeHtml(s.note)}</div>` : "";
   const recovery =
-    current < 0 ? `<div class="syn-recovery">マイナス圏からNeutralへの回復捧げ物: ${escapeHtml(recoverySacrifice(s))}</div>` : "";
+    current < 0 ? `<div class="syn-recovery">${t().recoveryPrefix}${escapeHtml(recoverySacrifice(s))}</div>` : "";
   return `<table>${rows}</table>${note}${recovery}`;
 }
 
@@ -182,22 +301,22 @@ function sacrificeTable(s: SyndicateInfo, highest: number, current: number): str
 function renderSyndicateList(containerId: string, list: SyndicateInfo[], showAchievement: boolean): void {
   const container = el(containerId);
   if (!list.length) {
-    container.innerHTML = `<div class="empty">読み込み中…</div>`;
+    container.innerHTML = `<div class="empty">${t().loading}</div>`;
     return;
   }
   container.innerHTML = list
     .map((s) => {
       const current = state.ranks[s.name] ?? 0;
       const highest = state.highest[s.name] ?? 0;
-      const highestLabel = highest > 0 ? rankLabel(s.name, highest) : "未到達";
+      const highestLabel = highest > 0 ? rankLabel(s.name, highest) : t().notReached;
       const achievement = showAchievement
         ? `
         <div class="syn-highest">
-          最高到達実績: <span class="val">${escapeHtml(highestLabel)}</span>（降格しても下がらない）
-          <button type="button" class="icon-btn syn-highest-reset" data-highest-reset="${escapeHtml(s.name)}" title="最高到達実績を訂正（誤って高いランクを選んでしまった時用）">${icon("refresh-cw", { size: 11 })}</button>
+          ${t().highestAchievementLabel}<span class="val">${escapeHtml(highestLabel)}</span>${t().highestAchievementNote}
+          <button type="button" class="icon-btn syn-highest-reset" data-highest-reset="${escapeHtml(s.name)}" title="${escapeHtml(t().correctHighestTitle)}">${icon("refresh-cw", { size: 11 })}</button>
         </div>
         <div class="syn-sacrifice-wrap">
-          <button type="button" class="syn-sacrifice-toggle" data-sacrifice-toggle="${escapeHtml(s.name)}">${icon("chevron-down", { size: 12 })}ランクアップ捧げ物アイテムを見る</button>
+          <button type="button" class="syn-sacrifice-toggle" data-sacrifice-toggle="${escapeHtml(s.name)}">${icon("chevron-down", { size: 12 })}${t().viewSacrifice}</button>
           <div class="popover hidden syn-sacrifice-pop" data-sacrifice-pop="${escapeHtml(s.name)}">${sacrificeTable(s, highest, current)}</div>
         </div>`
         : "";
@@ -205,7 +324,7 @@ function renderSyndicateList(containerId: string, list: SyndicateInfo[], showAch
       <div class="syn-row">
         <div class="syn-row-head">
           <span class="syn-name">${escapeHtml(synJa(s.name))}</span>
-          <span class="syn-saved-flash" data-flash="${escapeHtml(s.name)}">${icon("check", { size: 14 })}保存済み</span>
+          <span class="syn-saved-flash" data-flash="${escapeHtml(s.name)}">${icon("check", { size: 14 })}${t().savedFlash}</span>
         </div>
         <select data-syndicate="${escapeHtml(s.name)}">${rankOptions(s.name, current)}</select>
         ${achievement}
@@ -273,8 +392,8 @@ function openRankCorrectModal(name: string): void {
   const syn = state.syndicates.find((s) => s.name === name);
   const max = syn ? maxRank(syn) : 5;
   const current = state.highest[name] ?? 0;
-  el("rank-correct-title").textContent = `「${synJa(name)}」の最高到達実績を訂正`;
-  el("rank-correct-hint").textContent = `0〜${max}（間違って高いランクを選んでしまった時用）`;
+  el("rank-correct-title").textContent = t().rankCorrectTitle.replace("{name}", synJa(name));
+  el("rank-correct-hint").textContent = t().rankCorrectHint.replace("{max}", String(max));
   const input = el<HTMLInputElement>("rank-correct-input");
   input.min = "0";
   input.max = String(max);
@@ -295,7 +414,7 @@ async function saveRankCorrectModal(): Promise<void> {
   const max = syn ? maxRank(syn) : 5;
   const rank = Number(el<HTMLInputElement>("rank-correct-input").value);
   if (!Number.isInteger(rank) || rank < 0 || rank > max) {
-    showToast(`0〜${max}の整数を入力して`);
+    showToast(t().invalidRankToast.replace("{max}", String(max)));
     return;
   }
   const res = await fetch(`/api/standing/${encodeURIComponent(name)}/highest`, {
@@ -334,5 +453,11 @@ async function loadStanding(): Promise<void> {
   state.highest = body.data?.highestRankReached || {};
   render();
 }
+
+applyI18nText(STRINGS);
+onLocaleChange(() => {
+  applyI18nText(STRINGS);
+  render();
+});
 
 void loadStanding();

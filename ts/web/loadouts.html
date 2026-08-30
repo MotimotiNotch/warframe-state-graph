@@ -341,11 +341,11 @@
     <a href="/stats.html">Stats</a>
     <a href="/note.html">Note</a>
     <span style="flex:1"></span>
-    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <button class="icon-btn" id="refresh-wfcd-btn" data-i18n-title="refreshTitle" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
     <div class="popover-wrap">
-      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <button class="icon-btn" id="help-toggle" data-i18n-title="helpToggleTitle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">
+        <div class="empty" data-i18n-html="helpPopover">
           <div style="margin-bottom:8px;">フレーム/武器ごとのMODコンフィグ（A/B/C）とビルドセットの管理ページです。</div>
           <ul style="margin:0 0 10px;padding-left:18px;">
             <li>Itemsは種別（Frame/Weapon/Companion/Archwing/Necramech）ごとにサブセクション分けされています</li>
@@ -363,37 +363,37 @@
 
   <div class="panel">
     <div class="panel-head">
-      <h2>Items（Frame / Weapon）— A/B/C コンフィグ管理<button class="icon-btn add-btn" id="items-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="itemsHeading">Items（Frame / Weapon）— A/B/C コンフィグ管理</span><button class="icon-btn add-btn" id="items-add-btn" data-i18n-title="newRegistration" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend" title="Chain View連携アイテムのミニグラフの色">
-          <span><i class="dot" style="background:var(--satisfied)"></i>達成済み</span>
-          <span><i class="dot" style="background:var(--actionable)"></i>実行可能</span>
-          <span><i class="dot" style="background:var(--blocked)"></i>前提待ち</span>
+        <div class="status-legend" id="items-status-legend" data-i18n-title="itemMinigraphLegendTitle" title="Chain View連携アイテムのミニグラフの色">
+          <span><i class="dot" style="background:var(--satisfied)"></i><span data-i18n="statusSatisfied">達成済み</span></span>
+          <span><i class="dot" style="background:var(--actionable)"></i><span data-i18n="statusActionable">実行可能</span></span>
+          <span><i class="dot" style="background:var(--blocked)"></i><span data-i18n="statusBlocked">前提待ち</span></span>
         </div>
-        <button class="icon-btn section-chevron" id="items-chevron" title="開閉"></button>
+        <button class="icon-btn section-chevron" id="items-chevron" data-i18n-title="toggleOpenClose" title="開閉"></button>
       </div>
     </div>
     <div id="items-body" class="collapsible-body">
       <div id="items-jump-nav" class="tabs" style="margin:0 0 8px;"></div>
-      <input type="text" id="items-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
+      <input type="text" id="items-search" data-i18n-placeholder="filterByName" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
       <div id="items-list"></div>
     </div>
   </div>
 
   <div class="panel">
     <div class="panel-head">
-      <h2>Build Sets（フレーム＋武器の組み合わせ）<button class="icon-btn add-btn" id="buildsets-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="buildSetsHeading">Build Sets（フレーム＋武器の組み合わせ）</span><button class="icon-btn add-btn" id="buildsets-add-btn" data-i18n-title="newRegistration" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend" title="Chain View連携ビルドのミニグラフの色">
-          <span><i class="dot" style="background:var(--satisfied)"></i>達成済み</span>
-          <span><i class="dot" style="background:var(--actionable)"></i>実行可能</span>
-          <span><i class="dot" style="background:var(--blocked)"></i>前提待ち</span>
+        <div class="status-legend" title="Chain View連携ビルドのミニグラフの色" data-i18n-title="buildsetMinigraphLegendTitle">
+          <span><i class="dot" style="background:var(--satisfied)"></i><span data-i18n="statusSatisfied">達成済み</span></span>
+          <span><i class="dot" style="background:var(--actionable)"></i><span data-i18n="statusActionable">実行可能</span></span>
+          <span><i class="dot" style="background:var(--blocked)"></i><span data-i18n="statusBlocked">前提待ち</span></span>
         </div>
-        <button class="icon-btn section-chevron" id="buildsets-chevron" title="開閉"></button>
+        <button class="icon-btn section-chevron" id="buildsets-chevron" data-i18n-title="toggleOpenClose" title="開閉"></button>
       </div>
     </div>
     <div id="buildsets-body" class="collapsible-body">
-      <input type="text" id="buildsets-search" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
+      <input type="text" id="buildsets-search" data-i18n-placeholder="filterByName" placeholder="名前で絞り込み" autocomplete="off" style="width:100%;margin-bottom:10px;">
       <div id="buildsets-list" class="buildsets-grid"></div>
     </div>
   </div>
@@ -401,9 +401,9 @@
   <!-- Item registration modal -->
   <div id="item-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
-      <h3>アイテムを追加</h3>
-      <label class="bulk-row"><input type="checkbox" id="item-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">種別</label>
+      <h3 data-i18n="addItemModalTitle">アイテムを追加</h3>
+      <label class="bulk-row"><input type="checkbox" id="item-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="typeLabel">種別</label>
       <select id="new-item-type">
         <option value="Frame">Frame</option>
         <option value="Weapon">Weapon</option>
@@ -411,27 +411,27 @@
         <option value="Archwing">Archwing</option>
         <option value="Necramech">Necramech</option>
       </select>
-      <label class="field-label">名前（キーワードで絞り込み）</label>
+      <label class="field-label" data-i18n="nameFilterLabel">名前（キーワードで絞り込み）</label>
       <div class="combobox">
-        <input type="text" id="new-item-name" placeholder="例: Ash" autocomplete="off">
+        <input type="text" id="new-item-name" data-i18n-placeholder="namePlaceholder" placeholder="例: Ash" autocomplete="off">
         <div id="new-item-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="item-modal-optional">
-        <label class="field-label">MOD（Config A、任意）</label>
+        <label class="field-label" data-i18n="modConfigOptional">MOD（Config A、任意）</label>
         <div class="mod-tags" id="new-item-mod-tags"></div>
         <div class="inline-form">
-          <input type="text" id="new-item-mod-input" placeholder="MOD名を追加してEnter" autocomplete="off">
+          <input type="text" id="new-item-mod-input" data-i18n-placeholder="addModPlaceholder" placeholder="MOD名を追加してEnter" autocomplete="off">
         </div>
         <label class="field-label" style="display:flex;align-items:center;gap:6px;" id="new-item-chainview-row">
-          <input type="checkbox" id="new-item-chainview-check" style="width:auto;">Chain Viewにも追加する（未入手を追跡、Frame/Weaponのみ）
+          <input type="checkbox" id="new-item-chainview-check" style="width:auto;"><span data-i18n="chainViewAddCheckbox">Chain Viewにも追加する（未入手を追跡、Frame/Weaponのみ）</span>
         </label>
-        <label class="field-label">メモ <span class="help-hint" id="new-item-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="new-item-note" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="new-item-note-help" data-i18n-title="memoHint" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="new-item-note" data-i18n-placeholder="optionalPlaceholder" placeholder="任意"></textarea>
       </div>
       <div id="item-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="item-modal-cancel">キャンセル</button>
-        <button class="primary" id="add-item-btn">追加</button>
+        <button id="item-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="add-item-btn" data-i18n="add">追加</button>
       </div>
     </div>
   </div>
@@ -440,13 +440,13 @@
   <div id="item-edit-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="item-edit-modal-title">アイテムを編集</h3>
-      <label class="field-label">Chain View連携（任意）</label>
+      <label class="field-label" data-i18n="chainViewLinkOptional">Chain View連携（任意）</label>
       <select id="item-edit-chainview"></select>
-      <label class="field-label">メモ <span class="help-hint" id="item-edit-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-      <textarea id="item-edit-note" placeholder="任意"></textarea>
+      <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="item-edit-note-help" data-i18n-title="memoHint" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+      <textarea id="item-edit-note" data-i18n-placeholder="optionalPlaceholder" placeholder="任意"></textarea>
       <div class="actions">
-        <button id="item-edit-cancel">キャンセル</button>
-        <button class="primary" id="item-edit-save">保存</button>
+        <button id="item-edit-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="item-edit-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -463,7 +463,5 @@
   <div id="mod-suggest" class="suggest-list hidden" style="position:fixed;z-index:250;"></div>
 
 <script type="module" src="/loadouts.js"></script>
-<script src="/wallpaper.js"></script>
-<script src="/theme.js"></script>
-<script src="/scroll-top.js"></script></body>
+</body>
 </html>

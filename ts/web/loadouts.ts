@@ -16,6 +16,10 @@ import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
 import "./kofi-link.ts";
+import { applyI18nText, effective, onLocaleChange, type Locale } from "./locale.ts";
+import "./theme.ts";
+import "./wallpaper.ts";
+import "./scroll-top.ts";
 import { autoGenerateChainViewNode, autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
 
 const state: {
@@ -24,6 +28,234 @@ const state: {
   chainViewBuilds: Node[];
   nodesById: Record<string, Node>;
 } = { data: { schemaVersion: 1, items: {}, buildSets: {} }, activeTab: {}, chainViewBuilds: [], nodesById: {} };
+
+// UI-chrome strings (2026-08-30, part of the page-by-page i18n rollout — see
+// locale.ts). Covers both the static HTML (applied via applyI18nText()'s
+// data-i18n scan) and everything this file itself renders dynamically.
+interface UIStrings {
+  [key: string]: string;
+  refreshUpdating: string;
+  refreshDone: string;
+  refreshTitle: string;
+  helpToggleTitle: string;
+  helpPopover: string;
+  itemsHeading: string;
+  buildSetsHeading: string;
+  newRegistration: string;
+  toggleOpenClose: string;
+  statusSatisfied: string;
+  statusActionable: string;
+  statusBlocked: string;
+  itemMinigraphLegendTitle: string;
+  buildsetMinigraphLegendTitle: string;
+  filterByName: string;
+  noModsShort: string;
+  copyItemTitle: string;
+  deleteTitle: string;
+  addModPlaceholder: string;
+  showMore: string;
+  collapse: string;
+  showRemainingTitle: string;
+  noItemsRegistered: string;
+  deleteConfirm: string;
+  noMatch: string;
+  favoriteOn: string;
+  favoriteOff: string;
+  editModalTitle: string;
+  chainViewLinkOptional: string;
+  memoLabel: string;
+  memoHint: string;
+  optionalPlaceholder: string;
+  cancel: string;
+  save: string;
+  addItemModalTitle: string;
+  bulkRegister: string;
+  typeLabel: string;
+  nameFilterLabel: string;
+  namePlaceholder: string;
+  modConfigOptional: string;
+  chainViewAddCheckbox: string;
+  add: string;
+  enterName: string;
+  bulkAddedFeedback: string;
+  buildSetEditTitle: string;
+  buildSetCreateTitle: string;
+  buildSetNameLabel: string;
+  buildSetNamePlaceholder: string;
+  frameFieldLabel: string;
+  addWeapon: string;
+  chainViewLinkProgress: string;
+  chainViewAddCheckboxBuildSet: string;
+  weaponFieldLabel: string;
+  noLink: string;
+  notSelected: string;
+  unknownItem: string;
+  enterBuildSetName: string;
+  notConfigured: string;
+  noWeapons: string;
+  fetchFailed: string;
+  progressDone: string;
+  copyBuildSetTitle: string;
+  loading: string;
+}
+const STRINGS: Record<Locale, UIStrings> = {
+  ja: {
+    refreshUpdating: "更新中…",
+    refreshDone: "更新完了",
+    refreshTitle: "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください",
+    helpToggleTitle: "このページについて",
+    helpPopover:
+      "<div style='margin-bottom:8px;'>フレーム/武器ごとのMODコンフィグ（A/B/C）とビルドセットの管理ページです。</div>" +
+      "<ul style='margin:0 0 10px;padding-left:18px;'>" +
+      "<li>Itemsは種別（Frame/Weapon/Companion/Archwing/Necramech）ごとにサブセクション分けされています</li>" +
+      "<li>星マーク（★）は「今のビルドで使ってる/優先度高い」という主観マーカーで、お気に入りが各セクションの先頭に並びます（並び順は起動時点で固定され、編集中に急に順番が変わることはありません）</li>" +
+      "<li>各セクションは右上のアイコンで開閉でき、状態は次回起動時も引き継がれます</li>" +
+      "<li>名前で絞り込み検索ができます。8件を超える分は「もっと見る」で表示／折りたたみを切り替えられます</li>" +
+      "<li>見出し横の＋アイコンから新規登録できます</li>" +
+      "<li>Chain Viewと連携済みのアイテムには、カード内に進捗のミニグラフが表示されます（色の意味はItems見出し横の凡例を参照。点にカーソルを合わせると内訳が出ます）</li>" +
+      "</ul>" +
+      "<div>⚠️ フレーム/武器名やビルド名など、未プレイのコンテンツ名が表示されることがあります。</div>",
+    itemsHeading: "Items（Frame / Weapon）— A/B/C コンフィグ管理",
+    buildSetsHeading: "Build Sets（フレーム＋武器の組み合わせ）",
+    newRegistration: "新規登録",
+    toggleOpenClose: "開閉",
+    statusSatisfied: "達成済み",
+    statusActionable: "実行可能",
+    statusBlocked: "前提待ち",
+    itemMinigraphLegendTitle: "Chain View連携アイテムのミニグラフの色",
+    buildsetMinigraphLegendTitle: "Chain View連携ビルドのミニグラフの色",
+    filterByName: "名前で絞り込み",
+    noModsShort: "MODなし",
+    copyItemTitle: "フレーム/MOD/メモをテキストでコピー",
+    deleteTitle: "削除",
+    addModPlaceholder: "MOD名を追加してEnter",
+    showMore: "もっと見る（+{n}）",
+    collapse: "折りたたむ",
+    showRemainingTitle: "残り{n}件を表示",
+    noItemsRegistered: "まだ登録がありません（見出し横の＋から登録できます）",
+    deleteConfirm: "「{name}」を削除する？",
+    noMatch: "一致なし（このまま自由入力できます）",
+    favoriteOn: "お気に入り解除",
+    favoriteOff: "お気に入りにする",
+    editModalTitle: "{name} を編集",
+    chainViewLinkOptional: "Chain View連携（任意）",
+    memoLabel: "メモ",
+    memoHint: "**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）",
+    optionalPlaceholder: "任意",
+    cancel: "キャンセル",
+    save: "保存",
+    addItemModalTitle: "アイテムを追加",
+    bulkRegister: "連続登録（名前だけで追加を続ける）",
+    typeLabel: "種別",
+    nameFilterLabel: "名前（キーワードで絞り込み）",
+    namePlaceholder: "例: Ash",
+    modConfigOptional: "MOD（Config A、任意）",
+    chainViewAddCheckbox: "Chain Viewにも追加する（未入手を追跡、Frame/Weaponのみ）",
+    add: "追加",
+    enterName: "名前を入力して",
+    bulkAddedFeedback: "{n}件追加しました（最新: {name}）",
+    buildSetEditTitle: "Build Set を編集",
+    buildSetCreateTitle: "Build Set を作成",
+    buildSetNameLabel: "ビルドセット名",
+    buildSetNamePlaceholder: "例: Ash Stealth Set",
+    frameFieldLabel: "Frame:",
+    addWeapon: "武器を追加",
+    chainViewLinkProgress: "Chain View連携（進捗を横断表示、任意）",
+    chainViewAddCheckboxBuildSet: "Chain Viewにも追加する（Frameと武器から自動生成、任意）",
+    weaponFieldLabel: "Weapon{n}:",
+    noLink: "（連携なし）",
+    notSelected: "（未選択）",
+    unknownItem: "(不明なアイテム: {id})",
+    enterBuildSetName: "ビルドセット名を入力して",
+    notConfigured: "（未設定）",
+    noWeapons: "武器なし",
+    fetchFailed: "取得失敗",
+    progressDone: "{done} / {total} 完了（{pct}%）",
+    copyBuildSetTitle: "ビルドセットをテキストでコピー",
+    loading: "読み込み中…",
+  },
+  en: {
+    refreshUpdating: "Updating…",
+    refreshDone: "Updated",
+    refreshTitle: "Press this if a new frame/weapon etc. added by a game update isn't showing up as a candidate",
+    helpToggleTitle: "About this page",
+    helpPopover:
+      "<div style='margin-bottom:8px;'>Manages per-frame/weapon MOD configs (A/B/C) and Build Sets.</div>" +
+      "<ul style='margin:0 0 10px;padding-left:18px;'>" +
+      "<li>Items is split into subsections by type (Frame/Weapon/Companion/Archwing/Necramech).</li>" +
+      "<li>The star (★) is a subjective \"currently using this / high priority\" marker — favorites sort to the front of each section (the order is fixed at page load, so it won't suddenly jump around mid-edit).</li>" +
+      "<li>Each section can be collapsed via the icon at top right; the state carries over to the next launch.</li>" +
+      "<li>You can filter by name. Beyond 8 entries, \"Show more\" toggles the rest.</li>" +
+      "<li>Register a new one from the + icon next to the heading.</li>" +
+      "<li>Items linked to Chain View show a small progress graph on their card (see the legend next to the Items heading for what the colors mean — hover a dot for the breakdown).</li>" +
+      "</ul>" +
+      "<div>⚠️ Frame/weapon/build names and similar may be shown here even for content you haven't played yet.</div>",
+    itemsHeading: "Items (Frame / Weapon) — A/B/C config management",
+    buildSetsHeading: "Build Sets (frame + weapon combinations)",
+    newRegistration: "New registration",
+    toggleOpenClose: "Toggle",
+    statusSatisfied: "Satisfied",
+    statusActionable: "Actionable",
+    statusBlocked: "Blocked",
+    itemMinigraphLegendTitle: "Color meaning for Chain-View-linked items' mini graph",
+    buildsetMinigraphLegendTitle: "Color meaning for Chain-View-linked builds' mini graph",
+    filterByName: "Filter by name",
+    noModsShort: "No mods",
+    copyItemTitle: "Copy frame/MODs/memo as text",
+    deleteTitle: "Delete",
+    addModPlaceholder: "Add a MOD name, then Enter",
+    showMore: "Show more (+{n})",
+    collapse: "Collapse",
+    showRemainingTitle: "Show the remaining {n}",
+    noItemsRegistered: "Nothing registered yet (use the + next to the heading)",
+    deleteConfirm: "Delete “{name}”?",
+    noMatch: "No match (you can still type it in freely)",
+    favoriteOn: "Unfavorite",
+    favoriteOff: "Favorite",
+    editModalTitle: "Edit {name}",
+    chainViewLinkOptional: "Chain View link (optional)",
+    memoLabel: "Memo",
+    memoHint: "**bold** / - for a bullet / - [ ] · - [x] for a checklist (click to toggle completion after saving)",
+    optionalPlaceholder: "Optional",
+    cancel: "Cancel",
+    save: "Save",
+    addItemModalTitle: "Add an item",
+    bulkRegister: "Bulk-register (keep adding by name only)",
+    typeLabel: "Type",
+    nameFilterLabel: "Name (type to filter)",
+    namePlaceholder: "e.g. Ash",
+    modConfigOptional: "MODs (Config A, optional)",
+    chainViewAddCheckbox: "Also add to Chain View (tracks not-yet-owned, Frame/Weapon only)",
+    add: "Add",
+    enterName: "Enter a name",
+    bulkAddedFeedback: "Added {n} so far (latest: {name})",
+    buildSetEditTitle: "Edit Build Set",
+    buildSetCreateTitle: "Create a Build Set",
+    buildSetNameLabel: "Build Set name",
+    buildSetNamePlaceholder: "e.g. Ash Stealth Set",
+    frameFieldLabel: "Frame:",
+    addWeapon: "Add a weapon",
+    chainViewLinkProgress: "Chain View link (cross-page progress display, optional)",
+    chainViewAddCheckboxBuildSet: "Also add to Chain View (auto-generated from the frame and weapons, optional)",
+    weaponFieldLabel: "Weapon{n}:",
+    noLink: "(no link)",
+    notSelected: "(not selected)",
+    unknownItem: "(unknown item: {id})",
+    enterBuildSetName: "Enter a Build Set name",
+    notConfigured: "(not set)",
+    noWeapons: "No weapons",
+    fetchFailed: "Failed to fetch",
+    progressDone: "{done} / {total} done ({pct}%)",
+    copyBuildSetTitle: "Copy this Build Set as text",
+    loading: "Loading…",
+  },
+};
+function t(): UIStrings {
+  return STRINGS[effective()];
+}
+function fmt(template: string, vars: Record<string, string | number>): string {
+  return Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), template);
+}
 
 // Per-panel collapsed state persists in localStorage (same pattern as
 // web/collections.html's initPlainCollapsible, 2026-08-23).
@@ -85,18 +317,18 @@ el("refresh-wfcd-btn").addEventListener("click", async () => {
   const btn = el("refresh-wfcd-btn");
   (btn as HTMLButtonElement).disabled = true;
   btn.classList.add("spinning");
-  btn.title = "更新中…";
+  btn.title = t().refreshUpdating;
   await fetch("/api/wfcd/refresh", { method: "POST" });
   await loadReferenceData();
   btn.classList.remove("spinning");
   btn.classList.add("success");
   btn.innerHTML = icon("check");
-  btn.title = "更新完了";
+  btn.title = t().refreshDone;
   setTimeout(() => {
     btn.classList.remove("success");
     btn.innerHTML = icon("refresh-cw");
     (btn as HTMLButtonElement).disabled = false;
-    btn.title = "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください";
+    btn.title = t().refreshTitle;
   }, 2000);
 });
 
@@ -147,7 +379,7 @@ function escapeHtml(s: unknown): string {
 }
 function chainViewOptions(selectedId: string | undefined): string {
   return (
-    `<option value="">（連携なし）</option>` +
+    `<option value="">${t().noLink}</option>` +
     Object.values(state.nodesById)
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((n) => `<option value="${n.id}" ${n.id === selectedId ? "selected" : ""}>${escapeHtml(n.name)}（${n.type}）</option>`)
@@ -193,7 +425,7 @@ function render(): void {
 
 // Same favorite-star button as Collections (Riven/Kuva), 2026-08-20 added to Item too.
 function starBtn(favorite: boolean | undefined, dataAttrs: string): string {
-  return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? "お気に入り解除" : "お気に入りにする"}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
+  return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? t().favoriteOn : t().favoriteOff}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
 }
 function toggleItemFavorite(id: string): void {
   const item = state.data.items[id]!;
@@ -218,7 +450,7 @@ function itemCardHtml(item: Item): string {
   const tags =
     mods
       .map((m, i) => `<span class="mod-tag">${escapeHtml(m)}<span class="x" data-item="${item.id}" data-slot="${activeSlot}" data-idx="${i}">${icon("x", { size: 12 })}</span></span>`)
-      .join("") || `<span class="empty">MODなし</span>`;
+      .join("") || `<span class="empty">${t().noModsShort}</span>`;
 
   return `
       <div class="item-card" data-open-item="${item.id}">
@@ -228,16 +460,15 @@ function itemCardHtml(item: Item): string {
             <span class="item-name">${escapeHtml(item.name)}</span>
           </div>
           <div class="inline-form">
-            <button class="icon-btn" data-copy-item="${item.id}" title="フレーム/MOD/メモをテキストでコピー">${icon("copy")}</button>
-            <button class="icon-btn" data-edit-item-meta="${item.id}" title="連携・メモを編集">${icon("pencil")}</button>
-            <button class="icon-btn danger" data-del-item="${item.id}" title="削除">${icon("trash-2")}</button>
+            <button class="icon-btn" data-copy-item="${item.id}" title="${t().copyItemTitle}">${icon("copy")}</button>
+            <button class="icon-btn danger" data-del-item="${item.id}" title="${t().deleteTitle}">${icon("trash-2")}</button>
           </div>
         </div>
         ${item.chainViewNodeId ? `<div id="minigraph-item-${item.id}"></div>` : ""}
         <div class="tabs">${tabs}</div>
         <div class="mod-tags">${tags}</div>
         <div class="inline-form">
-          <input type="text" placeholder="MOD名を追加してEnter" data-add-mod="${item.id}" data-slot="${activeSlot}" class="mod-input" autocomplete="off">
+          <input type="text" placeholder="${t().addModPlaceholder}" data-add-mod="${item.id}" data-slot="${activeSlot}" class="mod-input" autocomplete="off">
         </div>
         ${item.note ? `<div class="card-memo" id="notemd-item-${item.id}"></div>` : ""}
       </div>`;
@@ -311,11 +542,11 @@ function renderItems(): void {
       let toggleHtml = "";
       if (!query && typeItems.length > PAGE_SIZE) {
         toggleHtml = userExpanded
-          ? `<button class="show-more-card" data-collapse-items="${type}">${iconLabel("chevron-up", "折りたたむ")}</button>`
-          : `<button class="show-more-card" data-show-more-items="${type}" title="残り${moreCount}件を表示">${iconLabel("chevron-down", `もっと見る（+${moreCount}）`)}</button>`;
+          ? `<button class="show-more-card" data-collapse-items="${type}">${iconLabel("chevron-up", t().collapse)}</button>`
+          : `<button class="show-more-card" data-show-more-items="${type}" title="${fmt(t().showRemainingTitle, { n: moreCount })}">${iconLabel("chevron-down", fmt(t().showMore, { n: moreCount }))}</button>`;
       }
       return `<div class="kind-group-title" id="items-type-${type}">${type}（${typeItems.length}）</div><div class="items-grid">${shown.map(itemCardHtml).join("")}${toggleHtml}</div>`;
-    }).join("") || `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+    }).join("") || `<div class="empty">${t().noItemsRegistered}</div>`;
 
   listEl.querySelectorAll<HTMLElement>("[data-show-more-items]").forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -360,16 +591,16 @@ function renderItems(): void {
   wireCopyButtons(listEl, "[data-copy-item]", (btn) => buildItemExportText(state.data.items[btn.dataset.copyItem!]!));
   listEl.querySelectorAll<HTMLElement>("[data-del-item]").forEach((btn) =>
     btn.addEventListener("click", async () => {
-      if (await confirmInline(btn, `「${state.data.items[btn.dataset.delItem!]!.name}」を削除する？`)) void deleteItem(btn.dataset.delItem!);
+      if (await confirmInline(btn, fmt(t().deleteConfirm, { name: state.data.items[btn.dataset.delItem!]!.name }))) void deleteItem(btn.dataset.delItem!);
     })
   );
-  listEl.querySelectorAll<HTMLElement>("[data-edit-item-meta]").forEach((btn) =>
-    btn.addEventListener("click", () => openItemEditModal(btn.dataset.editItemMeta!))
-  );
-
   // Card click opens the edit (link/note) modal. Individual controls (tab
   // switch, MOD add/remove) are excluded so they don't also trigger it
   // (same mechanism as web/collections.html's data-open-riven, 2026-08-23).
+  // There used to be a pencil button here doing exactly the same thing;
+  // removed 2026-08-30 (のっち指摘: it conflicted with the card click —
+  // two controls for one action, and the button sat inside the card so it
+  // needed its own stopPropagation dance). Card click is now the only way in.
   listEl.querySelectorAll<HTMLElement>("[data-open-item]").forEach((card) =>
     card.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
@@ -409,7 +640,7 @@ function updateModSuggest(input: HTMLInputElement): void {
   const matches = refData.mods.filter((n) => n.toLowerCase().includes(q)).slice(0, 30);
   modSuggestEl.innerHTML = matches.length
     ? matches.map((n) => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("")
-    : `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+    : `<div class="suggest-empty">${t().noMatch}</div>`;
   modSuggestEl.querySelectorAll<HTMLElement>(".suggest-item").forEach((item) => {
     item.addEventListener("mousedown", (e) => {
       e.preventDefault();
@@ -444,7 +675,7 @@ let itemEditId: string | null = null;
 function openItemEditModal(itemId: string): void {
   const item = state.data.items[itemId]!;
   itemEditId = itemId;
-  el("item-edit-modal-title").textContent = `${item.name} を編集`;
+  el("item-edit-modal-title").textContent = fmt(t().editModalTitle, { name: item.name });
   el<HTMLSelectElement>("item-edit-chainview").innerHTML = chainViewOptions(item.chainViewNodeId);
   el<HTMLTextAreaElement>("item-edit-note").value = item.note ?? "";
   el("item-edit-modal-backdrop").classList.remove("hidden");
@@ -470,7 +701,7 @@ function renderNewItemModTags(): void {
   const tagsEl = el("new-item-mod-tags");
   tagsEl.innerHTML =
     newItemMods.map((m, i) => `<span class="mod-tag">${escapeHtml(m)}<span class="x" data-remove-new-mod="${i}">${icon("x", { size: 12 })}</span></span>`).join("") ||
-    `<span class="empty">MODなし</span>`;
+    `<span class="empty">${t().noModsShort}</span>`;
   tagsEl.querySelectorAll<HTMLElement>("[data-remove-new-mod]").forEach((x) =>
     x.addEventListener("click", () => {
       newItemMods.splice(Number(x.dataset.removeNewMod), 1);
@@ -515,7 +746,7 @@ el("add-item-btn").addEventListener("click", async () => {
   const name = el<HTMLInputElement>("new-item-name").value.trim();
   const type = el<HTMLSelectElement>("new-item-type").value as ItemType;
   if (!name) {
-    showToast("名前を入力して");
+    showToast(t().enterName);
     return;
   }
   const bulk = el<HTMLInputElement>("item-bulk-check").checked;
@@ -527,7 +758,7 @@ el("add-item-btn").addEventListener("click", async () => {
     void forcePushToCollections(type, name, true);
     itemBulkCount++;
     const fb = el("item-bulk-feedback");
-    fb.textContent = `${itemBulkCount}件追加しました（最新: ${name}）`;
+    fb.textContent = fmt(t().bulkAddedFeedback, { n: itemBulkCount, name });
     fb.classList.remove("hidden");
     const nameInput = el<HTMLInputElement>("new-item-name");
     nameInput.value = "";
@@ -539,16 +770,19 @@ el("add-item-btn").addEventListener("click", async () => {
   const item = await createItem(name, type, newItemMods, note);
   closeItemModal();
 
-  // Cross-page auto-link (2026-08-25 item 27): the Chain View add is opt-in
-  // (checkbox, Frame/Weapon only), the Collections registration is always
-  // forced regardless of type (same-name reuses the existing entry). Either
-  // way the user never picks an id/name themselves — generation and linking
-  // happen behind the scenes.
-  if (wantsChainView && (type === "Frame" || type === "Weapon")) {
-    const chainViewNodeId = await autoGenerateChainViewNode(type, name);
-    if (chainViewNodeId) await updateItem({ ...item, chainViewNodeId });
-  }
+  // Collections registration is always forced regardless of type (same-name
+  // reuses the existing entry, 2026-08-25 item 27) — done first so it's not
+  // skipped by the navigation below.
   await forcePushToCollections(type, name, true);
+
+  // Chain View add is opt-in (checkbox, Frame/Weapon only). Was a silent
+  // background generate (autoGenerateChainViewNode) that never let relic
+  // candidates be picked; now navigates to the real WFCD wizard pre-filled,
+  // which links back to this item once the import completes (2026-08-30,
+  // のっち依頼 — "レリックも登録できるように").
+  if (wantsChainView && (type === "Frame" || type === "Weapon")) {
+    location.href = `/?wfcd-generate=${encodeURIComponent(type)}&wfcd-name=${encodeURIComponent(name)}&link-back=loadout-item:${encodeURIComponent(item.id)}`;
+  }
 });
 
 const newItemModInput = el<HTMLInputElement>("new-item-mod-input");
@@ -592,17 +826,17 @@ let draft: BuildSetDraft = { name: "", frameId: "", frameSlot: "A", weapons: [],
 
 function chainViewBuildOptions(selectedId: string | undefined): string {
   return (
-    `<option value="">（連携なし）</option>` +
+    `<option value="">${t().noLink}</option>` +
     state.chainViewBuilds.map((b) => `<option value="${b.id}" ${b.id === selectedId ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")
   );
 }
 function frameOptions(selectedId: string): string {
   const frames = Object.values(state.data.items).filter((i) => i.type === "Frame");
-  return `<option value="">（未選択）</option>` + frames.map((f) => `<option value="${f.id}" ${f.id === selectedId ? "selected" : ""}>${escapeHtml(f.name)}</option>`).join("");
+  return `<option value="">${t().notSelected}</option>` + frames.map((f) => `<option value="${f.id}" ${f.id === selectedId ? "selected" : ""}>${escapeHtml(f.name)}</option>`).join("");
 }
 function weaponOptions(selectedId: string): string {
   const weapons = Object.values(state.data.items).filter((i) => i.type === "Weapon");
-  return `<option value="">（未選択）</option>` + weapons.map((w) => `<option value="${w.id}" ${w.id === selectedId ? "selected" : ""}>${escapeHtml(w.name)}</option>`).join("");
+  return `<option value="">${t().notSelected}</option>` + weapons.map((w) => `<option value="${w.id}" ${w.id === selectedId ? "selected" : ""}>${escapeHtml(w.name)}</option>`).join("");
 }
 function slotOptions(selected: ConfigSlot): string {
   return (["A", "B", "C"] as ConfigSlot[]).map((s) => `<option value="${s}" ${s === selected ? "selected" : ""}>${s}</option>`).join("");
@@ -622,7 +856,7 @@ function openBuildSetModal(editId?: string): void {
         note: set.note ?? "",
       }
     : { name: "", frameId: "", frameSlot: "A", weapons: [], chainViewBuildId: "", note: "" };
-  el("buildset-modal-title").textContent = set ? "Build Set を編集" : "Build Set を作成";
+  el("buildset-modal-title").textContent = set ? t().buildSetEditTitle : t().buildSetCreateTitle;
   renderBuildSetForm();
   el("buildset-modal-backdrop").classList.remove("hidden");
 }
@@ -633,30 +867,30 @@ function closeBuildSetModal(): void {
 function renderBuildSetForm(): void {
   const formEl = el("new-buildset-form");
   formEl.innerHTML = `
-    <label class="field-label">ビルドセット名</label>
-    <input type="text" id="draft-name" placeholder="例: Ash Stealth Set" value="${escapeHtml(draft.name)}">
+    <label class="field-label">${t().buildSetNameLabel}</label>
+    <input type="text" id="draft-name" placeholder="${t().buildSetNamePlaceholder}" value="${escapeHtml(draft.name)}">
     <div class="inline-form" style="margin-top:8px;">
-      <span class="empty">Frame:</span>
+      <span class="empty">${t().frameFieldLabel}</span>
       <select id="draft-frame-id">${frameOptions(draft.frameId)}</select>
       <select id="draft-frame-slot">${slotOptions(draft.frameSlot)}</select>
     </div>
     <div id="draft-weapons" style="margin-top:6px;"></div>
     <div class="inline-form" style="margin-top:6px;">
-      <button type="button" id="draft-add-weapon" title="武器を追加">${iconLabel("plus", "武器を追加")}</button>
+      <button type="button" id="draft-add-weapon" title="${t().addWeapon}">${iconLabel("plus", t().addWeapon)}</button>
     </div>
     ${
       draft.chainViewBuildId
-        ? `<label class="field-label">Chain View連携（進捗を横断表示、任意）</label>
+        ? `<label class="field-label">${t().chainViewLinkProgress}</label>
          <select id="draft-chainview-build">${chainViewBuildOptions(draft.chainViewBuildId)}</select>`
         : `<label class="field-label" style="display:flex;align-items:center;gap:6px;">
-           <input type="checkbox" id="draft-chainview-check" style="width:auto;">Chain Viewにも追加する（Frameと武器から自動生成、任意）
+           <input type="checkbox" id="draft-chainview-check" style="width:auto;">${t().chainViewAddCheckboxBuildSet}
          </label>`
     }
-    <label class="field-label">メモ <span class="help-hint" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）">${icon("circle-alert", { size: 13 })}</span></label>
-    <textarea id="draft-note" placeholder="任意">${escapeHtml(draft.note)}</textarea>
+    <label class="field-label">${t().memoLabel} <span class="help-hint" title="${escapeHtml(t().memoHint)}">${icon("circle-alert", { size: 13 })}</span></label>
+    <textarea id="draft-note" placeholder="${t().optionalPlaceholder}">${escapeHtml(draft.note)}</textarea>
     <div class="actions">
-      <button id="draft-cancel">キャンセル</button>
-      <button class="primary" id="draft-save">保存</button>
+      <button id="draft-cancel">${t().cancel}</button>
+      <button class="primary" id="draft-save">${t().save}</button>
     </div>
   `;
 
@@ -665,7 +899,7 @@ function renderBuildSetForm(): void {
     .map(
       (w, i) => `
     <div class="weapon-ref-row">
-      <span class="empty">Weapon${i + 1}:</span>
+      <span class="empty">${fmt(t().weaponFieldLabel, { n: i + 1 })}</span>
       <select data-w-idx="${i}" data-field="itemId">${weaponOptions(w.itemId)}</select>
       <select data-w-idx="${i}" data-field="config">${slotOptions(w.config)}</select>
       <button class="icon-btn danger" data-remove-weapon="${i}">${icon("x", { size: 14 })}</button>
@@ -712,7 +946,7 @@ function renderBuildSetForm(): void {
   el("draft-cancel").addEventListener("click", closeBuildSetModal);
   el("draft-save").addEventListener("click", async () => {
     if (!draft.name.trim()) {
-      showToast("ビルドセット名を入力して");
+      showToast(t().enterBuildSetName);
       return;
     }
     const wantsChainView = !draft.chainViewBuildId && maybeEl<HTMLInputElement>("draft-chainview-check")?.checked;
@@ -771,9 +1005,9 @@ async function autoComposeBuildSetChainView(name: string, frameItemId: string, w
 
 function itemLabel(itemId: string, config: ConfigSlot): string {
   const item = state.data.items[itemId];
-  if (!item) return `(不明なアイテム: ${itemId})`;
+  if (!item) return fmt(t().unknownItem, { id: itemId });
   const mods = item.configs?.[config] ?? [];
-  return `${escapeHtml(item.name)}（Config ${config}: ${mods.length ? mods.map(escapeHtml).join(", ") : "MODなし"}）`;
+  return `${escapeHtml(item.name)}（Config ${config}: ${mods.length ? mods.map(escapeHtml).join(", ") : t().noModsShort}）`;
 }
 
 let buildsetsSearchQuery = "";
@@ -793,8 +1027,8 @@ function renderBuildSets(): void {
   let toggleHtml = "";
   if (!query && allSets.length > PAGE_SIZE) {
     toggleHtml = buildsetsExpanded
-      ? `<button class="show-more-card" id="buildsets-collapse">${iconLabel("chevron-up", "折りたたむ")}</button>`
-      : `<button class="show-more-card" id="buildsets-show-more" title="残り${moreCount}件を表示">${iconLabel("chevron-down", `もっと見る（+${moreCount}）`)}</button>`;
+      ? `<button class="show-more-card" id="buildsets-collapse">${iconLabel("chevron-up", t().collapse)}</button>`
+      : `<button class="show-more-card" id="buildsets-show-more" title="${fmt(t().showRemainingTitle, { n: moreCount })}">${iconLabel("chevron-down", fmt(t().showMore, { n: moreCount }))}</button>`;
   }
 
   listEl.innerHTML =
@@ -806,20 +1040,19 @@ function renderBuildSets(): void {
       <div class="buildset-head">
         <div class="buildset-name">${escapeHtml(set.name)}</div>
         <div class="inline-form">
-          <button class="icon-btn" data-copy-set="${set.id}" title="ビルドセットをテキストでコピー">${icon("copy")}</button>
-          <button class="icon-btn" data-edit-set="${set.id}" title="編集">${icon("pencil")}</button>
-          <button class="icon-btn danger" data-del-set="${set.id}" title="削除">${icon("trash-2")}</button>
+          <button class="icon-btn" data-copy-set="${set.id}" title="${t().copyBuildSetTitle}">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-set="${set.id}" title="${t().deleteTitle}">${icon("trash-2")}</button>
         </div>
       </div>
       ${set.chainViewBuildId ? `<div id="minigraph-buildset-${set.id}"></div>` : ""}
-      <div class="buildset-row"><b>Frame:</b> ${set.frame ? itemLabel(set.frame.itemId, set.frame.config) : "（未設定）"}</div>
-      ${(set.weapons ?? []).map((w) => `<div class="buildset-row"><b>Weapon:</b> ${itemLabel(w.itemId, w.config)}</div>`).join("") || `<div class="buildset-row">武器なし</div>`}
-      ${linkedBuild ? `<div class="buildset-row" data-progress-for="${set.chainViewBuildId}"><b>Chain View:</b> ${escapeHtml(linkedBuild.name)} — <span class="progress-text">読み込み中…</span></div>` : ""}
+      <div class="buildset-row"><b>${t().frameFieldLabel}</b> ${set.frame ? itemLabel(set.frame.itemId, set.frame.config) : t().notConfigured}</div>
+      ${(set.weapons ?? []).map((w) => `<div class="buildset-row"><b>Weapon:</b> ${itemLabel(w.itemId, w.config)}</div>`).join("") || `<div class="buildset-row">${t().noWeapons}</div>`}
+      ${linkedBuild ? `<div class="buildset-row" data-progress-for="${set.chainViewBuildId}"><b>Chain View:</b> ${escapeHtml(linkedBuild.name)} — <span class="progress-text">${t().loading}</span></div>` : ""}
       ${set.note ? `<div class="card-memo" id="notemd-buildset-${set.id}"></div>` : ""}
     </div>
   `;
       })
-      .join("") + toggleHtml || `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+      .join("") + toggleHtml || `<div class="empty">${t().noItemsRegistered}</div>`;
 
   const showMoreBtn = maybeEl("buildsets-show-more");
   if (showMoreBtn) {
@@ -839,13 +1072,7 @@ function renderBuildSets(): void {
   listEl.querySelectorAll<HTMLElement>("[data-del-set]").forEach((btn) =>
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (await confirmInline(btn, `「${state.data.buildSets[btn.dataset.delSet!]!.name}」を削除する？`)) void deleteBuildSet(btn.dataset.delSet!);
-    })
-  );
-  listEl.querySelectorAll<HTMLElement>("[data-edit-set]").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      openBuildSetModal(btn.dataset.editSet);
+      if (await confirmInline(btn, fmt(t().deleteConfirm, { name: state.data.buildSets[btn.dataset.delSet!]!.name }))) void deleteBuildSet(btn.dataset.delSet!);
     })
   );
   wireCopyButtons(listEl, "[data-copy-set]", (btn) => buildBuildSetExportText(state.data.buildSets[btn.dataset.copySet!]!, state.data.items));
@@ -867,12 +1094,12 @@ function renderBuildSets(): void {
         const span = row.querySelector(".progress-text");
         if (!span) return;
         if (!report) {
-          span.textContent = "取得失敗";
+          span.textContent = t().fetchFailed;
           return;
         }
         const { done, total } = report.progress;
         const pct = total ? Math.round((done / total) * 100) : 0;
-        span.textContent = `${done} / ${total} 完了（${pct}%）`;
+        span.textContent = fmt(t().progressDone, { done, total, pct });
       })
       .catch(() => {});
   });
@@ -945,7 +1172,7 @@ function updateSuggest(): void {
 
   const matches = pool.filter((n) => n.toLowerCase().includes(q)).slice(0, 30);
   if (!matches.length) {
-    suggestEl.innerHTML = `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+    suggestEl.innerHTML = `<div class="suggest-empty">${t().noMatch}</div>`;
   } else {
     suggestEl.innerHTML = matches.map((n) => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("");
     suggestEl.querySelectorAll<HTMLElement>(".suggest-item").forEach((item) => {
@@ -963,6 +1190,12 @@ function updateSuggest(): void {
 nameInput.addEventListener("input", updateSuggest);
 nameInput.addEventListener("focus", updateSuggest);
 nameInput.addEventListener("blur", hideSuggest);
+
+applyI18nText(STRINGS);
+onLocaleChange(() => {
+  applyI18nText(STRINGS);
+  render();
+});
 
 void loadReferenceData();
 void loadChainViewGraph().then(loadAll);

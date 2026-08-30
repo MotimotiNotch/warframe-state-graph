@@ -106,6 +106,7 @@
     border-radius: 18px;
     padding: 14px;
   }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .panel-title {
     font-size: 0.78rem;
     text-transform: uppercase;
@@ -113,6 +114,26 @@
     color: var(--muted);
     margin: 0 0 10px;
   }
+  /* このページには元々無かった共有クラス（icon-btn/popover）。他ページ
+     （例: stats.html）と全く同じ値——タイマー/クイックメモの「！」ポップ
+     オーバーがこのページだけ常時表示のまま閉じられなかった不具合の原因
+     （2026-08-30、のっち報告）。マニュアルボタンのダークモード未対応も
+     同じくicon-btn欠落が原因だった。 */
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 4px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    background: var(--popover-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4); min-width: 220px; max-width: 320px;
+    overflow-wrap: break-word;
+  }
+  .popover.hidden { display: none; }
   /* note-live-editor自体のベースCSSはscratch.tsがページ共通で注入済み
      （クイックメモウィジェット用、`.note-live-editor`クラスは意図的に
      全ページ共通スコープ、scratch.tsのコメント参照）。ここでは「大きい
@@ -139,13 +160,16 @@
   </nav>
 
   <div class="panel">
-    <div class="panel-title">Note</div>
+    <div class="panel-head">
+      <div class="panel-title" style="margin:0;">Note</div>
+      <div class="popover-wrap">
+        <button class="icon-btn" id="note-help-toggle"></button>
+        <div class="popover hidden" id="note-help-popover"></div>
+      </div>
+    </div>
     <div id="note-editor"></div>
   </div>
 
 <script type="module" src="/note.js"></script>
-<script src="/notemd.js"></script>
-<script src="/wallpaper.js"></script>
-<script src="/theme.js"></script>
-<script src="/scroll-top.js"></script></body>
+</body>
 </html>

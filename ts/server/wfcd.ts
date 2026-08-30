@@ -252,12 +252,18 @@ export const RELIC_ERA_PREFIX = "Lith|Meso|Neo|Axi|Vanguard";
 // string value structure-agnostically rather than depending on the shape.
 const RELIC_NAME_PATTERN = new RegExp(`^(${RELIC_ERA_PREFIX}) [A-Z]\\d{1,2}(?: Relic)?(?: \\([^)]*\\))?$`);
 
-/** "Axi A22 Relic (Radiant)" -> "Axi A22". Refinement state doesn't affect vault status. */
+// "Axi A22 Relic (Radiant)" -> "Axi A22" (missionRewards.json's format), and
+// "Lith T13 Intact" -> "Lith T13" (Relics.json's own `name` field format —
+// refinement as a bare trailing word, not a parenthetical). Refinement state
+// doesn't affect vault status; a real relic base name never ends with one of
+// these 4 words, so stripping it is always safe.
+const REFINEMENT_SUFFIX = / (Intact|Exceptional|Flawless|Radiant)$/;
 function normalizeRelicName(name: string): string {
   let n = name.trim();
   const parenIdx = n.indexOf(" (");
   if (parenIdx >= 0) n = n.slice(0, parenIdx);
   n = n.replace(/ Relic$/, "");
+  n = n.replace(REFINEMENT_SUFFIX, "");
   return n.trim();
 }
 
@@ -374,6 +380,33 @@ export async function fetchVaultTrader(): Promise<VaultTrader> {
  * refresh, no auto-polling" policy it's still cached like everything else. */
 export async function cachedVaultTrader(cacheDir: string): Promise<VaultTrader> {
   return cachedJSON(cacheDir, "vault-trader.json", fetchVaultTrader);
+}
+
+/** Which relics are currently purchasable via Prime Resurgence (Varzia), and
+ * until when. Varzia's inventory items are "Void Projection" bundles (e.g.
+ * "T1 Void Projection Revenant Baruuk Vault A Bronze"), which share no
+ * substring with the relic's own display name ("Lith T13") — but each
+ * relic's WFCD `uniqueName` encodes that exact bundle name as its path tail
+ * (".../T1VoidProjectionRevenantBaruukVaultABronze"), spaces stripped. That
+ * gives an exact join between the two, found 2026-08-30 while tracking down
+ * why a relic on Varzia's active rotation still only showed a plain Vaulted
+ * badge with no Resurgence indicator — Relic nodes never attempted this
+ * check at all (only frame/weapon nodes did, via a substring match against
+ * their own name, which relics can't match either). */
+export async function resurgenceRelicNames(cacheDir: string): Promise<Map<string, string>> {
+  const [vaultTrader, relics] = await Promise.all([cachedVaultTrader(cacheDir), cachedItemsFull(cacheDir, CategoryRelics)]);
+  const byUniqueTail = new Map<string, string>();
+  for (const r of relics) {
+    if (!r.uniqueName) continue;
+    const tail = r.uniqueName.slice(r.uniqueName.lastIndexOf("/") + 1);
+    byUniqueTail.set(tail, normalizeRelicName(r.name));
+  }
+  const result = new Map<string, string>();
+  for (const entry of vaultTrader.inventory) {
+    const relicName = byUniqueTail.get(entry.item.replace(/\s+/g, ""));
+    if (relicName) result.set(relicName, vaultTrader.expiry);
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------

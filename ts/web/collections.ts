@@ -26,7 +26,6 @@ import {
   formatRivenStat,
   wireCopyButtons,
 } from "./export.ts";
-import { autoGenerateChainViewNode } from "./wfcd-autolink.ts";
 import "./card-tilt.ts";
 import "./booster.ts";
 import "./spoiler-warning.ts";
@@ -34,6 +33,422 @@ import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
 import "./kofi-link.ts";
+import "./locale.ts";
+import "./theme.ts";
+import "./wallpaper.ts";
+import "./scroll-top.ts";
+import { applyI18nText, effective, onLocaleChange } from "./locale.ts";
+
+interface UIStrings {
+  [key: string]: string;
+  refreshUpdating: string;
+  refreshDone: string;
+  refreshTitle: string;
+  duviriRevealed: string;
+  lockedSection: string;
+  linkedBadgeDone: string;
+  linkedBadgeNotDone: string;
+  unfavorite: string;
+  favorite: string;
+  positiveStatsLabel: string;
+  selectedCount: string;
+  notSelected: string;
+  numberPlaceholder: string;
+  noneOption: string;
+  weaponNotFound: string;
+  weaponArchetype: string;
+  archetypeHelp: string;
+  positiveMatch: string;
+  noMatchingStat: string;
+  rivenEditTitle: string;
+  rivenNewTitle: string;
+  enterWeaponName: string;
+  bulkAdded: string;
+  emptyRegistry: string;
+  fixedTitle: string;
+  rerollingTitle: string;
+  copyAsText: string;
+  delete: string;
+  edit: string;
+  positiveLabel: string;
+  negativeLabel: string;
+  deleteConfirm: string;
+  countUnit: string;
+  ownedTitle: string;
+  notOwnedTitle: string;
+  kuvaNewTitle: string;
+  weaponNameLabel: string;
+  kuvaWeaponPlaceholder: string;
+  bonusStatLabel: string;
+  noEntryForWeapon: string;
+  deleteIndividualConfirm: string;
+  addAnother: string;
+  register: string;
+  noMatchFreeform: string;
+  acquiredTitle: string;
+  notAcquiredTitle: string;
+  rank30Title: string;
+  notRank30Title: string;
+  helminthTitle: string;
+  notHelminthTitle: string;
+  frameEditTitle: string;
+  frameNewTitle: string;
+  enterFrameName: string;
+  skippedDuplicate: string;
+  weaponLabel: string;
+  companionLabel: string;
+  editSuffix: string;
+  newSuffix: string;
+  enterNameSuffix: string;
+  obtainedTitle: string;
+  notObtainedTitle: string;
+  incarnonDoneTitle: string;
+  notIncarnonTitle: string;
+  incarnonEditTitle: string;
+  incarnonNewTitle: string;
+  helpToggleTitle: string;
+  helpPopoverHtml: string;
+  addNew: string;
+  chevronToggle: string;
+  frameSectionHeading: string;
+  weaponSectionHeading: string;
+  companionSectionHeading: string;
+  archwingSectionHeading: string;
+  necramechSectionHeading: string;
+  rivenSectionHeading: string;
+  kuvaSectionHeading: string;
+  duviriWarning: string;
+  legendAcquired: string;
+  legendRank30: string;
+  legendHelminth: string;
+  legendFixed: string;
+  legendOwned: string;
+  legendObtained: string;
+  legendIncarnonDone: string;
+  rollFixedCheck: string;
+  bulkRegister: string;
+  rivenWeaponLabel: string;
+  rivenWeaponPlaceholder: string;
+  positiveStatsField: string;
+  negativeStatField: string;
+  memoLabel: string;
+  memoHelpTitle: string;
+  optional: string;
+  cancel: string;
+  save: string;
+  ownedCheck: string;
+  lineageLabel: string;
+  bonusStatField: string;
+  dismiss: string;
+  close: string;
+  frameNameLabel: string;
+  framePlaceholder: string;
+  acquiredCheck: string;
+  rank30Check: string;
+  helminthCheck: string;
+  addToChainView: string;
+  weaponNameField: string;
+  weaponPlaceholder: string;
+  companionNameLabel: string;
+  companionPlaceholder: string;
+  archwingNameLabel: string;
+  archwingPlaceholder: string;
+  necramechNameLabel: string;
+  necramechPlaceholder: string;
+  incarnonWeaponLabel: string;
+  incarnonPlaceholder: string;
+  incarnonObtainedCheck: string;
+  incarnonCompletedCheck: string;
+  dmgImpact: string;
+  dmgHeat: string;
+  dmgCold: string;
+  dmgElectricity: string;
+  dmgToxin: string;
+  dmgMagnetic: string;
+  dmgRadiation: string;
+}
+
+const STRINGS: Record<"ja" | "en", UIStrings> = {
+  ja: {
+    refreshUpdating: "更新中…",
+    refreshDone: "更新完了",
+    refreshTitle: "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください",
+    duviriRevealed: "デュビリ（インカーノン）",
+    lockedSection: "未解放セクション",
+    linkedBadgeDone: "達成済み",
+    linkedBadgeNotDone: "未達成",
+    unfavorite: "お気に入り解除",
+    favorite: "お気に入りにする",
+    positiveStatsLabel: "ポジ値",
+    selectedCount: "件選択",
+    notSelected: "未選択",
+    numberPlaceholder: "数値%",
+    noneOption: "（なし）",
+    weaponNotFound: "がWFCDデータに見つかりません（完全一致が必要）",
+    weaponArchetype: "武器アーキタイプ:",
+    archetypeHelp:
+      "武器の素の会心/状態異常率からCrit/Status/Hybrid/Utilityを判定し、選んだポジ値ステータスがそのアーキタイプと噛み合っているかだけを表示します（Damage/Multishotは全アーキタイプ共通で一致扱い）。理論値レンジの計算はしていません。",
+    positiveMatch: "ポジ値と一致",
+    noMatchingStat: "一致ステータスなし",
+    rivenEditTitle: "Riven 編集",
+    rivenNewTitle: "Riven 新規登録",
+    enterWeaponName: "対象武器名を入力して",
+    bulkAdded: "件追加しました（最新:",
+    emptyRegistry: "まだ登録がありません（見出し横の＋から登録できます）",
+    fixedTitle: "確定",
+    rerollingTitle: "リロール中",
+    copyAsText: "テキストでコピー",
+    delete: "削除",
+    edit: "編集",
+    positiveLabel: "ポジ値:",
+    negativeLabel: "ネガ値:",
+    deleteConfirm: "を削除する？",
+    countUnit: "件",
+    ownedTitle: "所持済み",
+    notOwnedTitle: "未所持",
+    kuvaNewTitle: "Kuva / Tenet / Coda — 新規登録",
+    weaponNameLabel: "武器名（WFCD実データ名と完全一致）",
+    kuvaWeaponPlaceholder: "例: Kuva Bramma",
+    bonusStatLabel: "ボーナス属性:",
+    noEntryForWeapon: "まだこの武器は登録されていません",
+    deleteIndividualConfirm: "この個体を削除する？",
+    addAnother: "この武器をもう1件追加",
+    register: "登録する",
+    noMatchFreeform: "一致なし（このまま自由入力できます）",
+    acquiredTitle: "入手済み",
+    notAcquiredTitle: "未入手",
+    rank30Title: "ランク30済み",
+    notRank30Title: "ランク30未達",
+    helminthTitle: "ヘルミンス済み",
+    notHelminthTitle: "ヘルミンス未実施",
+    frameEditTitle: "フレーム 編集",
+    frameNewTitle: "フレーム 新規登録",
+    enterFrameName: "フレーム名を入力して",
+    skippedDuplicate: "既に登録済みのためスキップ:",
+    weaponLabel: "武器",
+    companionLabel: "コンパニオン",
+    editSuffix: "編集",
+    newSuffix: "新規登録",
+    enterNameSuffix: "名を入力して",
+    obtainedTitle: "取得済み",
+    notObtainedTitle: "未取得",
+    incarnonDoneTitle: "インカーノン済み",
+    notIncarnonTitle: "未インカーノン",
+    incarnonEditTitle: "インカーノン 編集",
+    incarnonNewTitle: "インカーノン 新規登録",
+    helpToggleTitle: "このページについて",
+    helpPopoverHtml: `
+          <div style="margin-bottom:8px;">Chain View / Loadoutsとは独立した、フレーム/Riven/Kuvaの入手状況ログです。</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>緑のアイコンは「達成済み」、灰色は「未達成」。1枚に複数の指標がある場合はアイコンの形でカテゴリを区別しています</li>
+            <li>星マーク（★）は「今のビルドで使ってる/優先度高い」という主観マーカーで、状態アイコンとは独立して立てられます。お気に入りが先頭に並びます</li>
+          </ul>
+          <div>⚠️ 一部のセクションは前提クエストクリア後にのみ内容が明らかになります。</div>`,
+    addNew: "新規登録",
+    chevronToggle: "開閉",
+    frameSectionHeading: "フレーム入手状況",
+    weaponSectionHeading: "武器入手状況",
+    companionSectionHeading: "コンパニオン入手状況",
+    archwingSectionHeading: "Archwing入手状況",
+    necramechSectionHeading: "Necramech入手状況",
+    rivenSectionHeading: "Riven Mods",
+    kuvaSectionHeading: "Kuva / Tenet / Coda 武器",
+    duviriWarning: "前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。",
+    legendAcquired: "入手済み",
+    legendRank30: "ランク30済み",
+    legendHelminth: "ヘルミンス済み",
+    legendFixed: "確定",
+    legendOwned: "所持済み",
+    legendObtained: "取得済み",
+    legendIncarnonDone: "インカーノン済み",
+    rollFixedCheck: "ロール確定",
+    bulkRegister: "連続登録（名前だけで追加を続ける）",
+    rivenWeaponLabel: "対象武器名（WFCD実データ名と完全一致）",
+    rivenWeaponPlaceholder: "例: Braton Prime",
+    positiveStatsField: "ポジ値ステータス（複数選択可）",
+    negativeStatField: "ネガ値ステータス（任意）",
+    memoLabel: "メモ",
+    memoHelpTitle: "**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）",
+    optional: "任意",
+    cancel: "キャンセル",
+    save: "保存",
+    ownedCheck: "所持済み",
+    lineageLabel: "系統",
+    bonusStatField: "ボーナス属性（変換に使ったフレームで決まる、任意）",
+    dismiss: "やめる",
+    close: "閉じる",
+    frameNameLabel: "フレーム名（WFCD実データ名と完全一致）",
+    framePlaceholder: "例: Ash Prime",
+    acquiredCheck: "入手済み",
+    rank30Check: "ランク30済み",
+    helminthCheck: "ヘルミンス済み（捧げた）",
+    addToChainView: "Chain Viewに追加する",
+    weaponNameField: "武器名（WFCD実データ名と完全一致）",
+    weaponPlaceholder: "例: Braton Prime",
+    companionNameLabel: "コンパニオン名（WFCD実データ名と完全一致）",
+    companionPlaceholder: "例: Chesa Kubrow",
+    archwingNameLabel: "Archwing名（WFCD実データ名と完全一致）",
+    archwingPlaceholder: "例: Itzal",
+    necramechNameLabel: "Necramech名（WFCD実データ名と完全一致）",
+    necramechPlaceholder: "例: Voidrig",
+    incarnonWeaponLabel: "対象武器名（WFCD実データ名と完全一致）",
+    incarnonPlaceholder: "例: Braton",
+    incarnonObtainedCheck: "インカーノン取得済み",
+    incarnonCompletedCheck: "インカーノン済み",
+    dmgImpact: "衝撃",
+    dmgHeat: "火炎",
+    dmgCold: "冷気",
+    dmgElectricity: "電気",
+    dmgToxin: "毒",
+    dmgMagnetic: "磁気",
+    dmgRadiation: "放射線",
+  },
+  en: {
+    refreshUpdating: "Updating…",
+    refreshDone: "Done",
+    refreshTitle: "Press this when new frames/weapons added by a game update aren't showing up as candidates",
+    duviriRevealed: "Duviri (Incarnon)",
+    lockedSection: "Locked section",
+    linkedBadgeDone: "satisfied",
+    linkedBadgeNotDone: "not satisfied",
+    unfavorite: "Remove from favorites",
+    favorite: "Add to favorites",
+    positiveStatsLabel: "Positives",
+    selectedCount: " selected",
+    notSelected: "none selected",
+    numberPlaceholder: "value %",
+    noneOption: "(none)",
+    weaponNotFound: " isn't in the WFCD data (an exact match is required)",
+    weaponArchetype: "Weapon archetype:",
+    archetypeHelp:
+      "Classifies the weapon as Crit/Status/Hybrid/Utility from its base crit and status chance, and only shows whether the positive stats you picked fit that archetype (Damage/Multishot count as a match for every archetype). It does not calculate theoretical value ranges.",
+    positiveMatch: "Matches the positives",
+    noMatchingStat: "No matching stat",
+    rivenEditTitle: "Edit Riven",
+    rivenNewTitle: "Register a Riven",
+    enterWeaponName: "Enter the target weapon's name",
+    bulkAdded: " added (latest:",
+    emptyRegistry: "Nothing registered yet (use the + next to the heading)",
+    fixedTitle: "Finalized",
+    rerollingTitle: "Rerolling",
+    copyAsText: "Copy as text",
+    delete: "Delete",
+    edit: "Edit",
+    positiveLabel: "Positives:",
+    negativeLabel: "Negative:",
+    deleteConfirm: "?",
+    countUnit: "",
+    ownedTitle: "Owned",
+    notOwnedTitle: "Not owned",
+    kuvaNewTitle: "Kuva / Tenet / Coda — register",
+    weaponNameLabel: "Weapon name (must exactly match WFCD's data)",
+    kuvaWeaponPlaceholder: "e.g. Kuva Bramma",
+    bonusStatLabel: "Bonus stat:",
+    noEntryForWeapon: "Nothing registered for this weapon yet",
+    deleteIndividualConfirm: "Delete this one?",
+    addAnother: "Add another of this weapon",
+    register: "Register",
+    noMatchFreeform: "No match (you can still type it freely)",
+    acquiredTitle: "Acquired",
+    notAcquiredTitle: "Not acquired",
+    rank30Title: "Rank 30",
+    notRank30Title: "Below rank 30",
+    helminthTitle: "Fed to Helminth",
+    notHelminthTitle: "Not fed to Helminth",
+    frameEditTitle: "Edit frame",
+    frameNewTitle: "Register a frame",
+    enterFrameName: "Enter a frame name",
+    skippedDuplicate: "Already registered, skipped:",
+    weaponLabel: "Weapon",
+    companionLabel: "Companion",
+    editSuffix: "— edit",
+    newSuffix: "— register",
+    enterNameSuffix: " name — please enter one",
+    obtainedTitle: "Obtained",
+    notObtainedTitle: "Not obtained",
+    incarnonDoneTitle: "Incarnon complete",
+    notIncarnonTitle: "Incarnon incomplete",
+    incarnonEditTitle: "Edit Incarnon",
+    incarnonNewTitle: "Register an Incarnon",
+    helpToggleTitle: "About this page",
+    helpPopoverHtml: `
+          <div style="margin-bottom:8px;">A log of which frames/Rivens/Kuva weapons you have, independent of Chain View and Loadouts.</div>
+          <ul style="margin:0 0 10px;padding-left:18px;">
+            <li>A green icon means "done", grey means "not done". When a card carries several indicators, the icon shape tells the categories apart</li>
+            <li>The star is a subjective "currently using this / high priority" marker, set independently of the status icons. Favorites sort to the front</li>
+          </ul>
+          <div>⚠️ Some sections only reveal their content once their gating quest is cleared.</div>`,
+    addNew: "Register",
+    chevronToggle: "Toggle",
+    frameSectionHeading: "Frames acquired",
+    weaponSectionHeading: "Weapons acquired",
+    companionSectionHeading: "Companions acquired",
+    archwingSectionHeading: "Archwings acquired",
+    necramechSectionHeading: "Necramechs acquired",
+    rivenSectionHeading: "Riven Mods",
+    kuvaSectionHeading: "Kuva / Tenet / Coda weapons",
+    duviriWarning: "This section is revealed once the gating quest (The Duviri Paradox) is cleared. To avoid spoilers, we recommend not opening it until then.",
+    legendAcquired: "Acquired",
+    legendRank30: "Rank 30",
+    legendHelminth: "Fed to Helminth",
+    legendFixed: "Finalized",
+    legendOwned: "Owned",
+    legendObtained: "Obtained",
+    legendIncarnonDone: "Incarnon complete",
+    rollFixedCheck: "Roll finalized",
+    bulkRegister: "Bulk-register (keep adding by name only)",
+    rivenWeaponLabel: "Target weapon name (must exactly match WFCD's data)",
+    rivenWeaponPlaceholder: "e.g. Braton Prime",
+    positiveStatsField: "Positive stats (multiple allowed)",
+    negativeStatField: "Negative stat (optional)",
+    memoLabel: "Memo",
+    memoHelpTitle: "**bold** / - for a bullet list / - [ ] and - [x] for a checklist (click to toggle after saving)",
+    optional: "Optional",
+    cancel: "Cancel",
+    save: "Save",
+    ownedCheck: "Owned",
+    lineageLabel: "Lineage",
+    bonusStatField: "Bonus stat (determined by the frame used for the conversion, optional)",
+    dismiss: "Discard",
+    close: "Close",
+    frameNameLabel: "Frame name (must exactly match WFCD's data)",
+    framePlaceholder: "e.g. Ash Prime",
+    acquiredCheck: "Acquired",
+    rank30Check: "Rank 30",
+    helminthCheck: "Fed to Helminth",
+    addToChainView: "Also add to Chain View",
+    weaponNameField: "Weapon name (must exactly match WFCD's data)",
+    weaponPlaceholder: "e.g. Braton Prime",
+    companionNameLabel: "Companion name (must exactly match WFCD's data)",
+    companionPlaceholder: "e.g. Chesa Kubrow",
+    archwingNameLabel: "Archwing name (must exactly match WFCD's data)",
+    archwingPlaceholder: "e.g. Itzal",
+    necramechNameLabel: "Necramech name (must exactly match WFCD's data)",
+    necramechPlaceholder: "e.g. Voidrig",
+    incarnonWeaponLabel: "Target weapon name (must exactly match WFCD's data)",
+    incarnonPlaceholder: "e.g. Braton",
+    incarnonObtainedCheck: "Incarnon obtained",
+    incarnonCompletedCheck: "Incarnon complete",
+    dmgImpact: "Impact",
+    dmgHeat: "Heat",
+    dmgCold: "Cold",
+    dmgElectricity: "Electricity",
+    dmgToxin: "Toxin",
+    dmgMagnetic: "Magnetic",
+    dmgRadiation: "Radiation",
+  },
+};
+
+function t(): UIStrings {
+  return STRINGS[effective()];
+}
+
+/** 「name」を削除する？ / Delete "name"? — the quoting style differs per
+ * locale (Japanese corner brackets vs. straight quotes), so this wraps the
+ * name rather than the STRINGS table carrying a half-open bracket. */
+function deleteConfirmMsg(name: string): string {
+  return effective() === "en" ? `Delete "${name}"?` : `「${name}」を削除する？`;
+}
 
 // Shared shape for WeaponEntry/CompanionEntry/ArchwingEntry/NecramechEntry
 // (FrameEntry-like, no helminthFed) so renderEquipList/openEquipModal/
@@ -152,7 +567,7 @@ function initIncarnonCollapse(): void {
   const titleEl = el("incarnon-title");
   const addBtn = el("incarnon-add-btn");
   const cleared = state.duviriCleared;
-  titleEl.textContent = cleared ? "デュビリ（インカーノン）" : "未解放セクション";
+  titleEl.textContent = cleared ? t().duviriRevealed : t().lockedSection;
 
   // The add button is hidden for two independent reasons here: the spoiler
   // gate (don't hint the feature exists before Duviri is cleared) and,
@@ -214,6 +629,10 @@ async function loadGlossary(): Promise<void> {
   }
 }
 function ja(stat: string): string {
+  // English mode uses the dictionary KEY as-is — the keys are already the
+  // canonical English stat names, so no separate EN table is needed (same
+  // convention as standing.ts's SYNDICATE_JA and stats.ts's PLANET_JA).
+  if (effective() === "en") return stat;
   return glossaryMap[stat] || RIVEN_STAT_JA[stat] || stat;
 }
 
@@ -222,17 +641,17 @@ el("refresh-wfcd-btn").addEventListener("click", async () => {
   const btn = el("refresh-wfcd-btn");
   (btn as HTMLButtonElement).disabled = true;
   btn.classList.add("spinning");
-  btn.title = "更新中…";
+  btn.title = t().refreshUpdating;
   await fetch("/api/wfcd/refresh", { method: "POST" });
   btn.classList.remove("spinning");
   btn.classList.add("success");
   btn.innerHTML = icon("check");
-  btn.title = "更新完了";
+  btn.title = t().refreshDone;
   setTimeout(() => {
     btn.classList.remove("success");
     btn.innerHTML = icon("refresh-cw");
     (btn as HTMLButtonElement).disabled = false;
-    btn.title = "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください";
+    btn.title = t().refreshTitle;
   }, 2000);
 });
 
@@ -393,16 +812,16 @@ function escapeHtml(s: unknown): string {
 function chainViewLinkBadge(nodeId: string | undefined): string {
   const node = nodeId ? state.nodesById[nodeId] : undefined;
   if (!node) return "";
-  return `<span class="badge badge-linked">${icon("link-2")}${escapeHtml(node.name)}: ${node.satisfied ? "達成済み" : "未達成"}</span>`;
+  return `<span class="badge badge-linked">${icon("link-2")}${escapeHtml(node.name)}: ${node.satisfied ? t().linkedBadgeDone : t().linkedBadgeNotDone}</span>`;
 }
 
 // Chain View連携はLoadouts(Item.chainViewNodeId)と同じ設計に統一(2026-08-26、のっちの
 // 判断): 既存ノードを手動選択するUIは持たず、登録時のみのチェックボックスでWFCDデータから
-// 新規ノードを自動生成して繋ぐ。登録後にリンクを変更する手段は用意しない。Frame/Weaponは
-// autoGenerateChainViewNodeの対象(実際のWFCD取得チェーンを生成)、Companion/Archwing/
-// Necramechは対象外(Chain View側にnodeTypeが無い)なので、代わりに空のGoalノードを1つ
-// 作るだけの簡易版(createSimpleGoalNode)を使う。Riven/Kuvaは実体を持つ武器そのものでは
-// なくMOD個体なので、この機能自体を持たない。
+// 新規ノードを繋ぐ。登録後にリンクを変更する手段は用意しない。Frame/Weaponは
+// index.htmlのWFCDウィザードを名前入力済みで開く方式(2026-08-30改訂、レリック候補も選べる)、
+// Companion/Archwing/Necramechは対象外(Chain View側にnodeTypeが無い)なので、代わりに
+// 空のGoalノードを1つ作るだけの簡易版(createSimpleGoalNode)を使う。Riven/Kuvaは実体を持つ
+// 武器そのものではなくMOD個体なので、この機能自体を持たない。
 async function createSimpleGoalNode(name: string): Promise<string | null> {
   const id = uid("goal");
   const node = { id, name, type: "Goal", requires: [], contains: [] };
@@ -410,7 +829,7 @@ async function createSimpleGoalNode(name: string): Promise<string | null> {
   return res.ok ? id : null;
 }
 function starBtn(favorite: boolean | undefined, dataAttrs: string): string {
-  return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? "お気に入り解除" : "お気に入りにする"}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
+  return `<button class="star-btn ${favorite ? "favorite" : ""}" ${dataAttrs} title="${favorite ? t().unfavorite : t().favorite}">${icon(favorite ? "star" : "star-off", { size: 18 })}</button>`;
 }
 
 function render(): void {
@@ -467,7 +886,7 @@ function selectedRivenPositiveStats(): string[] {
 }
 function updateRivenPositiveBtnLabel(): void {
   const n = selectedRivenPositiveStats().length;
-  el("riven-positive-btn").innerHTML = `<span>ポジ値: ${n ? `${n}件選択` : "未選択"}</span>${icon("chevron-down")}`;
+  el("riven-positive-btn").innerHTML = `<span>${t().positiveStatsLabel}: ${n ? `${n}${t().selectedCount}` : t().notSelected}</span>${icon("chevron-down")}`;
 }
 setupPopoverToggle("riven-positive-btn", "riven-positive-popover");
 
@@ -488,7 +907,7 @@ function renderRivenPositiveValues(): void {
       (s) => `
     <div class="inline-form" style="margin-bottom:4px;">
       <span style="flex:1;">${ja(s)}</span>
-      <input type="text" inputmode="decimal" data-riven-value="${escapeHtml(s)}" placeholder="数値%" style="width:80px;" value="${escapeHtml(rivenPositiveValueDraft[s] ?? "")}">
+      <input type="text" inputmode="decimal" data-riven-value="${escapeHtml(s)}" placeholder="${t().numberPlaceholder}" style="width:80px;" value="${escapeHtml(rivenPositiveValueDraft[s] ?? "")}">
     </div>
   `,
     )
@@ -507,7 +926,7 @@ function selectedRivenPositiveValues(): number[] {
 
 function renderRivenNegativeSelect(): void {
   el("riven-negative-select").innerHTML =
-    `<option value="">（なし）</option>` + state.rivenStatChoices.map((s) => `<option value="${escapeHtml(s)}">${ja(s)}</option>`).join("");
+    `<option value="">${t().noneOption}</option>` + state.rivenStatChoices.map((s) => `<option value="${escapeHtml(s)}">${ja(s)}</option>`).join("");
 }
 
 let rivenCheckDebounce: ReturnType<typeof setTimeout> | undefined;
@@ -525,17 +944,17 @@ function updateRivenLiveCheck(): void {
     if (positive.length) params.set("positive", positive.join(","));
     const res = await fetch(`/api/wfcd/riven-check?${params}`);
     if (!res.ok) {
-      resultEl.innerHTML = `<span class="empty">「${escapeHtml(weapon)}」がWFCDデータに見つかりません（完全一致が必要）</span>`;
+      resultEl.innerHTML = `<span class="empty">${effective() === "en" ? `"${escapeHtml(weapon)}"` : `「${escapeHtml(weapon)}」`}${t().weaponNotFound}</span>`;
       return;
     }
     const check = (await res.json()) as { archetype: string; matches: boolean; matchedStats?: string[] };
     resultEl.innerHTML = `
-      <b>武器アーキタイプ:</b> ${check.archetype}
-      <span title="武器の素の会心/状態異常率からCrit/Status/Hybrid/Utilityを判定し、選んだポジ値ステータスがそのアーキタイプと噛み合っているかだけを表示します（Damage/Multishotは全アーキタイプ共通で一致扱い）。理論値レンジの計算はしていません。">${icon("circle-alert", { size: 14, class: "help-hint" })}</span>
+      <b>${t().weaponArchetype}</b> ${check.archetype}
+      <span title="${t().archetypeHelp}">${icon("circle-alert", { size: 14, class: "help-hint" })}</span>
       ${
         check.matches
-          ? `<span class="badge badge-match">${icon("check")}ポジ値と一致（${(check.matchedStats || []).map(ja).join(", ")}）</span>`
-          : `<span class="badge badge-nomatch">一致ステータスなし</span>`
+          ? `<span class="badge badge-match">${icon("check")}${t().positiveMatch}（${(check.matchedStats || []).map(ja).join(", ")}）</span>`
+          : `<span class="badge badge-nomatch">${t().noMatchingStat}</span>`
       }`;
   }, 300);
 }
@@ -547,7 +966,7 @@ let rivenBulkCount = 0;
 function openRivenModal(editId: string | null): void {
   rivenEditingId = editId || null;
   const entry = editId ? state.data.rivens[editId] : null;
-  el("riven-modal-title").textContent = entry ? "Riven 編集" : "Riven 新規登録";
+  el("riven-modal-title").textContent = entry ? t().rivenEditTitle : t().rivenNewTitle;
   el<HTMLInputElement>("riven-weapon-input").value = entry ? entry.weaponName : "";
   el<HTMLSelectElement>("riven-negative-select").value = entry ? entry.negativeStat || "" : "";
   el<HTMLInputElement>("riven-negative-value").value = entry && entry.negativeValue ? String(Math.abs(entry.negativeValue)) : "";
@@ -594,7 +1013,7 @@ el("riven-weapon-input").addEventListener("keydown", (e) => {
 el("riven-modal-save").addEventListener("click", () => {
   const weaponName = el<HTMLInputElement>("riven-weapon-input").value.trim();
   if (!weaponName) {
-    showToast("対象武器名を入力して");
+    showToast(t().enterWeaponName);
     return;
   }
   const bulk = !rivenEditingId && el<HTMLInputElement>("riven-bulk-check").checked;
@@ -612,7 +1031,7 @@ el("riven-modal-save").addEventListener("click", () => {
     });
     rivenBulkCount++;
     const fb = el("riven-bulk-feedback");
-    fb.textContent = `${rivenBulkCount}件追加しました（最新: ${weaponName}）`;
+    fb.textContent = `${rivenBulkCount}${t().bulkAdded} ${weaponName})`;
     fb.classList.remove("hidden");
     const weaponInput = el<HTMLInputElement>("riven-weapon-input");
     weaponInput.value = "";
@@ -656,7 +1075,7 @@ function renderRivenList(): void {
   const entries = Object.values(state.data.rivens).sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.weaponName.localeCompare(b.weaponName));
 
   if (!entries.length) {
-    container.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+    container.innerHTML = `<div class="empty">${t().emptyRegistry}</div>`;
     return;
   }
   container.innerHTML = entries
@@ -667,11 +1086,11 @@ function renderRivenList(): void {
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
         <div class="card-title">${escapeHtml(entry.weaponName)}</div>
         <div class="card-badges">
-          <span class="status-icon ${entry.fixed ? "on" : "off"}" title="${entry.fixed ? "確定" : "リロール中"}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.fixed ? "on" : "off"}" title="${entry.fixed ? t().fixedTitle : t().rerollingTitle}">${icon("check", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-copy-riven="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
-          <button class="icon-btn danger" data-del-riven="${entry.id}" title="削除">${icon("trash-2")}</button>
+          <button class="icon-btn" data-copy-riven="${entry.id}" title="${t().copyAsText}">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-riven="${entry.id}" title="${t().delete}">${icon("trash-2")}</button>
         </div>
       </div>
       ${(entry.positiveStats || [])
@@ -680,9 +1099,9 @@ function renderRivenList(): void {
         // the same x position — an invisible copy of the label (same text/
         // weight/font, just hidden) reserves that exact width on lines 2+
         // instead of guessing a padding value (2026-08-26 のっち's feedback).
-        .map((line, i) => `<div class="card-row" style="display:flex;gap:4px;"><b${i === 0 ? "" : ` style="visibility:hidden;"`}>ポジ値:</b><span>${line}</span></div>`)
+        .map((line, i) => `<div class="card-row" style="display:flex;gap:4px;"><b${i === 0 ? "" : ` style="visibility:hidden;"`}>${t().positiveLabel}</b><span>${line}</span></div>`)
         .join("")}
-      ${entry.negativeStat ? `<div class="card-row"><b>ネガ値:</b> ${formatRivenStat(entry.negativeStat, entry.negativeValue, ja)}</div>` : ""}
+      ${entry.negativeStat ? `<div class="card-row"><b>${t().negativeLabel}</b> ${formatRivenStat(entry.negativeStat, entry.negativeValue, ja)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-riven-${entry.id}"></div>` : ""}
     </div>
   `,
@@ -706,7 +1125,7 @@ function renderRivenList(): void {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delRiven!;
-      if (await confirmInline(btn, `「${state.data.rivens[id]!.weaponName}」を削除する？`)) void deleteRiven(id);
+      if (await confirmInline(btn, deleteConfirmMsg(state.data.rivens[id]!.weaponName))) void deleteRiven(id);
     }),
   );
   container.querySelectorAll<HTMLElement>("[data-toggle-fav]").forEach((btn) =>
@@ -746,8 +1165,8 @@ function kuvaGroupCardHtml(name: string, entries: KuvaEntry[]): string {
         ${starBtn(anyFav, `data-open-kuva-group-nav="${escapeHtml(name)}"`)}
         <div class="card-title">${escapeHtml(name)}</div>
         <div class="card-badges">
-          <span class="badge badge-count">${entries.length}件</span>
-          <span class="status-icon ${anyOwned ? "on" : "off"}" title="${anyOwned ? "所持済み" : "未所持"}">${icon("check", { size: 14 })}</span>
+          <span class="badge badge-count">${entries.length}${t().countUnit}</span>
+          <span class="status-icon ${anyOwned ? "on" : "off"}" title="${anyOwned ? t().ownedTitle : t().notOwnedTitle}">${icon("check", { size: 14 })}</span>
         </div>
       </div>
     </div>`;
@@ -768,7 +1187,7 @@ function renderKuvaGroupedList(): void {
   });
 
   if (!names.length) {
-    container.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+    container.innerHTML = `<div class="empty">${t().emptyRegistry}</div>`;
   } else {
     container.innerHTML = (["Kuva", "Tenet", "Coda"] as const)
       .map((kind) => {
@@ -811,14 +1230,14 @@ el("kuva-form-cancel").addEventListener("click", () => {
 function renderKuvaModal(): void {
   const { weaponName, formOpen, editingId } = kuvaModalState;
   const isNewWeapon = !weaponName;
-  el("kuva-modal-title").innerHTML = isNewWeapon ? "Kuva / Tenet / Coda — 新規登録" : escapeHtml(weaponName);
+  el("kuva-modal-title").innerHTML = isNewWeapon ? t().kuvaNewTitle : escapeHtml(weaponName);
 
   const nameFieldEl = el("kuva-modal-name-field");
   if (isNewWeapon) {
     nameFieldEl.innerHTML = `
-      <label class="field-label">武器名（WFCD実データ名と完全一致）</label>
+      <label class="field-label">${t().weaponNameLabel}</label>
       <div class="combobox">
-        <input type="text" id="kuva-weapon-input" placeholder="例: Kuva Bramma" autocomplete="off">
+        <input type="text" id="kuva-weapon-input" placeholder="${t().kuvaWeaponPlaceholder}" autocomplete="off">
         <div id="kuva-weapon-suggest" class="suggest-list hidden"></div>
       </div>`;
     setupWeaponCombobox("kuva-weapon-input", "kuva-weapon-suggest");
@@ -845,23 +1264,23 @@ function renderKuvaModal(): void {
     <div class="group-entry" data-kuva-entry="${entry.id}">
       <div class="group-entry-head">
         ${starBtn(entry.favorite, `data-toggle-fav="${entry.id}"`)}
-        <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "所持済み" : "未所持"}">${icon("check", { size: 14 })}</span>
+        <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? t().ownedTitle : t().notOwnedTitle}">${icon("check", { size: 14 })}</span>
         <span style="flex:1"></span>
-        <button class="icon-btn" data-copy-kuva="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
-        <button class="icon-btn" data-edit-kuva="${entry.id}" title="編集">${icon("pencil")}</button>
-        <button class="icon-btn danger" data-del-kuva="${entry.id}" title="削除">${icon("trash-2")}</button>
+        <button class="icon-btn" data-copy-kuva="${entry.id}" title="${t().copyAsText}">${icon("copy")}</button>
+        <button class="icon-btn" data-edit-kuva="${entry.id}" title="${t().edit}">${icon("pencil")}</button>
+        <button class="icon-btn danger" data-del-kuva="${entry.id}" title="${t().delete}">${icon("trash-2")}</button>
       </div>
-      ${entry.bonusStat ? `<div class="card-row"><b>ボーナス属性:</b> ${formatRivenStat(entry.bonusStat, entry.bonusValue, ja)}</div>` : ""}
+      ${entry.bonusStat ? `<div class="card-row"><b>${t().bonusStatLabel}</b> ${formatRivenStat(entry.bonusStat, entry.bonusValue, ja)}</div>` : ""}
       ${entry.note ? `<div class="card-memo" id="notemd-kuva-${entry.id}"></div>` : ""}
     </div>
   `,
       )
-      .join("") || (isNewWeapon ? "" : `<div class="empty" style="margin-bottom:8px;">まだこの武器は登録されていません</div>`);
+      .join("") || (isNewWeapon ? "" : `<div class="empty" style="margin-bottom:8px;">${t().noEntryForWeapon}</div>`);
 
   entriesEl.querySelectorAll<HTMLElement>("[data-toggle-fav]").forEach((b) => b.addEventListener("click", () => toggleFavorite("kuva", b.dataset.toggleFav!)));
   entriesEl.querySelectorAll<HTMLElement>("[data-del-kuva]").forEach((b) =>
     b.addEventListener("click", async () => {
-      if (await confirmInline(b, "この個体を削除する？")) {
+      if (await confirmInline(b, t().deleteIndividualConfirm)) {
         await deleteKuva(b.dataset.delKuva!);
         const stillExists = groupedKuva()[weaponName];
         if (stillExists && stillExists.length) renderKuvaModal();
@@ -884,7 +1303,7 @@ function renderKuvaModal(): void {
   wireCopyButtons(entriesEl, "[data-copy-kuva]", (btn) => buildKuvaExportText(state.data.kuva[btn.dataset.copyKuva!]!));
 
   const addToggleBtn = el("kuva-modal-add-toggle");
-  const addToggleLabel = entries.length ? "この武器をもう1件追加" : "登録する";
+  const addToggleLabel = entries.length ? t().addAnother : t().register;
   addToggleBtn.innerHTML = iconLabel("plus", addToggleLabel);
   addToggleBtn.title = addToggleLabel;
   addToggleBtn.classList.toggle("hidden", isNewWeapon || formOpen);
@@ -912,7 +1331,7 @@ el("kuva-modal-add-toggle").addEventListener("click", () => {
 el("kuva-form-save").addEventListener("click", () => {
   const weaponName = kuvaModalState.weaponName || el<HTMLInputElement>("kuva-weapon-input").value.trim();
   if (!weaponName) {
-    showToast("武器名を入力して");
+    showToast(t().enterWeaponName);
     return;
   }
   const isNewEntry = !kuvaModalState.editingId;
@@ -964,7 +1383,7 @@ function setupWeaponCombobox(inputId: string, suggestId: string, names?: string[
     const matches = pool.filter((n) => n.toLowerCase().includes(q)).slice(0, 30);
     suggest.innerHTML = matches.length
       ? matches.map((n) => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("")
-      : `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+      : `<div class="suggest-empty">${t().noMatchFreeform}</div>`;
     suggest.querySelectorAll<HTMLElement>(".suggest-item").forEach((item) => {
       item.addEventListener("mousedown", (e) => {
         e.preventDefault();
@@ -997,7 +1416,7 @@ function renderFrameList(): void {
   const entries = Object.values(state.data.frames).sort((a, b) => a.name.localeCompare(b.name));
 
   if (!entries.length) {
-    container.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+    container.innerHTML = `<div class="empty">${t().emptyRegistry}</div>`;
     return;
   }
   container.innerHTML = entries
@@ -1007,13 +1426,13 @@ function renderFrameList(): void {
       <div class="card-head">
         <div class="card-title">${escapeHtml(entry.name)}</div>
         <div class="card-badges">
-          <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "入手済み" : "未入手"}">${icon("check", { size: 14 })}</span>
-          <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? "ランク30済み" : "ランク30未達"}">${icon("zap", { size: 14 })}</span>
-          <span class="status-icon ${entry.helminthFed ? "on" : "off"}" title="${entry.helminthFed ? "ヘルミンス済み" : "ヘルミンス未実施"}">${icon("archive", { size: 14 })}</span>
+          <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? t().acquiredTitle : t().notAcquiredTitle}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? t().rank30Title : t().notRank30Title}">${icon("zap", { size: 14 })}</span>
+          <span class="status-icon ${entry.helminthFed ? "on" : "off"}" title="${entry.helminthFed ? t().helminthTitle : t().notHelminthTitle}">${icon("archive", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-copy-frame="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
-          <button class="icon-btn danger" data-del-frame="${entry.id}" title="削除">${icon("trash-2")}</button>
+          <button class="icon-btn" data-copy-frame="${entry.id}" title="${t().copyAsText}">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-frame="${entry.id}" title="${t().delete}">${icon("trash-2")}</button>
         </div>
       </div>
       ${entry.chainViewNodeId ? `<div id="minigraph-frame-${entry.id}"></div>` : ""}
@@ -1041,7 +1460,7 @@ function renderFrameList(): void {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delFrame!;
-      if (await confirmInline(btn, `「${state.data.frames[id]!.name}」を削除する？`)) void deleteFrame(id);
+      if (await confirmInline(btn, deleteConfirmMsg(state.data.frames[id]!.name))) void deleteFrame(id);
     }),
   );
   entries.forEach((entry) => {
@@ -1058,7 +1477,7 @@ let frameBulkCount = 0;
 function openFrameModal(editId: string | null): void {
   frameEditingId = editId || null;
   const entry = editId ? state.data.frames[editId] : null;
-  el("frame-modal-title").textContent = entry ? "フレーム 編集" : "フレーム 新規登録";
+  el("frame-modal-title").textContent = entry ? t().frameEditTitle : t().frameNewTitle;
   el<HTMLInputElement>("frame-name-input").value = entry ? entry.name : "";
   el<HTMLInputElement>("frame-owned-check").checked = entry ? !!entry.owned : false;
   el<HTMLInputElement>("frame-ranked30-check").checked = entry ? !!entry.rankedThirty : false;
@@ -1098,7 +1517,7 @@ function findFrameByName(name: string): FrameEntry | undefined {
 el("frame-modal-save").addEventListener("click", () => {
   const name = el<HTMLInputElement>("frame-name-input").value.trim();
   if (!name) {
-    showToast("フレーム名を入力して");
+    showToast(t().enterFrameName);
     return;
   }
   const bulk = !frameEditingId && el<HTMLInputElement>("frame-bulk-check").checked;
@@ -1127,7 +1546,7 @@ el("frame-modal-save").addEventListener("click", () => {
     void upsertFrame({ id: uid("frame"), name, owned: false, rankedThirty: false, helminthFed: false, note: "" });
     frameBulkCount++;
     const fb = el("frame-bulk-feedback");
-    fb.textContent = `${frameBulkCount}件追加しました（最新: ${name}）`;
+    fb.textContent = `${frameBulkCount}${t().bulkAdded} ${name})`;
     fb.classList.remove("hidden");
     const nameInput = el<HTMLInputElement>("frame-name-input");
     nameInput.value = "";
@@ -1148,11 +1567,11 @@ el("frame-modal-save").addEventListener("click", () => {
   void upsertFrame(entry);
   closeFrameModal();
   // Chain View連携はLoadoutsと同じく登録時のみのopt-in（後から変更する手段は無い、
-  // 2026-08-26）。作成自体をブロックしないよう、生成は登録後にバックグラウンドで行う。
+  // 2026-08-26）。以前は裏で静かにautoGenerateChainViewNodeを叩くだけ（レリック候補は
+  // 選べない）だったが、実際のWFCDウィザードを名前入力済みで開く方式に変更
+  // （2026-08-30、のっち依頼——「レリックも登録できるように」）。
   if (wantsChainView) {
-    void autoGenerateChainViewNode("Frame", name).then((chainViewNodeId) => {
-      if (chainViewNodeId) void upsertFrame({ ...entry, chainViewNodeId });
-    });
+    location.href = `/?wfcd-generate=Frame&wfcd-name=${encodeURIComponent(name)}&link-back=collections-frames:${encodeURIComponent(entry.id)}`;
   }
 });
 
@@ -1164,9 +1583,18 @@ el("frame-modal-save").addEventListener("click", () => {
 const EQUIP_KINDS: Record<EquipKind, { apiPath: EquipApiPath; label: string; refNamesKey: EquipRefNamesKey }> = {
   weapon: { apiPath: "weapons", label: "武器", refNamesKey: "weaponNames" },
   companion: { apiPath: "companions", label: "コンパニオン", refNamesKey: "companionNames" },
+  // Archwing/Necramech are proper nouns and stay as-is in both languages;
+  // only weapon/companion have a Japanese label to swap out (equipLabel()).
   archwing: { apiPath: "archwings", label: "Archwing", refNamesKey: "archwingNames" },
   necramech: { apiPath: "necramechs", label: "Necramech", refNamesKey: "necramechNames" },
 };
+/** EQUIP_KINDS.label in the current display language. Archwing/Necramech
+ * are proper nouns shared by both. */
+function equipLabel(kind: EquipKind): string {
+  if (effective() !== "en") return EQUIP_KINDS[kind].label;
+  return kind === "weapon" ? t().weaponLabel : kind === "companion" ? t().companionLabel : EQUIP_KINDS[kind].label;
+}
+
 const equipEditingId: Partial<Record<EquipKind, string | null>> = {};
 const equipBulkCount: Partial<Record<EquipKind, number>> = {};
 
@@ -1194,7 +1622,7 @@ function renderEquipList(kind: EquipKind): void {
   const entries = Object.values(equipBucket(kind) || {}).sort((a, b) => a.name.localeCompare(b.name));
 
   if (!entries.length) {
-    container.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+    container.innerHTML = `<div class="empty">${t().emptyRegistry}</div>`;
     return;
   }
   container.innerHTML = entries
@@ -1204,12 +1632,12 @@ function renderEquipList(kind: EquipKind): void {
       <div class="card-head">
         <div class="card-title">${escapeHtml(entry.name)}</div>
         <div class="card-badges">
-          <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? "入手済み" : "未入手"}">${icon("check", { size: 14 })}</span>
-          <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? "ランク30済み" : "ランク30未達"}">${icon("zap", { size: 14 })}</span>
+          <span class="status-icon ${entry.owned ? "on" : "off"}" title="${entry.owned ? t().acquiredTitle : t().notAcquiredTitle}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.rankedThirty ? "on" : "off"}" title="${entry.rankedThirty ? t().rank30Title : t().notRank30Title}">${icon("zap", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-copy-id="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
-          <button class="icon-btn danger" data-del-id="${entry.id}" title="削除">${icon("trash-2")}</button>
+          <button class="icon-btn" data-copy-id="${entry.id}" title="${t().copyAsText}">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-id="${entry.id}" title="${t().delete}">${icon("trash-2")}</button>
         </div>
       </div>
       ${entry.chainViewNodeId ? `<div id="minigraph-${kind}-${entry.id}"></div>` : ""}
@@ -1237,7 +1665,7 @@ function renderEquipList(kind: EquipKind): void {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delId!;
-      if (await confirmInline(btn, `「${equipBucket(kind)[id]!.name}」を削除する？`)) void deleteEquip(kind, id);
+      if (await confirmInline(btn, deleteConfirmMsg(equipBucket(kind)[id]!.name))) void deleteEquip(kind, id);
     }),
   );
   entries.forEach((entry) => {
@@ -1248,10 +1676,9 @@ function renderEquipList(kind: EquipKind): void {
 }
 
 function openEquipModal(kind: EquipKind, editId: string | null): void {
-  const cfg = EQUIP_KINDS[kind];
   equipEditingId[kind] = editId || null;
   const entry = editId ? equipBucket(kind)[editId] : null;
-  el(`${kind}-modal-title`).textContent = entry ? `${cfg.label} 編集` : `${cfg.label} 新規登録`;
+  el(`${kind}-modal-title`).textContent = `${equipLabel(kind)} ${entry ? t().editSuffix : t().newSuffix}`;
   el<HTMLInputElement>(`${kind}-name-input`).value = entry ? entry.name : "";
   el<HTMLInputElement>(`${kind}-owned-check`).checked = entry ? !!entry.owned : false;
   el<HTMLInputElement>(`${kind}-ranked30-check`).checked = entry ? !!entry.rankedThirty : false;
@@ -1270,10 +1697,9 @@ function closeEquipModal(kind: EquipKind): void {
 }
 
 function equipSave(kind: EquipKind): void {
-  const cfg = EQUIP_KINDS[kind];
   const name = el<HTMLInputElement>(`${kind}-name-input`).value.trim();
   if (!name) {
-    showToast(`${cfg.label}名を入力して`);
+    showToast(`${equipLabel(kind)}${t().enterNameSuffix}`);
     return;
   }
   const editingId = equipEditingId[kind] ?? null;
@@ -1299,7 +1725,7 @@ function equipSave(kind: EquipKind): void {
     void upsertEquip(kind, { id: uid(kind), name, owned: false, rankedThirty: false, note: "" });
     equipBulkCount[kind] = (equipBulkCount[kind] || 0) + 1;
     const fb = el(`${kind}-bulk-feedback`);
-    fb.textContent = `${equipBulkCount[kind]}件追加しました（最新: ${name}）`;
+    fb.textContent = `${equipBulkCount[kind]}${t().bulkAdded} ${name})`;
     fb.classList.remove("hidden");
     const nameInput = el<HTMLInputElement>(`${kind}-name-input`);
     nameInput.value = "";
@@ -1318,13 +1744,18 @@ function equipSave(kind: EquipKind): void {
   };
   void upsertEquip(kind, entry);
   closeEquipModal(kind);
-  // WeaponはLoadoutsと同じWFCD取得チェーン自動生成、Companion/Archwing/NecramechはChain
-  // View側にnodeTypeが無いので空のGoalノードを1つ作るだけの簡易版(2026-08-26)。
+  // Weapon: opens the real WFCD wizard pre-filled, same as Loadouts/Frame
+  // (2026-08-30 — was a silent autoGenerateChainViewNode call with no relic
+  // picking). Companion/Archwing/Necramech: Chain View has no node type for
+  // these, so they still just get one empty Goal node (2026-08-26, unchanged).
   if (wantsChainView) {
-    const generate = kind === "weapon" ? autoGenerateChainViewNode("Weapon", name) : createSimpleGoalNode(name);
-    void generate.then((chainViewNodeId) => {
-      if (chainViewNodeId) void upsertEquip(kind, { ...entry, chainViewNodeId });
-    });
+    if (kind === "weapon") {
+      location.href = `/?wfcd-generate=Weapon&wfcd-name=${encodeURIComponent(name)}&link-back=collections-weapons:${encodeURIComponent(entry.id)}`;
+    } else {
+      void createSimpleGoalNode(name).then((chainViewNodeId) => {
+        if (chainViewNodeId) void upsertEquip(kind, { ...entry, chainViewNodeId });
+      });
+    }
   }
 }
 
@@ -1369,7 +1800,7 @@ function renderIncarnonList(): void {
   const entries = Object.values(state.data.incarnons).sort((a, b) => a.weaponName.localeCompare(b.weaponName));
 
   if (!entries.length) {
-    container.innerHTML = `<div class="empty">まだ登録がありません（見出し横の＋から登録できます）</div>`;
+    container.innerHTML = `<div class="empty">${t().emptyRegistry}</div>`;
     return;
   }
   container.innerHTML = entries
@@ -1379,12 +1810,12 @@ function renderIncarnonList(): void {
       <div class="card-head">
         <div class="card-title">${escapeHtml(entry.weaponName)}</div>
         <div class="card-badges">
-          <span class="status-icon ${entry.obtained ? "on" : "off"}" title="${entry.obtained ? "取得済み" : "未取得"}">${icon("check", { size: 14 })}</span>
-          <span class="status-icon ${entry.completed ? "on" : "off"}" title="${entry.completed ? "インカーノン済み" : "未インカーノン"}">${icon("zap", { size: 14 })}</span>
+          <span class="status-icon ${entry.obtained ? "on" : "off"}" title="${entry.obtained ? t().obtainedTitle : t().notObtainedTitle}">${icon("check", { size: 14 })}</span>
+          <span class="status-icon ${entry.completed ? "on" : "off"}" title="${entry.completed ? t().incarnonDoneTitle : t().notIncarnonTitle}">${icon("zap", { size: 14 })}</span>
         </div>
         <div class="card-actions">
-          <button class="icon-btn" data-copy-incarnon="${entry.id}" title="テキストでコピー">${icon("copy")}</button>
-          <button class="icon-btn danger" data-del-incarnon="${entry.id}" title="削除">${icon("trash-2")}</button>
+          <button class="icon-btn" data-copy-incarnon="${entry.id}" title="${t().copyAsText}">${icon("copy")}</button>
+          <button class="icon-btn danger" data-del-incarnon="${entry.id}" title="${t().delete}">${icon("trash-2")}</button>
         </div>
       </div>
       ${entry.chainViewNodeId ? `<div id="minigraph-incarnon-${entry.id}"></div>` : ""}
@@ -1412,7 +1843,7 @@ function renderIncarnonList(): void {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const id = btn.dataset.delIncarnon!;
-      if (await confirmInline(btn, `「${state.data.incarnons[id]!.weaponName}」を削除する？`)) void deleteIncarnon(id);
+      if (await confirmInline(btn, deleteConfirmMsg(state.data.incarnons[id]!.weaponName))) void deleteIncarnon(id);
     }),
   );
   entries.forEach((entry) => {
@@ -1427,7 +1858,7 @@ let incarnonBulkCount = 0;
 function openIncarnonModal(editId: string | null): void {
   incarnonEditingId = editId || null;
   const entry = editId ? state.data.incarnons[editId] : null;
-  el("incarnon-modal-title").textContent = entry ? "インカーノン 編集" : "インカーノン 新規登録";
+  el("incarnon-modal-title").textContent = entry ? t().incarnonEditTitle : t().incarnonNewTitle;
   el<HTMLInputElement>("incarnon-weapon-input").value = entry ? entry.weaponName : "";
   el<HTMLInputElement>("incarnon-obtained-check").checked = entry ? !!entry.obtained : false;
   el<HTMLInputElement>("incarnon-completed-check").checked = entry ? !!entry.completed : false;
@@ -1455,7 +1886,7 @@ el("incarnon-weapon-input").addEventListener("keydown", (e) => {
 el("incarnon-modal-save").addEventListener("click", () => {
   const weaponName = el<HTMLInputElement>("incarnon-weapon-input").value.trim();
   if (!weaponName) {
-    showToast("武器名を入力して");
+    showToast(t().enterWeaponName);
     return;
   }
   const bulk = !incarnonEditingId && el<HTMLInputElement>("incarnon-bulk-check").checked;
@@ -1463,7 +1894,7 @@ el("incarnon-modal-save").addEventListener("click", () => {
     void upsertIncarnon({ id: uid("incarnon"), weaponName, obtained: false, completed: false, note: "" });
     incarnonBulkCount++;
     const fb = el("incarnon-bulk-feedback");
-    fb.textContent = `${incarnonBulkCount}件追加しました（最新: ${weaponName}）`;
+    fb.textContent = `${incarnonBulkCount}${t().bulkAdded} ${weaponName})`;
     fb.classList.remove("hidden");
     const weaponInput = el<HTMLInputElement>("incarnon-weapon-input");
     weaponInput.value = "";
@@ -1512,4 +1943,20 @@ Promise.all([
   initPlainCollapsible("riven");
   initPlainCollapsible("kuva");
   void loadAll();
+});
+
+applyI18nText(STRINGS);
+onLocaleChange(() => {
+  applyI18nText(STRINGS);
+  // The popovers/selects built from the stat dictionary re-render through
+  // ja(), which now follows the locale too.
+  renderRivenPositivePopover();
+  renderRivenNegativeSelect();
+  render();
+  // The spoiler-gated Incarnon heading is written once by
+  // initIncarnonCollapse() and has no data-i18n attribute (its text depends
+  // on the gate, not just the locale), so re-apply it here — otherwise it
+  // stays in the old language after a switch (found live 2026-08-30).
+  const incarnonTitle = maybeEl("incarnon-title");
+  if (incarnonTitle) incarnonTitle.textContent = state.duviriCleared ? t().duviriRevealed : t().lockedSection;
 });

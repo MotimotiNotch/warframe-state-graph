@@ -11,8 +11,15 @@
 // build-sidebar.ts's #sb-move-popover for why a plain absolute-positioned
 // popover risks getting clipped by a scrolling/blurred ancestor; this one
 // is appended straight to <body> so that concern doesn't even apply here).
+import { effective } from "./locale.ts";
+
 let activePopover: HTMLElement | null = null;
 let activeResolve: ((v: boolean) => void) | null = null;
+
+const STRINGS: Record<"ja" | "en", { cancel: string; delete: string }> = {
+  ja: { cancel: "キャンセル", delete: "削除" },
+  en: { cancel: "Cancel", delete: "Delete" },
+};
 
 function closeActive(result: boolean): void {
   const resolve = activeResolve;
@@ -22,10 +29,10 @@ function closeActive(result: boolean): void {
   resolve?.(result);
 }
 
-/** okLabel defaults to "削除" since every current call site is a delete
- * confirmation; pass an explicit label for any other kind of destructive
- * confirm. */
-export function confirmInline(anchor: HTMLElement, message: string, okLabel = "削除"): Promise<boolean> {
+/** okLabel defaults to the current locale's "delete" since every current call
+ * site is a delete confirmation; pass an explicit label for any other kind of
+ * destructive confirm. */
+export function confirmInline(anchor: HTMLElement, message: string, okLabel = STRINGS[effective()].delete): Promise<boolean> {
   closeActive(false); // 前のが開いていたら閉じる（同時に1つだけ）
 
   function onOutsideClick(): void {
@@ -39,7 +46,7 @@ export function confirmInline(anchor: HTMLElement, message: string, okLabel = "�
     pop.innerHTML = `
       <div>${message}</div>
       <div class="actions">
-        <button class="toggle" data-confirm-cancel>キャンセル</button>
+        <button class="toggle" data-confirm-cancel>${STRINGS[effective()].cancel}</button>
         <button class="toggle confirm-inline-ok" data-confirm-ok>${okLabel}</button>
       </div>`;
     document.body.appendChild(pop);

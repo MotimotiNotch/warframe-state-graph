@@ -607,19 +607,19 @@
     <button class="toggle" id="wfcd-import-btn"></button>
     <button class="toggle" id="dsl-import-btn"></button>
     <span style="flex:1"></span>
-    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
-    <button class="icon-btn" id="compact-toggle" title="コンパクト表示（狭いウィンドウ幅では自動でも切り替わります）"></button>
+    <button class="icon-btn" id="refresh-wfcd-btn" data-i18n-title="refreshTitle" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <button class="icon-btn" id="compact-toggle" data-i18n-title="compactToggleTitle" title="コンパクト表示（狭いウィンドウ幅では自動でも切り替わります）"></button>
     <div class="popover-wrap">
-      <button class="icon-btn" id="legend-toggle" title="凡例"></button>
+      <button class="icon-btn" id="legend-toggle" data-i18n-title="legendTitle" title="凡例"></button>
       <div class="popover hidden" id="legend-popover">
         <div class="legend">
-          <span><i class="dot" style="background:var(--root)"></i>Build（目標）</span>
-          <span><i class="dot" style="background:var(--actionable)"></i>Actionable（実行可能）</span>
-          <span><i class="dot" style="background:var(--blocked)"></i>Blocked（前提待ち）</span>
-          <span><i class="dot" style="background:var(--satisfied)"></i>Satisfied（達成済み）</span>
-          <span>― 中身（contains） / ┄ 前提（requires）</span>
-          <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i>中身アリ（クリックでドリルダウン）</span>
-          <span style="opacity:.7;">⚠️ クエスト名・リッチ系武器名など未プレイのコンテンツ名が表示されることがあります</span>
+          <span><i class="dot" style="background:var(--root)"></i><span data-i18n="legendBuild">Build（目標）</span></span>
+          <span><i class="dot" style="background:var(--actionable)"></i><span data-i18n="legendActionable">Actionable（実行可能）</span></span>
+          <span><i class="dot" style="background:var(--blocked)"></i><span data-i18n="legendBlocked">Blocked（前提待ち）</span></span>
+          <span><i class="dot" style="background:var(--satisfied)"></i><span data-i18n="legendSatisfied">Satisfied（達成済み）</span></span>
+          <span data-i18n="legendEdges">― 中身（contains） / ┄ 前提（requires）</span>
+          <span><i class="dot" style="background:transparent;border:1.5px solid var(--muted)"></i><span data-i18n="legendDrillable">中身アリ（クリックでドリルダウン）</span></span>
+          <span style="opacity:.7;" data-i18n="legendSpoilerWarning">⚠️ クエスト名・リッチ系武器名など未プレイのコンテンツ名が表示されることがあります</span>
         </div>
       </div>
     </div>
@@ -637,23 +637,23 @@
       </div>
       <div id="folder-panel">
         <div class="panel-head-row">
-          <div class="panel-title" style="margin:0;">目標一覧</div>
-          <button class="icon-btn" id="new-folder-btn" title="新規フォルダ"></button>
+          <div class="panel-title" style="margin:0;" data-i18n="goalListTitle">目標一覧</div>
+          <button class="icon-btn" id="new-folder-btn" data-i18n-title="newFolderTitle" title="新規フォルダ"></button>
         </div>
         <div id="sidebar-body"></div>
       </div>
     </div>
-    <div id="resizer-left" title="ドラッグして比率を変更"><div class="grip"></div></div>
+    <div id="resizer-left" data-i18n-title="dragToResize" title="ドラッグして比率を変更"><div class="grip"></div></div>
     <div id="graph-panel">
       <div class="panel-title">Chain View</div>
       <div id="breadcrumb" class="breadcrumb"></div>
       <div id="graph-wrap"><svg id="graph-svg"></svg></div>
       <div id="flyout" class="flyout hidden"></div>
     </div>
-    <div id="resizer" title="ドラッグして比率を変更"><div class="grip"></div></div>
+    <div id="resizer" data-i18n-title="dragToResize" title="ドラッグして比率を変更"><div class="grip"></div></div>
     <div id="panel">
-      <div class="panel-title">詳細</div>
-      <div id="panel-body"><div class="empty">ノードを選択してください</div></div>
+      <div class="panel-title" data-i18n="detailsTitle">詳細</div>
+      <div id="panel-body"><div class="empty" data-i18n="selectNodePrompt">ノードを選択してください</div></div>
     </div>
   </div>
 
@@ -668,43 +668,43 @@
       <h3 id="node-modal-title">ノード追加</h3>
       <div class="row">
         <div>
-          <label>種別</label>
+          <label data-i18n="modalTypeLabel">種別</label>
           <select id="node-type"></select>
         </div>
       </div>
       <div id="node-id-row">
-        <label>ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
+        <label data-i18n="modalIdLabel">ID（英数字・ハイフン、既存IDを指定すると上書き）</label>
         <input type="text" id="node-id">
       </div>
-      <label>名前</label>
+      <label data-i18n="modalNameLabel">名前</label>
       <div class="combobox">
         <input type="text" id="node-name" autocomplete="off">
         <div id="node-name-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="node-requires-section">
-        <label>前提（Requires、名前で検索して追加）</label>
+        <label data-i18n="modalRequiresLabel">前提（Requires、名前で検索して追加）</label>
         <div class="mod-tags" id="node-requires-tags"></div>
         <div class="combobox">
-          <input type="text" id="node-requires-input" placeholder="ノード名で検索してEnter" autocomplete="off">
+          <input type="text" id="node-requires-input" data-i18n-placeholder="modalSearchPlaceholder" placeholder="ノード名で検索してEnter" autocomplete="off">
           <div id="node-requires-suggest" class="suggest-list hidden"></div>
         </div>
       </div>
       <div id="node-contains-section">
-        <label>中身（Contains、名前で検索して追加）</label>
+        <label data-i18n="modalContainsLabel">中身（Contains、名前で検索して追加）</label>
         <div class="mod-tags" id="node-contains-tags"></div>
         <div class="combobox">
-          <input type="text" id="node-contains-input" placeholder="ノード名で検索してEnter" autocomplete="off">
+          <input type="text" id="node-contains-input" data-i18n-placeholder="modalSearchPlaceholder" placeholder="ノード名で検索してEnter" autocomplete="off">
           <div id="node-contains-suggest" class="suggest-list hidden"></div>
         </div>
       </div>
-      <label>メモ</label>
+      <label data-i18n="modalMemoLabel">メモ</label>
       <textarea id="node-note"></textarea>
-      <div class="checkbox-row"><input type="checkbox" id="node-mastery-track"><label style="margin:0" for="node-mastery-track">マスタリー担当パーツ（Zaw Strike/Kitgun Chamber/Amp Prism等、メッキ加工必須）</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="node-mastery-track"><label style="margin:0" for="node-mastery-track" data-i18n="modalMasteryTrack">マスタリー担当パーツ（Zaw Strike/Kitgun Chamber/Amp Prism等、メッキ加工必須）</label></div>
 
       <div class="actions">
-        <button class="toggle" id="node-modal-delete" style="display:none;border-color:var(--blocked);color:var(--blocked);">削除</button>
-        <button class="toggle" id="node-modal-cancel">キャンセル</button>
-        <button class="toggle" id="node-modal-save">保存</button>
+        <button class="toggle" id="node-modal-delete" style="display:none;border-color:var(--blocked);color:var(--blocked);" data-i18n="modalDelete">削除</button>
+        <button class="toggle" id="node-modal-cancel" data-i18n="modalCancel">キャンセル</button>
+        <button class="toggle" id="node-modal-save" data-i18n="modalSave">保存</button>
       </div>
     </div>
   </div>
@@ -712,16 +712,16 @@
   <!-- WFCD自動生成インポートウィザード。パーツ→レリック候補はOR関係なのでユーザーが1つ選ぶ。 -->
   <div id="wfcd-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
-      <h3>WFCDから自動生成</h3>
+      <h3 data-i18n="wfcdModalTitle">WFCDから自動生成</h3>
       <div class="row">
         <div>
-          <label>種別</label>
+          <label data-i18n="modalTypeLabel">種別</label>
           <select id="wfcd-node-type"></select>
         </div>
         <div>
-          <label>名前（キーワードで絞り込み）</label>
+          <label data-i18n="wfcdNameLabel">名前（キーワードで絞り込み）</label>
           <div class="combobox">
-            <input type="text" id="wfcd-name" placeholder="例: Braton Prime" autocomplete="off">
+            <input type="text" id="wfcd-name" data-i18n-placeholder="wfcdNamePlaceholder" placeholder="例: Braton Prime" autocomplete="off">
             <div id="wfcd-name-suggest" class="suggest-list hidden"></div>
           </div>
         </div>
@@ -734,12 +734,12 @@
            文字サイズも他の注意書きと揃える）。 -->
       <div class="wfcd-note" id="wfcd-note"></div>
       <div class="actions" style="justify-content:flex-start;margin-top:8px;">
-        <button class="toggle" id="wfcd-fetch-btn">候補を取得</button>
+        <button class="toggle" id="wfcd-fetch-btn" data-i18n="wfcdFetchBtn">候補を取得</button>
       </div>
       <div id="wfcd-preview"></div>
       <div class="actions">
-        <button class="toggle" id="wfcd-modal-cancel">閉じる</button>
-        <button class="toggle" id="wfcd-modal-import" style="display:none;">この内容でグラフに追加</button>
+        <button class="toggle" id="wfcd-modal-cancel" data-i18n="wfcdClose">閉じる</button>
+        <button class="toggle" id="wfcd-modal-import" style="display:none;" data-i18n="wfcdImportConfirm">この内容でグラフに追加</button>
       </div>
     </div>
   </div>
@@ -747,22 +747,22 @@
   <!-- テキストDSLからのノード一括生成（上級者モード）。項目29。 -->
   <div id="dsl-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
-      <h3>テキストから一括生成（上級者モード）</h3>
-      <div class="ph-row" style="opacity:.8;">
+      <h3 data-i18n="dslModalTitle">テキストから一括生成（上級者モード）</h3>
+      <div class="ph-row" style="opacity:.8;" data-i18n-html="dslSyntaxHint">
         <code>A -&gt; B</code>＝「AはBが前提」、<code>A -&gt; [B -&gt; C]</code>＝「Aの中身にB、BはCが前提」、<code>,</code>区切りで複数のチェーンをまとめて書けます。同じ名前は同一ノードとして扱われます。チェーンの先頭（他のどこからも参照されない名前）だけが左上プルダウンから辿れる探索起点になります。
       </div>
       <div class="ph-row" style="opacity:.8;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-        <span>複雑な内容はChatGPT等のAIに下書きしてもらえます。ボタンでAI用の説明をコピーし、チャットに貼り付けて「〜を表すDSLを書いて」と頼んでください。</span>
-        <button class="toggle" id="dsl-ai-prompt-copy" title="AI用の説明をコピー">AI用の説明をコピー</button>
+        <span data-i18n="dslAiHint">複雑な内容はChatGPT等のAIに下書きしてもらえます。ボタンでAI用の説明をコピーし、チャットに貼り付けて「〜を表すDSLを書いて」と頼んでください。</span>
+        <button class="toggle" id="dsl-ai-prompt-copy" data-i18n-title="dslAiCopyBtn" title="AI用の説明をコピー" data-i18n="dslAiCopyBtn">AI用の説明をコピー</button>
       </div>
-      <textarea id="dsl-input" rows="4" placeholder="例: フレーム入手 -> [パーツA -> パーツA用レリック開封], フレーム入手 -> パーツB"></textarea>
+      <textarea id="dsl-input" rows="4" data-i18n-placeholder="dslInputPlaceholder" placeholder="例: フレーム入手 -> [パーツA -> パーツA用レリック開封], フレーム入手 -> パーツB"></textarea>
       <div class="actions" style="justify-content:flex-start;margin-top:8px;">
-        <button class="toggle" id="dsl-preview-btn">プレビュー</button>
+        <button class="toggle" id="dsl-preview-btn" data-i18n="dslPreviewBtn">プレビュー</button>
       </div>
       <div id="dsl-preview"></div>
       <div class="actions">
-        <button class="toggle" id="dsl-modal-cancel">閉じる</button>
-        <button class="toggle" id="dsl-modal-import" style="display:none;">この内容でグラフに追加</button>
+        <button class="toggle" id="dsl-modal-cancel" data-i18n="wfcdClose">閉じる</button>
+        <button class="toggle" id="dsl-modal-import" style="display:none;" data-i18n="wfcdImportConfirm">この内容でグラフに追加</button>
       </div>
     </div>
   </div>
@@ -772,11 +772,11 @@
   <div id="folder-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="folder-modal-title">新規フォルダ</h3>
-      <label>フォルダ名</label>
+      <label data-i18n="folderNameLabel">フォルダ名</label>
       <input type="text" id="folder-modal-name" maxlength="60">
       <div class="actions">
-        <button class="toggle" id="folder-modal-cancel">キャンセル</button>
-        <button class="toggle" id="folder-modal-save">保存</button>
+        <button class="toggle" id="folder-modal-cancel" data-i18n="modalCancel">キャンセル</button>
+        <button class="toggle" id="folder-modal-save" data-i18n="modalSave">保存</button>
       </div>
     </div>
   </div>
@@ -786,12 +786,5 @@
      旧来の個別<script src>の並びの代わりにこれ1本を読み込む。 -->
 <script type="module" src="/index.js"></script>
 
-<!-- 以下は残る共有スクリプト群（notemd/scratch/wallpaper/theme等）。ページ本体のドメイン
-     ロジックと独立しているため、元のGoプロジェクト側のweb/*.jsをそのまま静的配信して見た目・
-     挙動を保つ（server/main.tsのlegacyStaticルート参照）。boosterは2026-08-26に/index.js側の
-     モジュールバンドルへ移行済み。 -->
-<script src="/notemd.js"></script>
-<script src="/wallpaper.js"></script>
-<script src="/theme.js"></script>
-<script src="/scroll-top.js"></script></body>
+</body>
 </html>

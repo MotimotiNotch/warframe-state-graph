@@ -23,6 +23,7 @@
 // degrades to the old one-dot-per-node look, since each layer then holds
 // exactly one node.
 import type { Node } from "../server/model.ts";
+import { effective } from "./locale.ts";
 
 const STYLE = `
     .minigraph-wrap { margin: 4px 0 2px; overflow-x: auto; }
@@ -73,10 +74,23 @@ const LAYER_COLOR: Record<LayerState, string> = {
   actionable: "var(--actionable)",
   blocked: "var(--blocked)",
 };
-const LAYER_LABEL_JA: Record<LayerState, string> = {
-  satisfied: "達成済み",
-  actionable: "実行可能",
-  blocked: "前提待ち",
+const LAYER_LABEL: Record<"ja" | "en", Record<LayerState, string>> = {
+  ja: { satisfied: "達成済み", actionable: "実行可能", blocked: "前提待ち" },
+  en: { satisfied: "Satisfied", actionable: "Actionable", blocked: "Blocked" },
+};
+const MINIGRAPH_STRINGS: Record<"ja" | "en", { nameSep: string; more: (n: number) => string; jumpHint: string; deeperLayers: (max: number) => string }> = {
+  ja: {
+    nameSep: "、",
+    more: (n) => ` 他${n}件`,
+    jumpHint: "　［クリックでChain Viewへ］",
+    deeperLayers: (max) => `この先にさらに層があります（表示は最深${max}層まで）`,
+  },
+  en: {
+    nameSep: ", ",
+    more: (n) => ` and ${n} more`,
+    jumpHint: "  [click to open in Chain View]",
+    deeperLayers: (max) => `There are more layers beyond this (only ${max} are shown)`,
+  },
 };
 
 /**
@@ -137,8 +151,9 @@ function layerTooltip(layerIdx: number, layers: string[][], nodesById: NodesById
   const nodes = layers[layerIdx]!.map((id) => nodesById[id]).filter((n): n is Node => !!n);
   const done = nodes.filter((n) => n.satisfied).length;
   const names = nodes.map((n) => n.name);
-  const shown = names.length > 3 ? `${names.slice(0, 3).join("、")} 他${names.length - 3}件` : names.join("、");
-  return `${LAYER_LABEL_JA[state]}（${done}/${nodes.length}）: ${shown}　［クリックでChain Viewへ］`;
+  const s = MINIGRAPH_STRINGS[effective()];
+  const shown = names.length > 3 ? `${names.slice(0, 3).join(s.nameSep)}${s.more(names.length - 3)}` : names.join(s.nameSep);
+  return `${LAYER_LABEL[effective()][state]}（${done}/${nodes.length}）: ${shown}${s.jumpHint}`;
 }
 
 /** containerEl: render target. nodeId: Chain View node id. nodesById: the /api/graph nodes map. */
@@ -205,7 +220,7 @@ export function renderMiniGraph(containerEl: HTMLElement, nodeId: string | undef
   }
   if (truncated) {
     const lastX = order.length <= 1 ? 9 : padX + (order.length - 1) * step;
-    lines += `<line x1="${lastX + r}" y1="${cy}" x2="${lastX + r + stubLen}" y2="${cy}" stroke="var(--border)" stroke-width="2" stroke-dasharray="2,2"><title>この先にさらに層があります（表示は最深${MAX_LAYERS}層まで）</title></line>`;
+    lines += `<line x1="${lastX + r}" y1="${cy}" x2="${lastX + r + stubLen}" y2="${cy}" stroke="var(--border)" stroke-width="2" stroke-dasharray="2,2"><title>${MINIGRAPH_STRINGS[effective()].deeperLayers(MAX_LAYERS)}</title></line>`;
   }
   const dots = order
     .map((layerIdx, i) => {

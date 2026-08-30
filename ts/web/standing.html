@@ -251,11 +251,11 @@
     <a href="/stats.html">Stats</a>
     <a href="/note.html">Note</a>
     <span style="flex:1"></span>
-    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <button class="icon-btn" id="refresh-wfcd-btn" data-i18n-title="refreshTitle" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
     <div class="popover-wrap">
-      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <button class="icon-btn" id="help-toggle" data-i18n-title="helpToggleTitle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">
+        <div class="empty" data-i18n-html="helpPopover">
           <div style="margin-bottom:8px;">全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</div>
           <ul style="margin:0 0 10px;padding-left:18px;">
             <li>6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）は2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）。そのためChain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新します</li>
@@ -270,35 +270,34 @@
   </nav>
 
   <div class="panel">
-    <div class="panel-head"><h2>6大シンジケート</h2></div>
+    <div class="panel-head"><h2 data-i18n="majorSynHeading">6大シンジケート</h2></div>
     <div id="major-syndicate-list" class="syn-grid"></div>
   </div>
 
   <div class="panel">
     <div class="panel-head">
-      <h2 id="other-syn-toggle"><span id="other-syn-icon"></span>その他のシンジケート</h2>
-      <button class="icon-btn" id="other-syn-chevron" title="開閉"></button>
+      <h2 id="other-syn-toggle"><span id="other-syn-icon"></span><span data-i18n="otherSynHeading">その他のシンジケート</span></h2>
+      <button class="icon-btn" id="other-syn-chevron" data-i18n-title="toggleOpenClose" title="開閉"></button>
     </div>
-    <div class="syn-warning">クエストやイベント進行で解放されるシンジケートです。ネタバレを含むため閲覧に注意してください。</div>
+    <div class="syn-warning" data-i18n="synWarning">クエストやイベント進行で解放されるシンジケートです。ネタバレを含むため閲覧に注意してください。</div>
     <div id="other-syndicate-list" class="syn-grid hidden"></div>
   </div>
 
-  <!-- 最高到達実績の訂正（window.prompt()廃止、ADR05実装、2026-08-28）。 -->
+  <!-- 最高到達実績の訂正（window.prompt()廃止、ADR05実装、2026-08-28）。タイトル/ヒントは
+       standing.tsのopenRankCorrectModal()が開くたびに動的に上書きするので、ここのdata-i18nは
+       付けない（静的な初期値はどうせ一度も見えない）。 -->
   <div id="rank-correct-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="rank-correct-title">最高到達実績を訂正</h3>
       <label id="rank-correct-hint"></label>
       <input type="number" id="rank-correct-input" min="0" step="1">
       <div class="actions">
-        <button class="toggle" id="rank-correct-cancel">キャンセル</button>
-        <button class="toggle" id="rank-correct-save">保存</button>
+        <button class="toggle" id="rank-correct-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="toggle" id="rank-correct-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
 
 <script type="module" src="/standing.js"></script>
-<script src="/notemd.js"></script>
-<script src="/wallpaper.js"></script>
-<script src="/theme.js"></script>
-<script src="/scroll-top.js"></script></body>
+</body>
 </html>

@@ -109,3 +109,37 @@ export async function forcePushToCollections(itemType: string, name: string, own
   if (!createRes.ok) return null;
   return entry.id;
 }
+
+interface LoadoutItemLike {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+// Force-links a Chain View node onto a Loadouts Item (same-name reuses the
+// existing item rather than creating a duplicate — mirrors
+// forcePushToCollections()'s dedup rule). Was previously inlined in
+// wfcd-wizard.ts's "Loadoutsにも追加する" checkbox handler as an
+// unconditional POST /api/loadout-items with a fresh id, which never checked
+// for an existing same-named item first — re-running WFCD-generate for an
+// already-registered item created a second, duplicate Item every time
+// (found 2026-08-30, のっち報告).
+export async function forcePushToLoadoutItem(type: "Frame" | "Weapon", name: string, chainViewNodeId: string): Promise<string | null> {
+  const res = await fetch("/api/loadouts");
+  if (!res.ok) return null;
+  const data = (await res.json()) as { items?: Record<string, LoadoutItemLike> };
+  const items = data.items ?? {};
+  const q = name.trim().toLowerCase();
+  const existing = Object.values(items).find((it) => it.name.trim().toLowerCase() === q);
+
+  const entry = existing
+    ? { ...existing, chainViewNodeId }
+    : { id: autoLinkId("item"), name, type, configs: { A: [], B: [], C: [] }, note: "", chainViewNodeId };
+  const upsertRes = await fetch("/api/loadout-items", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
+  if (!upsertRes.ok) return null;
+  return entry.id;
+}

@@ -6,13 +6,231 @@ import type { Planet, Proxima } from "../server/starchart.ts";
 import type { Data as StatsData } from "../server/stats.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
-import { questJa } from "./quest-i18n.ts";
+import { nodeDisplayName, questJa } from "./quest-i18n.ts";
+import { applyI18nText, effective, onLocaleChange } from "./locale.ts";
 import "./booster.ts";
 import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
 import "./manual-launcher.ts";
 import "./scratch.ts";
 import "./kofi-link.ts";
+import "./theme.ts";
+import "./wallpaper.ts";
+import "./scroll-top.ts";
+
+interface UIStrings {
+  [key: string]: string;
+  refreshUpdating: string;
+  refreshDone: string;
+  refreshTitle: string;
+  helpToggleTitle: string;
+  helpPopoverHtml: string;
+  chevronToggle: string;
+  aggregateHeading: string;
+  chainviewAggHeading: string;
+  noGoalsYet: string;
+  buildSetCountLabel: string;
+  itemCountLabel: string;
+  rivenLabel: string;
+  countUnit: string;
+  rivenFixedLabel: string;
+  favoriteCountLabel: string;
+  frameOwnedLabel: string;
+  frameRanked30Label: string;
+  frameHelminthLabel: string;
+  incarnonObtainedLabel: string;
+  incarnonCompletedLabel: string;
+  maxCountLabel: string;
+  negativeCountLabel: string;
+  questProgressHeading: string;
+  questHint: string;
+  questMainClearedBtn: string;
+  questMainUnclearedBtn: string;
+  questSubClearedBtn: string;
+  questSubUnclearedBtn: string;
+  mainQuestGroupTitle: string;
+  subQuestGroupTitle: string;
+  starchartHeading: string;
+  starchartHint: string;
+  starchartMarkClearedBtn: string;
+  starchartMarkUnclearedBtn: string;
+  starchartMarkSpClearedBtn: string;
+  starchartMarkSpUnclearedBtn: string;
+  planetHeader: string;
+  starchartHeader: string;
+  steelPathHeader: string;
+  notApplicable: string;
+  loading: string;
+  intrinsicsHeading: string;
+  riseTideWarning: string;
+  drifterWarning: string;
+  secondDreamWarning: string;
+  lockedSectionTitle: string;
+  revealedTitleFocus: string;
+  revealedTitleRailjack: string;
+  revealedTitleRailjackIntrinsics: string;
+  revealedTitleDrifterIntrinsics: string;
+  activeSchoolLabel: string;
+  notSet: string;
+  investedNo: string;
+  investedInProgress: string;
+  investedMaxed: string;
+  plexusNoteLabel: string;
+  plexusNotePlaceholder: string;
+  proximaHeading: string;
+  proximaMarkClearedBtn: string;
+  proximaMarkUnclearedBtn: string;
+  normalHeader: string;
+}
+
+const STRINGS: Record<"ja" | "en", UIStrings> = {
+  ja: {
+    refreshUpdating: "更新中…",
+    refreshDone: "更新完了",
+    refreshTitle: "新フレーム/新武器の追加や、星図/Proximaのノード数がゲームアップデートに追従してない時に押してください",
+    helpToggleTitle: "このページについて",
+    helpPopoverHtml: `
+        <div style="margin-bottom:8px;">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計です。</div>
+        <ul style="margin:0 0 10px;padding-left:18px;">
+          <li>「クエスト進行状況」パネルでクリア済みのクエストにチェックを入れると、対応する下段の追加セクションの折りたたみが解除されます</li>
+          <li>星図/鋼の道のり/性能値（Intrinsics）は、惑星・地域単位の粗い進捗（ノード個別トグルは持たない）を記録する数値入力欄です</li>
+          <li>すべてのパネルは右上のアイコンで開閉でき、状態は次回起動時も引き継がれます</li>
+        </ul>
+        <div>⚠️ 惑星名などにネタバレを含むことがあります。対応するクエストをクリア済みでないセクションは、内容を明かさないよう折りたたんだままにしています。</div>`,
+    chevronToggle: "開閉",
+    aggregateHeading: "集計（読み取り専用）",
+    chainviewAggHeading: "Chain View — Build別進捗",
+    noGoalsYet: "目標ノードがまだありません",
+    buildSetCountLabel: "BuildSet数",
+    itemCountLabel: "Item数",
+    rivenLabel: "Riven",
+    countUnit: "件",
+    rivenFixedLabel: "Riven FIX済み",
+    favoriteCountLabel: "お気に入り総数",
+    frameOwnedLabel: "フレーム入手",
+    frameRanked30Label: "ランク30済み",
+    frameHelminthLabel: "ヘルミンス済み",
+    incarnonObtainedLabel: "インカーノン取得済み",
+    incarnonCompletedLabel: "インカーノン済み",
+    maxCountLabel: "最高到達Max",
+    negativeCountLabel: "現在マイナス圏",
+    questProgressHeading: "クエスト進行状況",
+    questHint:
+      "下のセクションの一部は、これらのクエストのクリア状況に応じて内容が自動的に表示されます。メインクエストは前提クエストの連鎖になっているため、新しい方をクリア済みにチェックすると、その前提となる過去のクエストもまとめてクリア済みになります（逆にチェックを外すのはそのクエスト単体のみ）。",
+    questMainClearedBtn: "メイン全部クリア",
+    questMainUnclearedBtn: "メイン全部未クリア",
+    questSubClearedBtn: "サブ全部クリア",
+    questSubUnclearedBtn: "サブ全部未クリア",
+    mainQuestGroupTitle: "メインクエスト",
+    subQuestGroupTitle: "サブクエスト",
+    starchartHeading: "星図 / 鋼の道のり 進捗",
+    starchartHint: "分母（総ノード数）は外部データから自動取得。分子（クリア済み数）だけを惑星ごとに入力する。",
+    starchartMarkClearedBtn: "星図全部クリア",
+    starchartMarkUnclearedBtn: "星図全部未クリア",
+    starchartMarkSpClearedBtn: "鋼の道のり全部クリア",
+    starchartMarkSpUnclearedBtn: "鋼の道のり全部未クリア",
+    planetHeader: "惑星 / システム",
+    starchartHeader: "星図",
+    steelPathHeader: "鋼の道のり",
+    notApplicable: "対象外",
+    loading: "読み込み中…",
+    intrinsicsHeading: "性能値（Intrinsics）",
+    riseTideWarning: "前提クエスト（流転する形勢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。",
+    drifterWarning: "前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。",
+    secondDreamWarning: "前提クエスト（二番目の夢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。",
+    lockedSectionTitle: "未解放セクション",
+    revealedTitleFocus: "フォーカス（Focus School）",
+    revealedTitleRailjack: "レールジャック（Railjack）",
+    revealedTitleRailjackIntrinsics: "レールジャック性能値",
+    revealedTitleDrifterIntrinsics: "ドリフター性能値",
+    activeSchoolLabel: "アクティブな校",
+    notSet: "未設定",
+    investedNo: "未投資",
+    investedInProgress: "投資中",
+    investedMaxed: "フルマックス",
+    plexusNoteLabel: "Plexus mod構成（メモ）",
+    plexusNotePlaceholder: "例: Battle 3枠 + Tactical 1枠",
+    proximaHeading: "Proxima進捗",
+    proximaMarkClearedBtn: "通常全部クリア",
+    proximaMarkUnclearedBtn: "通常全部未クリア",
+    normalHeader: "通常",
+  },
+  en: {
+    refreshUpdating: "Updating…",
+    refreshDone: "Done",
+    refreshTitle: "Press this when new frames/weapons, or the star chart/Proxima node counts, haven't caught up with a game update",
+    helpToggleTitle: "About this page",
+    helpPopoverHtml: `
+        <div style="margin-bottom:8px;">The top section is a read-only aggregate of the 4 existing data sources (Chain View/Loadouts/Collections/Standing).</div>
+        <ul style="margin:0 0 10px;padding-left:18px;">
+          <li>Checking a quest as cleared in the "Quest Progress" panel unlocks the corresponding sections below</li>
+          <li>Star Chart/Steel Path/Intrinsics record coarse per-planet/region progress (no per-node toggles)</li>
+          <li>Every panel can be collapsed via the icon at top right, and the state carries over next launch</li>
+        </ul>
+        <div>⚠️ Planet names etc. may contain spoilers. Sections whose gating quest isn't cleared yet stay collapsed so they don't reveal content.</div>`,
+    chevronToggle: "Toggle",
+    aggregateHeading: "Aggregate (read-only)",
+    chainviewAggHeading: "Chain View — per-Build progress",
+    noGoalsYet: "No goal nodes yet",
+    buildSetCountLabel: "Build Sets",
+    itemCountLabel: "Items",
+    rivenLabel: "Riven",
+    countUnit: "",
+    rivenFixedLabel: "Riven Fixed",
+    favoriteCountLabel: "Total Favorites",
+    frameOwnedLabel: "Frames Owned",
+    frameRanked30Label: "Rank 30",
+    frameHelminthLabel: "Helminth Fed",
+    incarnonObtainedLabel: "Incarnon Obtained",
+    incarnonCompletedLabel: "Incarnon Completed",
+    maxCountLabel: "Max Reached",
+    negativeCountLabel: "Currently Negative",
+    questProgressHeading: "Quest Progress",
+    questHint:
+      "Some of the sections below automatically reveal their content based on these quests' clear status. Main quests form a prerequisite chain, so checking a later one as cleared also marks its earlier prerequisites cleared (unchecking only affects that single quest).",
+    questMainClearedBtn: "Clear all main",
+    questMainUnclearedBtn: "Uncheck all main",
+    questSubClearedBtn: "Clear all side",
+    questSubUnclearedBtn: "Uncheck all side",
+    mainQuestGroupTitle: "Main Quests",
+    subQuestGroupTitle: "Side Quests",
+    starchartHeading: "Star Chart / Steel Path Progress",
+    starchartHint: "The denominator (total node count) is fetched automatically. Only enter the numerator (cleared count) per planet.",
+    starchartMarkClearedBtn: "Clear all star chart",
+    starchartMarkUnclearedBtn: "Uncheck all star chart",
+    starchartMarkSpClearedBtn: "Clear all Steel Path",
+    starchartMarkSpUnclearedBtn: "Uncheck all Steel Path",
+    planetHeader: "Planet / System",
+    starchartHeader: "Star Chart",
+    steelPathHeader: "Steel Path",
+    notApplicable: "N/A",
+    loading: "Loading…",
+    intrinsicsHeading: "Intrinsics",
+    riseTideWarning: "This section is revealed once the gating quest (Rising Tide) is cleared. To avoid spoilers, we recommend not opening it until then.",
+    drifterWarning: "This section is revealed once the gating quest (The Duviri Paradox) is cleared. To avoid spoilers, we recommend not opening it until then.",
+    secondDreamWarning: "This section is revealed once the gating quest (The Second Dream) is cleared. To avoid spoilers, we recommend not opening it until then.",
+    lockedSectionTitle: "Locked section",
+    revealedTitleFocus: "Focus (Focus School)",
+    revealedTitleRailjack: "Railjack",
+    revealedTitleRailjackIntrinsics: "Railjack Intrinsics",
+    revealedTitleDrifterIntrinsics: "Drifter Intrinsics",
+    activeSchoolLabel: "Active School",
+    notSet: "Not set",
+    investedNo: "Not Invested",
+    investedInProgress: "In Progress",
+    investedMaxed: "Maxed",
+    plexusNoteLabel: "Plexus mod loadout (memo)",
+    plexusNotePlaceholder: "e.g. 3× Battle + 1× Tactical",
+    proximaHeading: "Proxima Progress",
+    proximaMarkClearedBtn: "Clear all normal",
+    proximaMarkUnclearedBtn: "Uncheck all normal",
+    normalHeader: "Normal",
+  },
+};
+
+function t(): UIStrings {
+  return STRINGS[effective()];
+}
 
 // Collections (pkg/collection) is Phase 10 scope, not yet ported — /api/collections
 // 404s for now and renderCollectionsAgg falls back to its empty defaults, same
@@ -83,7 +301,7 @@ el("refresh-wfcd-btn").addEventListener("click", async () => {
   const btn = el("refresh-wfcd-btn");
   (btn as HTMLButtonElement).disabled = true;
   btn.classList.add("spinning");
-  btn.title = "更新中…";
+  btn.title = t().refreshUpdating;
   await fetch("/api/wfcd/refresh", { method: "POST" });
   // The star chart/Railjack Proxima denominators (per-planet total node
   // count) live in the same cache, so a dedicated starchart-refresh button
@@ -94,12 +312,12 @@ el("refresh-wfcd-btn").addEventListener("click", async () => {
   btn.classList.remove("spinning");
   btn.classList.add("success");
   btn.innerHTML = icon("check");
-  btn.title = "更新完了";
+  btn.title = t().refreshDone;
   setTimeout(() => {
     btn.classList.remove("success");
     btn.innerHTML = icon("refresh-cw");
     (btn as HTMLButtonElement).disabled = false;
-    btn.title = "新フレーム/新武器の追加や、星図/Proximaのノード数がゲームアップデートに追従してない時に押してください";
+    btn.title = t().refreshTitle;
   }, 2000);
 });
 
@@ -144,15 +362,19 @@ function renderChainViewAgg(): void {
     .map((b) => ({ node: b, ...requiresClosureSize(b.id) }))
     .map((b) => ({ ...b, pct: b.total ? Math.round((b.satisfied / b.total) * 100) : 0 }));
   if (!builds.length) {
-    container.innerHTML = `<div class="empty">目標ノードがまだありません</div>`;
+    container.innerHTML = `<div class="empty">${t().noGoalsYet}</div>`;
     return;
   }
   // Least-progressed first (today's most-actionable), name as the stable tie-break (2026-08-22).
-  builds.sort((a, b) => a.pct - b.pct || a.node.name.localeCompare(b.node.name));
+  // Sorts and displays by nodeDisplayName() (quest-i18n.ts), not the raw
+  // stored node.name — this tile grid was missed when 76e7138 switched every
+  // other node-label surface (graph/sidebar/Inspector/combobox) over to it
+  // (found 2026-08-30).
+  builds.sort((a, b) => a.pct - b.pct || nodeDisplayName(a.node).localeCompare(nodeDisplayName(b.node), "ja"));
   container.innerHTML = builds
     .map(
       ({ node, satisfied, total, pct }) =>
-        `<div class="tile"><div class="tile-label">${escapeHtml(node.name)}</div><div class="tile-value">${pct}%<span class="unit">(${satisfied}/${total})</span></div></div>`,
+        `<div class="tile"><div class="tile-label">${escapeHtml(nodeDisplayName(node))}</div><div class="tile-value">${pct}%<span class="unit">(${satisfied}/${total})</span></div></div>`,
     )
     .join("");
 }
@@ -163,8 +385,8 @@ function renderLoadoutsAgg(): void {
   const buildSetCount = Object.keys(state.loadouts.buildSets || {}).length;
   const itemCount = Object.keys(state.loadouts.items || {}).length;
   container.innerHTML = `
-    <div class="tile"><div class="tile-label">BuildSet数</div><div class="tile-value">${buildSetCount}</div></div>
-    <div class="tile"><div class="tile-label">Item数</div><div class="tile-value">${itemCount}</div></div>
+    <div class="tile"><div class="tile-label">${t().buildSetCountLabel}</div><div class="tile-value">${buildSetCount}</div></div>
+    <div class="tile"><div class="tile-label">${t().itemCountLabel}</div><div class="tile-value">${itemCount}</div></div>
   `;
 }
 
@@ -207,17 +429,17 @@ function renderCollectionsAgg(): void {
   const incarnonCompleted = incarnons.filter((i) => i.completed).length;
 
   container.innerHTML = `
-    <div class="tile"><div class="tile-label">Riven</div><div class="tile-value">${rivens.length}<span class="unit">件</span></div></div>
-    <div class="tile"><div class="tile-label">Riven FIX済み</div><div class="tile-value">${rivenFixed} / ${rivens.length}</div></div>
+    <div class="tile"><div class="tile-label">${t().rivenLabel}</div><div class="tile-value">${rivens.length}<span class="unit">${t().countUnit}</span></div></div>
+    <div class="tile"><div class="tile-label">${t().rivenFixedLabel}</div><div class="tile-value">${rivenFixed} / ${rivens.length}</div></div>
     <div class="tile"><div class="tile-label">Kuva</div><div class="tile-value">${kuvaByKind.Kuva}</div></div>
     <div class="tile"><div class="tile-label">Tenet</div><div class="tile-value">${kuvaByKind.Tenet}</div></div>
     <div class="tile"><div class="tile-label">Coda</div><div class="tile-value">${kuvaByKind.Coda}</div></div>
-    <div class="tile"><div class="tile-label">お気に入り総数</div><div class="tile-value">${favoriteCount}</div></div>
-    <div class="tile"><div class="tile-label">フレーム入手</div><div class="tile-value">${framesOwned}</div></div>
-    <div class="tile"><div class="tile-label">ランク30済み</div><div class="tile-value">${framesRanked30} / ${framesOwned}</div></div>
-    <div class="tile"><div class="tile-label">ヘルミンス済み</div><div class="tile-value">${framesHelminth} / ${framesOwned}</div></div>
-    <div class="tile"><div class="tile-label">インカーノン取得済み</div><div class="tile-value">${incarnonObtained}</div></div>
-    <div class="tile"><div class="tile-label">インカーノン済み</div><div class="tile-value">${incarnonCompleted} / ${incarnonObtained}</div></div>
+    <div class="tile"><div class="tile-label">${t().favoriteCountLabel}</div><div class="tile-value">${favoriteCount}</div></div>
+    <div class="tile"><div class="tile-label">${t().frameOwnedLabel}</div><div class="tile-value">${framesOwned}</div></div>
+    <div class="tile"><div class="tile-label">${t().frameRanked30Label}</div><div class="tile-value">${framesRanked30} / ${framesOwned}</div></div>
+    <div class="tile"><div class="tile-label">${t().frameHelminthLabel}</div><div class="tile-value">${framesHelminth} / ${framesOwned}</div></div>
+    <div class="tile"><div class="tile-label">${t().incarnonObtainedLabel}</div><div class="tile-value">${incarnonObtained}</div></div>
+    <div class="tile"><div class="tile-label">${t().incarnonCompletedLabel}</div><div class="tile-value">${incarnonCompleted} / ${incarnonObtained}</div></div>
   `;
 }
 
@@ -229,8 +451,8 @@ function renderStandingAgg(): void {
   const maxCount = highest.filter((r) => r >= 5).length;
   const negativeCount = ranks.filter((r) => r < 0).length;
   container.innerHTML = `
-    <div class="tile"><div class="tile-label">最高到達Max</div><div class="tile-value">${maxCount} / ${highest.length}</div></div>
-    <div class="tile"><div class="tile-label">現在マイナス圏</div><div class="tile-value">${negativeCount}</div></div>
+    <div class="tile"><div class="tile-label">${t().maxCountLabel}</div><div class="tile-value">${maxCount} / ${highest.length}</div></div>
+    <div class="tile"><div class="tile-label">${t().negativeCountLabel}</div><div class="tile-value">${negativeCount}</div></div>
   `;
 }
 
@@ -272,7 +494,7 @@ const PLANET_JA: Record<string, string> = {
   SolarMapDeimosName: "ダイモス",
 };
 function planetJa(p: Planet): string {
-  return PLANET_JA[p.key] || p.displayName;
+  return effective() === "en" ? p.displayName : PLANET_JA[p.key] || p.displayName;
 }
 
 // /api/starchart/proxima Key -> Japanese label. Verified against
@@ -286,7 +508,7 @@ const PROXIMA_JA: Record<string, string> = {
   DeepSpace: "ヴェールプロキシマ",
 };
 function proximaJa(p: Proxima): string {
-  return PROXIMA_JA[p.key] || p.displayName;
+  return effective() === "en" ? p.displayName : PROXIMA_JA[p.key] || p.displayName;
 }
 
 // Generic helper: POST to endpoint/{key} and update state.statsData[dataMapKey][key]
@@ -322,7 +544,7 @@ async function saveProximaField(key: string, field: "cleared" | "steelPathCleare
 function planetTableHtml(planets: Planet[]): string {
   return `
     <table class="input-table">
-      <thead><tr><th>惑星 / システム</th><th>星図</th><th>鋼の道のり</th></tr></thead>
+      <thead><tr><th>${t().planetHeader}</th><th>${t().starchartHeader}</th><th>${t().steelPathHeader}</th></tr></thead>
       <tbody>
         ${planets
           .map((p) => {
@@ -335,7 +557,7 @@ function planetTableHtml(planets: Planet[]): string {
                 ${
                   p.steelPathApplicable
                     ? planetProgressCellHtml(p.key, "steelPathCleared", progress.steelPathCleared, p.nodeCount)
-                    : `<span class="steel-path-na">対象外</span>`
+                    : `<span class="steel-path-na">${t().notApplicable}</span>`
                 }
               </td>
             </tr>`;
@@ -348,7 +570,7 @@ function planetTableHtml(planets: Planet[]): string {
 function renderStarchart(): void {
   const container = el("starchart-list");
   if (!state.planets.length) {
-    container.innerHTML = `<div class="empty">読み込み中…</div>`;
+    container.innerHTML = `<div class="empty">${t().loading}</div>`;
     return;
   }
   // Split into 2 columns (front half/back half) so it doesn't get too tall (2026-08-22, owner-specified).
@@ -414,7 +636,7 @@ function renderIntrinsicsGroup(containerId: string, categories: string[], values
     .map(
       (cat) => `
     <div class="intrinsic-field">
-      <label>${escapeHtml(INTRINSIC_JA[cat] || cat)}（${escapeHtml(cat)}）</label>
+      <label>${effective() === "en" ? escapeHtml(cat) : `${escapeHtml(INTRINSIC_JA[cat] || cat)}（${escapeHtml(cat)}）`}</label>
       <input type="range" min="0" max="10" step="1" value="${values[cat] || 0}" data-intrinsic="${escapeHtml(cat)}">
       <span class="rank-value" data-intrinsic-value="${escapeHtml(cat)}">${values[cat] || 0}</span>
     </div>
@@ -454,7 +676,9 @@ function renderIntrinsics(): void {
 // ---------- Focus School (5 schools, 3-stage aggregate + active school) ----------
 // School names stay in English in the UI too (owner-specified, not localized).
 const FOCUS_SCHOOLS = ["Madurai", "Naramon", "Zenurik", "Vazarin", "Unairu"];
-const FOCUS_INVESTMENT_LABELS: Record<string, string> = { not_invested: "未投資", in_progress: "投資中", maxed: "フルマックス" };
+function focusInvestmentLabels(): Record<string, string> {
+  return { not_invested: t().investedNo, in_progress: t().investedInProgress, maxed: t().investedMaxed };
+}
 
 function renderFocusGrid(): void {
   const container = el("focus-grid");
@@ -464,7 +688,7 @@ function renderFocusGrid(): void {
       <div class="focus-field">
         <label>${escapeHtml(school)}</label>
         <select data-focus-school="${escapeHtml(school)}">
-          ${Object.entries(FOCUS_INVESTMENT_LABELS)
+          ${Object.entries(focusInvestmentLabels())
             .map(([val, label]) => `<option value="${val}" ${val === current ? "selected" : ""}>${label}</option>`)
             .join("")}
         </select>
@@ -486,7 +710,7 @@ function renderFocusActiveSelect(): void {
   const select = el<HTMLSelectElement>("focus-active-select");
   const current = state.statsData.focusActiveSchool || "";
   select.innerHTML =
-    `<option value="">未設定</option>` +
+    `<option value="">${t().notSet}</option>` +
     FOCUS_SCHOOLS.map((s) => `<option value="${escapeHtml(s)}" ${s === current ? "selected" : ""}>${escapeHtml(s)}</option>`).join("");
   select.addEventListener("change", async () => {
     const res = await fetch("/api/stats/focus-active", {
@@ -510,14 +734,15 @@ function renderRailjackGrid(): void {
   const container = el("railjack-grid");
   container.innerHTML = RAILJACK_SLOTS.map((slot) => {
     const current = (state.statsData.railjackComponents || {})[slot] || { house: "", grade: "" };
+    const en = effective() === "en";
     return `
       <div class="railjack-field">
-        <label>${escapeHtml(slot)}（${escapeHtml(RAILJACK_PART_JA[slot] || slot)}）</label>
+        <label>${en ? escapeHtml(slot) : `${escapeHtml(slot)}（${escapeHtml(RAILJACK_PART_JA[slot] || slot)}）`}</label>
         <select data-railjack-slot="${escapeHtml(slot)}" data-field="house">
-          ${RAILJACK_HOUSES.map((h) => `<option value="${h}" ${h === current.house ? "selected" : ""}>${h ? escapeHtml(RAILJACK_HOUSE_JA[h] || h) : "未設定"}</option>`).join("")}
+          ${RAILJACK_HOUSES.map((h) => `<option value="${h}" ${h === current.house ? "selected" : ""}>${h ? escapeHtml(en ? h : RAILJACK_HOUSE_JA[h] || h) : t().notSet}</option>`).join("")}
         </select>
         <select data-railjack-slot="${escapeHtml(slot)}" data-field="grade" style="margin-top:4px;">
-          ${RAILJACK_GRADES.map((g) => `<option value="${g}" ${g === current.grade ? "selected" : ""}>${g || "未設定"}</option>`).join("")}
+          ${RAILJACK_GRADES.map((g) => `<option value="${g}" ${g === current.grade ? "selected" : ""}>${g || t().notSet}</option>`).join("")}
         </select>
       </div>`;
   }).join("");
@@ -558,12 +783,12 @@ function renderRailjackNote(): void {
 function renderProxima(): void {
   const container = el("proxima-list");
   if (!state.proxima.length) {
-    container.innerHTML = `<div class="empty">読み込み中…</div>`;
+    container.innerHTML = `<div class="empty">${t().loading}</div>`;
     return;
   }
   container.innerHTML = `
     <table class="input-table">
-      <thead><tr><th>Proxima</th><th>通常</th><th>鋼の道のり</th></tr></thead>
+      <thead><tr><th>Proxima</th><th>${t().normalHeader}</th><th>${t().steelPathHeader}</th></tr></thead>
       <tbody>
         ${state.proxima
           .map((p) => {
@@ -672,7 +897,7 @@ function revealPanel(prefix: string, revealedTitle: string, cleared: boolean): v
   const body = el(`${prefix}-body`);
   const chevron = el(`${prefix}-chevron`);
   const titleEl = el(`${prefix}-title`);
-  titleEl.textContent = cleared ? revealedTitle : "未解放セクション";
+  titleEl.textContent = cleared ? revealedTitle : t().lockedSectionTitle;
   // Force-closed while uncleared, for spoiler safety (overrides the
   // localStorage preference). Once cleared, restore whatever open/closed
   // state was last chosen (default expanded) from localStorage
@@ -755,9 +980,9 @@ function renderQuestProgress(): void {
     );
   const subQuests = quests.filter((q) => !isMainQuest(q)).sort((a, b) => questJa(a).localeCompare(questJa(b), "ja"));
   container.innerHTML = `
-    <div class="quest-group-title">メインクエスト</div>
+    <div class="quest-group-title">${t().mainQuestGroupTitle}</div>
     ${mainQuests.map(questRowHtml).join("")}
-    <div class="quest-group-title">サブクエスト</div>
+    <div class="quest-group-title">${t().subQuestGroupTitle}</div>
     ${subQuests.map(questRowHtml).join("")}
   `;
   container.querySelectorAll<HTMLInputElement>("[data-quest-clear]").forEach((cb) => {
@@ -861,6 +1086,8 @@ async function loadMainQuestNames(): Promise<void> {
   }
 }
 
+applyI18nText(STRINGS);
+
 Promise.all([
   loadChainViewNodes(),
   loadLoadouts(),
@@ -887,9 +1114,35 @@ Promise.all([
   initPlainCollapsible("quest-progress");
   initPlainCollapsible("starchart");
   initPlainCollapsible("intrinsics");
-  initCollapsiblePanel("focus", "The Second Dream", "フォーカス（Focus School）");
-  initCollapsiblePanel("railjack", "Rising Tide", "レールジャック（Railjack）");
-  initCollapsiblePanel("railjack-intrinsics", "Rising Tide", "レールジャック性能値");
-  initCollapsiblePanel("drifter-intrinsics", "The Duviri Paradox", "ドリフター性能値");
+  initCollapsiblePanel("focus", "The Second Dream", t().revealedTitleFocus);
+  initCollapsiblePanel("railjack", "Rising Tide", t().revealedTitleRailjack);
+  initCollapsiblePanel("railjack-intrinsics", "Rising Tide", t().revealedTitleRailjackIntrinsics);
+  initCollapsiblePanel("drifter-intrinsics", "The Duviri Paradox", t().revealedTitleDrifterIntrinsics);
   renderQuestProgress();
+});
+
+onLocaleChange(() => {
+  applyI18nText(STRINGS);
+  renderChainViewAgg();
+  renderLoadoutsAgg();
+  renderCollectionsAgg();
+  renderStandingAgg();
+  renderStarchart();
+  renderIntrinsics();
+  renderFocusGrid();
+  renderFocusActiveSelect();
+  renderRailjackGrid();
+  renderProxima();
+  renderQuestProgress();
+  Object.keys(questGatedPanels).forEach((questName) => {
+    questGatedPanels[questName]!.forEach(({ prefix }) => {
+      const revealed: Record<string, string> = {
+        focus: t().revealedTitleFocus,
+        railjack: t().revealedTitleRailjack,
+        "railjack-intrinsics": t().revealedTitleRailjackIntrinsics,
+        "drifter-intrinsics": t().revealedTitleDrifterIntrinsics,
+      };
+      revealPanel(prefix, revealed[prefix] || prefix, isQuestCleared(questName));
+    });
+  });
 });

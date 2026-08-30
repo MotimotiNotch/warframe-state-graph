@@ -1,5 +1,7 @@
 # Warframe State Graph
 
+🇯🇵 日本語 | [English](README.en.md)
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/motimotinotch)
 
 ゲーム内の依存関係グラフ（アイテム/MOD/シンジケート等）と自分の所持状態・目標を接続し、
@@ -53,7 +55,7 @@ Statsページの一部セクションは、対応する前提クエストをク
 
 ## 使い方（開発時）
 
-現行の実装はTypeScript/Bun版（`ts/`配下）。旧Go版（`pkg/`/`cmd/`）は2026-08-25で開発が止まった凍結済みの過去実装として残っているだけで、現在は使わない。
+実装はTypeScript/Bun版（`ts/`配下）のみ。旧Go版（`pkg/`/`cmd/`）とレガシー`web/`ディレクトリは2026-08-30に完全削除済み。
 
 ```
 cd ts

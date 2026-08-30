@@ -228,11 +228,11 @@
     <a href="/stats.html" class="current">Stats</a>
     <a href="/note.html">Note</a>
     <span style="flex:1"></span>
-    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器の追加や、星図/Proximaのノード数がゲームアップデートに追従してない時に押してください"></button>
+    <button class="icon-btn" id="refresh-wfcd-btn" data-i18n-title="refreshTitle" title="新フレーム/新武器の追加や、星図/Proximaのノード数がゲームアップデートに追従してない時に押してください"></button>
     <div class="popover-wrap">
-      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <button class="icon-btn" id="help-toggle" data-i18n-title="helpToggleTitle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">
+        <div class="empty" data-i18n-html="helpPopoverHtml">
           <div style="margin-bottom:8px;">上段は既存4データソース（Chain View/Loadouts/Collections/Standing）の読み取り専用集計です。</div>
           <ul style="margin:0 0 10px;padding-left:18px;">
             <li>「クエスト進行状況」パネルでクリア済みのクエストにチェックを入れると、対応する下段の追加セクションの折りたたみが解除されます</li>
@@ -247,12 +247,12 @@
 
   <div class="panel" id="aggregate-panel">
     <div class="panel-head">
-      <h2>集計（読み取り専用）</h2>
-      <button class="icon-btn section-chevron" id="aggregate-chevron" title="開閉"></button>
+      <h2 data-i18n="aggregateHeading">集計（読み取り専用）</h2>
+      <button class="icon-btn section-chevron" id="aggregate-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
     <div id="aggregate-body" class="collapsible-body">
     <div class="source-block">
-      <h3>Chain View — Build別進捗</h3>
+      <h3 data-i18n="chainviewAggHeading">Chain View — Build別進捗</h3>
       <div id="chainview-agg" class="tile-grid"></div>
     </div>
     <div class="source-block">
@@ -272,59 +272,59 @@
 
   <div class="panel" id="quest-progress-panel">
     <div class="panel-head">
-      <h2>クエスト進行状況</h2>
+      <h2 data-i18n="questProgressHeading">クエスト進行状況</h2>
       <div class="panel-bulk-actions">
-        <button class="text-btn" id="quest-mark-main-cleared">メイン全部クリア</button>
-        <button class="text-btn" id="quest-mark-main-uncleared">メイン全部未クリア</button>
-        <button class="text-btn" id="quest-mark-sub-cleared">サブ全部クリア</button>
-        <button class="text-btn" id="quest-mark-sub-uncleared">サブ全部未クリア</button>
+        <button class="text-btn" id="quest-mark-main-cleared" data-i18n="questMainClearedBtn">メイン全部クリア</button>
+        <button class="text-btn" id="quest-mark-main-uncleared" data-i18n="questMainUnclearedBtn">メイン全部未クリア</button>
+        <button class="text-btn" id="quest-mark-sub-cleared" data-i18n="questSubClearedBtn">サブ全部クリア</button>
+        <button class="text-btn" id="quest-mark-sub-uncleared" data-i18n="questSubUnclearedBtn">サブ全部未クリア</button>
       </div>
-      <button class="icon-btn section-chevron" id="quest-progress-chevron" title="開閉"></button>
+      <button class="icon-btn section-chevron" id="quest-progress-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
     <div id="quest-progress-body" class="collapsible-body">
-    <div class="panel-hint">下のセクションの一部は、これらのクエストのクリア状況に応じて内容が自動的に表示されます。メインクエストは前提クエストの連鎖になっているため、新しい方をクリア済みにチェックすると、その前提となる過去のクエストもまとめてクリア済みになります（逆にチェックを外すのはそのクエスト単体のみ）。</div>
+    <div class="panel-hint" data-i18n="questHint">下のセクションの一部は、これらのクエストのクリア状況に応じて内容が自動的に表示されます。メインクエストは前提クエストの連鎖になっているため、新しい方をクリア済みにチェックすると、その前提となる過去のクエストもまとめてクリア済みになります（逆にチェックを外すのはそのクエスト単体のみ）。</div>
     <div id="quest-progress-list"></div>
     </div>
   </div>
 
   <div class="panel" id="starchart-panel">
     <div class="panel-head">
-      <h2>星図 / 鋼の道のり 進捗</h2>
+      <h2 data-i18n="starchartHeading">星図 / 鋼の道のり 進捗</h2>
       <div class="panel-bulk-actions">
-        <button class="text-btn" id="starchart-mark-all-cleared">星図全部クリア</button>
-        <button class="text-btn" id="starchart-mark-all-uncleared">星図全部未クリア</button>
-        <button class="text-btn" id="starchart-mark-all-steelpath-cleared">鋼の道のり全部クリア</button>
-        <button class="text-btn" id="starchart-mark-all-steelpath-uncleared">鋼の道のり全部未クリア</button>
+        <button class="text-btn" id="starchart-mark-all-cleared" data-i18n="starchartMarkClearedBtn">星図全部クリア</button>
+        <button class="text-btn" id="starchart-mark-all-uncleared" data-i18n="starchartMarkUnclearedBtn">星図全部未クリア</button>
+        <button class="text-btn" id="starchart-mark-all-steelpath-cleared" data-i18n="starchartMarkSpClearedBtn">鋼の道のり全部クリア</button>
+        <button class="text-btn" id="starchart-mark-all-steelpath-uncleared" data-i18n="starchartMarkSpUnclearedBtn">鋼の道のり全部未クリア</button>
       </div>
-      <button class="icon-btn section-chevron" id="starchart-chevron" title="開閉"></button>
+      <button class="icon-btn section-chevron" id="starchart-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
     <div id="starchart-body" class="collapsible-body">
-    <div class="panel-hint">分母（総ノード数）は外部データから自動取得。分子（クリア済み数）だけを惑星ごとに入力する。</div>
+    <div class="panel-hint" data-i18n="starchartHint">分母（総ノード数）は外部データから自動取得。分子（クリア済み数）だけを惑星ごとに入力する。</div>
     <div id="starchart-list"></div>
     </div>
   </div>
 
   <div class="panel" id="intrinsics-panel">
     <div class="panel-head">
-      <h2>性能値（Intrinsics）</h2>
-      <button class="icon-btn section-chevron" id="intrinsics-chevron" title="開閉"></button>
+      <h2 data-i18n="intrinsicsHeading">性能値（Intrinsics）</h2>
+      <button class="icon-btn section-chevron" id="intrinsics-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
     <div id="intrinsics-body" class="collapsible-body">
 
     <div class="panel-head">
       <h3 id="railjack-intrinsics-toggle"><span id="railjack-intrinsics-icon"></span><span id="railjack-intrinsics-title">未解放セクション</span></h3>
-      <button class="icon-btn section-chevron" id="railjack-intrinsics-chevron" title="開閉"></button>
+      <button class="icon-btn section-chevron" id="railjack-intrinsics-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
-    <div class="section-warning">前提クエスト（流転する形勢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div class="section-warning" data-i18n="riseTideWarning">前提クエスト（流転する形勢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
     <div id="railjack-intrinsics-body" class="collapsible-body hidden" style="margin-bottom:14px;">
       <div class="intrinsics-grid" id="railjack-intrinsics"></div>
     </div>
 
     <div class="panel-head">
       <h3 id="drifter-intrinsics-toggle"><span id="drifter-intrinsics-icon"></span><span id="drifter-intrinsics-title">未解放セクション</span></h3>
-      <button class="icon-btn section-chevron" id="drifter-intrinsics-chevron" title="開閉"></button>
+      <button class="icon-btn section-chevron" id="drifter-intrinsics-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
-    <div class="section-warning">前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div class="section-warning" data-i18n="drifterWarning">前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
     <div id="drifter-intrinsics-body" class="collapsible-body hidden">
       <div class="intrinsics-grid" id="drifter-intrinsics"></div>
     </div>
@@ -334,13 +334,13 @@
   <div class="panel" id="focus-panel">
     <div class="panel-head">
       <h2 id="focus-toggle"><span id="focus-icon"></span><span id="focus-title">未解放セクション</span></h2>
-      <button class="icon-btn section-chevron" id="focus-chevron" title="開閉"></button>
+      <button class="icon-btn section-chevron" id="focus-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
-    <div class="section-warning">前提クエスト（二番目の夢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div class="section-warning" data-i18n="secondDreamWarning">前提クエスト（二番目の夢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
     <div id="focus-body" class="collapsible-body hidden">
       <div class="focus-grid" id="focus-grid"></div>
       <div class="focus-active-row">
-        <label for="focus-active-select">アクティブな校</label>
+        <label for="focus-active-select" data-i18n="activeSchoolLabel">アクティブな校</label>
         <select id="focus-active-select"></select>
       </div>
     </div>
@@ -349,22 +349,22 @@
   <div class="panel" id="railjack-panel">
     <div class="panel-head">
       <h2 id="railjack-toggle"><span id="railjack-icon"></span><span id="railjack-title">未解放セクション</span></h2>
-      <button class="icon-btn section-chevron" id="railjack-chevron" title="開閉"></button>
+      <button class="icon-btn section-chevron" id="railjack-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
     </div>
-    <div class="section-warning">前提クエスト（流転する形勢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div class="section-warning" data-i18n="riseTideWarning">前提クエスト（流転する形勢）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
     <div id="railjack-body" class="collapsible-body hidden">
       <div class="railjack-grid" id="railjack-grid"></div>
       <div class="railjack-note-field">
-        <label for="railjack-plexus-note">Plexus mod構成（メモ）</label>
-        <textarea id="railjack-plexus-note" placeholder="例: Battle 3枠 + Tactical 1枠"></textarea>
+        <label for="railjack-plexus-note" data-i18n="plexusNoteLabel">Plexus mod構成（メモ）</label>
+        <textarea id="railjack-plexus-note" data-i18n-placeholder="plexusNotePlaceholder" placeholder="例: Battle 3枠 + Tactical 1枠"></textarea>
       </div>
       <div class="panel-head" style="margin-top:14px;">
-        <h3>Proxima進捗</h3>
+        <h3 data-i18n="proximaHeading">Proxima進捗</h3>
         <div class="panel-bulk-actions">
-          <button class="text-btn" id="proxima-mark-all-cleared">通常全部クリア</button>
-          <button class="text-btn" id="proxima-mark-all-uncleared">通常全部未クリア</button>
-          <button class="text-btn" id="proxima-mark-all-steelpath-cleared">鋼の道のり全部クリア</button>
-          <button class="text-btn" id="proxima-mark-all-steelpath-uncleared">鋼の道のり全部未クリア</button>
+          <button class="text-btn" id="proxima-mark-all-cleared" data-i18n="proximaMarkClearedBtn">通常全部クリア</button>
+          <button class="text-btn" id="proxima-mark-all-uncleared" data-i18n="proximaMarkUnclearedBtn">通常全部未クリア</button>
+          <button class="text-btn" id="proxima-mark-all-steelpath-cleared" data-i18n="starchartMarkSpClearedBtn">鋼の道のり全部クリア</button>
+          <button class="text-btn" id="proxima-mark-all-steelpath-uncleared" data-i18n="starchartMarkSpUnclearedBtn">鋼の道のり全部未クリア</button>
         </div>
         <!-- 星図パネルのchevron分と同じ幅を確保して、ボタン右端を星図側と揃える
              （Proxima自体には開閉chevronが無い、2026-08-26のっちのフィードバック）。
@@ -377,8 +377,5 @@
   </div>
 
 <script type="module" src="/stats.js"></script>
-<script src="/notemd.js"></script>
-<script src="/wallpaper.js"></script>
-<script src="/theme.js"></script>
-<script src="/scroll-top.js"></script></body>
+</body>
 </html>

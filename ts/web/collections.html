@@ -320,11 +320,11 @@
     <a href="/stats.html">Stats</a>
     <a href="/note.html">Note</a>
     <span style="flex:1"></span>
-    <button class="icon-btn" id="refresh-wfcd-btn" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
+    <button class="icon-btn" id="refresh-wfcd-btn" data-i18n-title="refreshTitle" title="新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください"></button>
     <div class="popover-wrap">
-      <button class="icon-btn" id="help-toggle" title="このページについて"></button>
+      <button class="icon-btn" id="help-toggle" data-i18n-title="helpToggleTitle" title="このページについて"></button>
       <div class="popover hidden" id="help-popover">
-        <div class="empty">
+        <div class="empty" data-i18n-html="helpPopoverHtml">
           <div style="margin-bottom:8px;">Chain View / Loadoutsとは独立した、フレーム/Riven/Kuvaの入手状況ログです。</div>
           <ul style="margin:0 0 10px;padding-left:18px;">
             <li>緑のアイコンは「達成済み」、灰色は「未達成」。1枚に複数の指標がある場合はアイコンの形でカテゴリを区別しています</li>
@@ -338,10 +338,10 @@
 
   <div class="panel" id="frame-panel">
     <div class="panel-head">
-      <h2>フレーム入手状況<button class="icon-btn add-btn" id="frame-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="frameSectionHeading">フレーム入手状況</span><button class="icon-btn add-btn" id="frame-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="frame-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="frame-legend-rank30"></span>ランク30済み</span><span><span class="status-icon on" id="frame-legend-helminth"></span>ヘルミンス済み</span></div>
-        <button class="icon-btn section-chevron" id="frame-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="frame-legend-owned"></span><span data-i18n="legendAcquired">入手済み</span></span><span><span class="status-icon on" id="frame-legend-rank30"></span><span data-i18n="legendRank30">ランク30済み</span></span><span><span class="status-icon on" id="frame-legend-helminth"></span><span data-i18n="legendHelminth">ヘルミンス済み</span></span></div>
+        <button class="icon-btn section-chevron" id="frame-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="frame-body" class="collapsible-body">
@@ -354,10 +354,10 @@
        renderEquipList/openEquipModal等の共通実装で4種まとめて動かす。 -->
   <div class="panel" id="weapon-panel">
     <div class="panel-head">
-      <h2>武器入手状況<button class="icon-btn add-btn" id="weapon-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="weaponSectionHeading">武器入手状況</span><button class="icon-btn add-btn" id="weapon-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="weapon-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="weapon-legend-rank30"></span>ランク30済み</span></div>
-        <button class="icon-btn section-chevron" id="weapon-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="weapon-legend-owned"></span><span data-i18n="legendAcquired">入手済み</span></span><span><span class="status-icon on" id="weapon-legend-rank30"></span><span data-i18n="legendRank30">ランク30済み</span></span></div>
+        <button class="icon-btn section-chevron" id="weapon-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="weapon-body" class="collapsible-body">
@@ -367,10 +367,10 @@
 
   <div class="panel" id="companion-panel">
     <div class="panel-head">
-      <h2>コンパニオン入手状況<button class="icon-btn add-btn" id="companion-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="companionSectionHeading">コンパニオン入手状況</span><button class="icon-btn add-btn" id="companion-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="companion-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="companion-legend-rank30"></span>ランク30済み</span></div>
-        <button class="icon-btn section-chevron" id="companion-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="companion-legend-owned"></span><span data-i18n="legendAcquired">入手済み</span></span><span><span class="status-icon on" id="companion-legend-rank30"></span><span data-i18n="legendRank30">ランク30済み</span></span></div>
+        <button class="icon-btn section-chevron" id="companion-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="companion-body" class="collapsible-body">
@@ -380,10 +380,10 @@
 
   <div class="panel" id="archwing-panel">
     <div class="panel-head">
-      <h2>Archwing入手状況<button class="icon-btn add-btn" id="archwing-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="archwingSectionHeading">Archwing入手状況</span><button class="icon-btn add-btn" id="archwing-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="archwing-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="archwing-legend-rank30"></span>ランク30済み</span></div>
-        <button class="icon-btn section-chevron" id="archwing-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="archwing-legend-owned"></span><span data-i18n="legendAcquired">入手済み</span></span><span><span class="status-icon on" id="archwing-legend-rank30"></span><span data-i18n="legendRank30">ランク30済み</span></span></div>
+        <button class="icon-btn section-chevron" id="archwing-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="archwing-body" class="collapsible-body">
@@ -393,10 +393,10 @@
 
   <div class="panel" id="necramech-panel">
     <div class="panel-head">
-      <h2>Necramech入手状況<button class="icon-btn add-btn" id="necramech-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="necramechSectionHeading">Necramech入手状況</span><button class="icon-btn add-btn" id="necramech-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="necramech-legend-owned"></span>入手済み</span><span><span class="status-icon on" id="necramech-legend-rank30"></span>ランク30済み</span></div>
-        <button class="icon-btn section-chevron" id="necramech-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="necramech-legend-owned"></span><span data-i18n="legendAcquired">入手済み</span></span><span><span class="status-icon on" id="necramech-legend-rank30"></span><span data-i18n="legendRank30">ランク30済み</span></span></div>
+        <button class="icon-btn section-chevron" id="necramech-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="necramech-body" class="collapsible-body">
@@ -406,10 +406,10 @@
 
   <div class="panel" id="riven-panel">
     <div class="panel-head">
-      <h2>Riven Mods<button class="icon-btn add-btn" id="riven-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="rivenSectionHeading">Riven Mods</span><button class="icon-btn add-btn" id="riven-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="riven-legend-fixed"></span>確定</span></div>
-        <button class="icon-btn section-chevron" id="riven-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="riven-legend-fixed"></span><span data-i18n="legendFixed">確定</span></span></div>
+        <button class="icon-btn section-chevron" id="riven-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="riven-body" class="collapsible-body">
@@ -419,10 +419,10 @@
 
   <div class="panel" id="kuva-panel">
     <div class="panel-head">
-      <h2>Kuva / Tenet / Coda 武器<button class="icon-btn add-btn" id="kuva-add-btn" title="新規登録"></button></h2>
+      <h2><span data-i18n="kuvaSectionHeading">Kuva / Tenet / Coda 武器</span><button class="icon-btn add-btn" id="kuva-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="status-legend"><span><span class="status-icon on" id="kuva-legend-owned"></span>所持済み</span></div>
-        <button class="icon-btn section-chevron" id="kuva-chevron" title="開閉"></button>
+        <div class="status-legend"><span><span class="status-icon on" id="kuva-legend-owned"></span><span data-i18n="legendOwned">所持済み</span></span></div>
+        <button class="icon-btn section-chevron" id="kuva-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
     <div id="kuva-body" class="collapsible-body">
@@ -432,15 +432,15 @@
 
   <div class="panel" id="incarnon-panel">
     <div class="panel-head">
-      <h2 id="incarnon-toggle"><span id="incarnon-icon"></span><span id="incarnon-title">未解放セクション</span><button class="icon-btn add-btn hidden" id="incarnon-add-btn" title="新規登録"></button></h2>
+      <h2 id="incarnon-toggle"><span id="incarnon-icon"></span><span id="incarnon-title">未解放セクション</span><button class="icon-btn add-btn hidden" id="incarnon-add-btn" data-i18n-title="addNew" title="新規登録"></button></h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <button class="icon-btn section-chevron" id="incarnon-chevron" title="開閉"></button>
+        <button class="icon-btn section-chevron" id="incarnon-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
       </div>
     </div>
-    <div class="section-warning">前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+    <div class="section-warning" data-i18n="duviriWarning">前提クエスト（デュヴィリ・パラドックス）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
     <div id="incarnon-body" class="collapsible-body hidden">
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-        <div class="status-legend"><span><span class="status-icon on" id="incarnon-legend-obtained"></span>取得済み</span><span><span class="status-icon on" id="incarnon-legend-completed"></span>インカーノン済み</span></div>
+        <div class="status-legend"><span><span class="status-icon on" id="incarnon-legend-obtained"></span><span data-i18n="legendObtained">取得済み</span></span><span><span class="status-icon on" id="incarnon-legend-completed"></span><span data-i18n="legendIncarnonDone">インカーノン済み</span></span></div>
       </div>
       <div id="incarnon-list" class="frame-grid"></div>
     </div>
@@ -452,35 +452,35 @@
       <h3 style="justify-content:space-between;">
         <span id="riven-modal-title">Riven 新規登録</span>
         <label class="field-label" id="riven-fixed-row" style="display:flex;align-items:center;gap:6px;margin:0;font-size:0.8rem;font-weight:normal;">
-          <input type="checkbox" id="riven-fixed-check" style="width:auto;">ロール確定
+          <input type="checkbox" id="riven-fixed-check" style="width:auto;"><span data-i18n="rollFixedCheck">ロール確定</span>
         </label>
       </h3>
-      <label class="bulk-row" id="riven-bulk-row"><input type="checkbox" id="riven-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="riven-bulk-row"><input type="checkbox" id="riven-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="rivenWeaponLabel">対象武器名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="riven-weapon-input" placeholder="例: Braton Prime" autocomplete="off">
+        <input type="text" id="riven-weapon-input" data-i18n-placeholder="rivenWeaponPlaceholder" placeholder="例: Braton Prime" autocomplete="off">
         <div id="riven-weapon-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="riven-modal-optional">
-        <label class="field-label" style="margin-top:8px;">ポジ値ステータス（複数選択可）</label>
+        <label class="field-label" style="margin-top:8px;" data-i18n="positiveStatsField">ポジ値ステータス（複数選択可）</label>
         <div class="popover-wrap" style="display:block;margin-bottom:8px;">
           <button class="multiselect-btn" id="riven-positive-btn" type="button"></button>
           <div class="popover hidden multiselect-popover" id="riven-positive-popover"></div>
         </div>
         <div id="riven-positive-values" style="margin-bottom:8px;"></div>
-        <label class="field-label">ネガ値ステータス（任意）</label>
+        <label class="field-label" data-i18n="negativeStatField">ネガ値ステータス（任意）</label>
         <div class="inline-form" style="margin-bottom:8px;">
           <select id="riven-negative-select" style="flex:1;"></select>
-          <input type="text" inputmode="decimal" id="riven-negative-value" placeholder="数値%" style="width:80px;">
+          <input type="text" inputmode="decimal" id="riven-negative-value" data-i18n-placeholder="numberPlaceholder" placeholder="数値%" style="width:80px;">
         </div>
-        <label class="field-label" style="margin-top:8px;">メモ <span class="help-hint" id="riven-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="riven-note-input" placeholder="任意"></textarea>
+        <label class="field-label" style="margin-top:8px;"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="riven-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="riven-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
         <div id="riven-live-check" style="margin-top:8px;"></div>
       </div>
       <div id="riven-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="riven-modal-cancel">キャンセル</button>
-        <button class="primary" id="riven-modal-save">保存</button>
+        <button id="riven-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="riven-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -491,7 +491,7 @@
       <h3 style="justify-content:space-between;">
         <span id="kuva-modal-title">Kuva / Tenet / Coda</span>
         <label id="kuva-owned-check-wrap" class="modal-title-toggle hidden">
-          <input type="checkbox" id="kuva-owned-check" style="width:auto;">所持済み
+          <input type="checkbox" id="kuva-owned-check" style="width:auto;"><span data-i18n="ownedCheck">所持済み</span>
         </label>
       </h3>
       <div id="kuva-modal-name-field"></div>
@@ -501,7 +501,7 @@
       </div>
       <div id="kuva-modal-form" class="hidden">
         <hr>
-        <label class="field-label">系統</label>
+        <label class="field-label" data-i18n="lineageLabel">系統</label>
         <select id="kuva-kind-select" style="margin-bottom:8px;">
           <option value="Kuva">Kuva</option>
           <option value="Tenet">Tenet</option>
@@ -509,31 +509,31 @@
         </select>
         <div class="form-grid">
           <div>
-            <label class="field-label">ボーナス属性（変換に使ったフレームで決まる、任意）</label>
+            <label class="field-label" data-i18n="bonusStatField">ボーナス属性（変換に使ったフレームで決まる、任意）</label>
             <div class="inline-form">
               <select id="kuva-bonus-stat-select" style="flex:1;">
-                <option value="">（なし）</option>
-                <option value="衝撃">衝撃</option>
-                <option value="火炎">火炎</option>
-                <option value="冷気">冷気</option>
-                <option value="電気">電気</option>
-                <option value="毒">毒</option>
-                <option value="磁気">磁気</option>
-                <option value="放射線">放射線</option>
+                <option value="" data-i18n="noneOption">（なし）</option>
+                <option value="衝撃" data-i18n="dmgImpact">衝撃</option>
+                <option value="火炎" data-i18n="dmgHeat">火炎</option>
+                <option value="冷気" data-i18n="dmgCold">冷気</option>
+                <option value="電気" data-i18n="dmgElectricity">電気</option>
+                <option value="毒" data-i18n="dmgToxin">毒</option>
+                <option value="磁気" data-i18n="dmgMagnetic">磁気</option>
+                <option value="放射線" data-i18n="dmgRadiation">放射線</option>
               </select>
-              <input type="text" inputmode="decimal" id="kuva-bonus-value-input" placeholder="数値%" style="width:80px;">
+              <input type="text" inputmode="decimal" id="kuva-bonus-value-input" data-i18n-placeholder="numberPlaceholder" placeholder="数値%" style="width:80px;">
             </div>
           </div>
         </div>
-        <label class="field-label" style="margin-top:8px;">メモ <span class="help-hint" id="kuva-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="kuva-note-input" placeholder="任意"></textarea>
+        <label class="field-label" style="margin-top:8px;"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="kuva-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="kuva-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
         <div class="actions">
-          <button id="kuva-form-cancel">やめる</button>
-          <button class="primary" id="kuva-form-save">保存</button>
+          <button id="kuva-form-cancel" data-i18n="dismiss">やめる</button>
+          <button class="primary" id="kuva-form-save" data-i18n="save">保存</button>
         </div>
       </div>
       <div class="actions">
-        <button id="kuva-modal-close">閉じる</button>
+        <button id="kuva-modal-close" data-i18n="close">閉じる</button>
       </div>
     </div>
   </div>
@@ -542,44 +542,44 @@
   <div id="frame-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="frame-modal-title">フレーム 新規登録</h3>
-      <label class="bulk-row" id="frame-bulk-row"><input type="checkbox" id="frame-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">フレーム名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="frame-bulk-row"><input type="checkbox" id="frame-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="frameNameLabel">フレーム名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="frame-name-input" placeholder="例: Ash Prime" autocomplete="off">
+        <input type="text" id="frame-name-input" data-i18n-placeholder="framePlaceholder" placeholder="例: Ash Prime" autocomplete="off">
         <div id="frame-name-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="frame-modal-optional">
         <div class="form-grid" style="margin-top:8px;">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="frame-owned-check" style="width:auto;">入手済み
+              <input type="checkbox" id="frame-owned-check" style="width:auto;"><span data-i18n="acquiredCheck">入手済み</span>
             </label>
           </div>
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="frame-ranked30-check" style="width:auto;">ランク30済み
+              <input type="checkbox" id="frame-ranked30-check" style="width:auto;"><span data-i18n="rank30Check">ランク30済み</span>
             </label>
           </div>
         </div>
         <div class="form-grid">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="frame-helminth-check" style="width:auto;">ヘルミンス済み（捧げた）
+              <input type="checkbox" id="frame-helminth-check" style="width:auto;"><span data-i18n="helminthCheck">ヘルミンス済み（捧げた）</span>
             </label>
           </div>
           <div id="frame-chainview-row">
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="frame-chainview-check" style="width:auto;">Chain Viewに追加する
+              <input type="checkbox" id="frame-chainview-check" style="width:auto;"><span data-i18n="addToChainView">Chain Viewに追加する</span>
             </label>
           </div>
         </div>
-        <label class="field-label">メモ <span class="help-hint" id="frame-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="frame-note-input" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="frame-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="frame-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
       </div>
       <div id="frame-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="frame-modal-cancel">キャンセル</button>
-        <button class="primary" id="frame-modal-save">保存</button>
+        <button id="frame-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="frame-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -588,35 +588,35 @@
   <div id="weapon-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="weapon-modal-title">武器 新規登録</h3>
-      <label class="bulk-row" id="weapon-bulk-row"><input type="checkbox" id="weapon-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">武器名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="weapon-bulk-row"><input type="checkbox" id="weapon-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="weaponNameField">武器名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="weapon-name-input" placeholder="例: Braton Prime" autocomplete="off">
+        <input type="text" id="weapon-name-input" data-i18n-placeholder="weaponPlaceholder" placeholder="例: Braton Prime" autocomplete="off">
         <div id="weapon-name-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="weapon-modal-optional">
         <div class="form-grid" style="margin-top:8px;">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="weapon-owned-check" style="width:auto;">入手済み
+              <input type="checkbox" id="weapon-owned-check" style="width:auto;"><span data-i18n="acquiredCheck">入手済み</span>
             </label>
           </div>
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="weapon-ranked30-check" style="width:auto;">ランク30済み
+              <input type="checkbox" id="weapon-ranked30-check" style="width:auto;"><span data-i18n="rank30Check">ランク30済み</span>
             </label>
           </div>
         </div>
         <label class="field-label" id="weapon-chainview-row" style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="weapon-chainview-check" style="width:auto;">Chain Viewに追加する
+          <input type="checkbox" id="weapon-chainview-check" style="width:auto;"><span data-i18n="addToChainView">Chain Viewに追加する</span>
         </label>
-        <label class="field-label">メモ <span class="help-hint" id="weapon-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="weapon-note-input" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="weapon-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="weapon-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
       </div>
       <div id="weapon-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="weapon-modal-cancel">キャンセル</button>
-        <button class="primary" id="weapon-modal-save">保存</button>
+        <button id="weapon-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="weapon-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -624,35 +624,35 @@
   <div id="companion-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="companion-modal-title">コンパニオン 新規登録</h3>
-      <label class="bulk-row" id="companion-bulk-row"><input type="checkbox" id="companion-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">コンパニオン名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="companion-bulk-row"><input type="checkbox" id="companion-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="companionNameLabel">コンパニオン名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="companion-name-input" placeholder="例: Chesa Kubrow" autocomplete="off">
+        <input type="text" id="companion-name-input" data-i18n-placeholder="companionPlaceholder" placeholder="例: Chesa Kubrow" autocomplete="off">
         <div id="companion-name-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="companion-modal-optional">
         <div class="form-grid" style="margin-top:8px;">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="companion-owned-check" style="width:auto;">入手済み
+              <input type="checkbox" id="companion-owned-check" style="width:auto;"><span data-i18n="acquiredCheck">入手済み</span>
             </label>
           </div>
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="companion-ranked30-check" style="width:auto;">ランク30済み
+              <input type="checkbox" id="companion-ranked30-check" style="width:auto;"><span data-i18n="rank30Check">ランク30済み</span>
             </label>
           </div>
         </div>
         <label class="field-label" id="companion-chainview-row" style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="companion-chainview-check" style="width:auto;">Chain Viewに追加する
+          <input type="checkbox" id="companion-chainview-check" style="width:auto;"><span data-i18n="addToChainView">Chain Viewに追加する</span>
         </label>
-        <label class="field-label">メモ <span class="help-hint" id="companion-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="companion-note-input" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="companion-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="companion-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
       </div>
       <div id="companion-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="companion-modal-cancel">キャンセル</button>
-        <button class="primary" id="companion-modal-save">保存</button>
+        <button id="companion-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="companion-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -660,35 +660,35 @@
   <div id="archwing-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="archwing-modal-title">Archwing 新規登録</h3>
-      <label class="bulk-row" id="archwing-bulk-row"><input type="checkbox" id="archwing-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">Archwing名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="archwing-bulk-row"><input type="checkbox" id="archwing-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="archwingNameLabel">Archwing名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="archwing-name-input" placeholder="例: Itzal" autocomplete="off">
+        <input type="text" id="archwing-name-input" data-i18n-placeholder="archwingPlaceholder" placeholder="例: Itzal" autocomplete="off">
         <div id="archwing-name-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="archwing-modal-optional">
         <div class="form-grid" style="margin-top:8px;">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="archwing-owned-check" style="width:auto;">入手済み
+              <input type="checkbox" id="archwing-owned-check" style="width:auto;"><span data-i18n="acquiredCheck">入手済み</span>
             </label>
           </div>
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="archwing-ranked30-check" style="width:auto;">ランク30済み
+              <input type="checkbox" id="archwing-ranked30-check" style="width:auto;"><span data-i18n="rank30Check">ランク30済み</span>
             </label>
           </div>
         </div>
         <label class="field-label" id="archwing-chainview-row" style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="archwing-chainview-check" style="width:auto;">Chain Viewに追加する
+          <input type="checkbox" id="archwing-chainview-check" style="width:auto;"><span data-i18n="addToChainView">Chain Viewに追加する</span>
         </label>
-        <label class="field-label">メモ <span class="help-hint" id="archwing-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="archwing-note-input" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="archwing-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="archwing-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
       </div>
       <div id="archwing-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="archwing-modal-cancel">キャンセル</button>
-        <button class="primary" id="archwing-modal-save">保存</button>
+        <button id="archwing-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="archwing-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -696,35 +696,35 @@
   <div id="necramech-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="necramech-modal-title">Necramech 新規登録</h3>
-      <label class="bulk-row" id="necramech-bulk-row"><input type="checkbox" id="necramech-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">Necramech名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="necramech-bulk-row"><input type="checkbox" id="necramech-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="necramechNameLabel">Necramech名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="necramech-name-input" placeholder="例: Voidrig" autocomplete="off">
+        <input type="text" id="necramech-name-input" data-i18n-placeholder="necramechPlaceholder" placeholder="例: Voidrig" autocomplete="off">
         <div id="necramech-name-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="necramech-modal-optional">
         <div class="form-grid" style="margin-top:8px;">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="necramech-owned-check" style="width:auto;">入手済み
+              <input type="checkbox" id="necramech-owned-check" style="width:auto;"><span data-i18n="acquiredCheck">入手済み</span>
             </label>
           </div>
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="necramech-ranked30-check" style="width:auto;">ランク30済み
+              <input type="checkbox" id="necramech-ranked30-check" style="width:auto;"><span data-i18n="rank30Check">ランク30済み</span>
             </label>
           </div>
         </div>
         <label class="field-label" id="necramech-chainview-row" style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="necramech-chainview-check" style="width:auto;">Chain Viewに追加する
+          <input type="checkbox" id="necramech-chainview-check" style="width:auto;"><span data-i18n="addToChainView">Chain Viewに追加する</span>
         </label>
-        <label class="field-label">メモ <span class="help-hint" id="necramech-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="necramech-note-input" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="necramech-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="necramech-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
       </div>
       <div id="necramech-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="necramech-modal-cancel">キャンセル</button>
-        <button class="primary" id="necramech-modal-save">保存</button>
+        <button id="necramech-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="necramech-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -733,38 +733,36 @@
   <div id="incarnon-modal-backdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h3 id="incarnon-modal-title">インカーノン 新規登録</h3>
-      <label class="bulk-row" id="incarnon-bulk-row"><input type="checkbox" id="incarnon-bulk-check">連続登録（名前だけで追加を続ける）</label>
-      <label class="field-label">対象武器名（WFCD実データ名と完全一致）</label>
+      <label class="bulk-row" id="incarnon-bulk-row"><input type="checkbox" id="incarnon-bulk-check"><span data-i18n="bulkRegister">連続登録（名前だけで追加を続ける）</span></label>
+      <label class="field-label" data-i18n="incarnonWeaponLabel">対象武器名（WFCD実データ名と完全一致）</label>
       <div class="combobox">
-        <input type="text" id="incarnon-weapon-input" placeholder="例: Braton" autocomplete="off">
+        <input type="text" id="incarnon-weapon-input" data-i18n-placeholder="incarnonPlaceholder" placeholder="例: Braton" autocomplete="off">
         <div id="incarnon-weapon-suggest" class="suggest-list hidden"></div>
       </div>
       <div id="incarnon-modal-optional">
         <div class="form-grid" style="margin-top:8px;">
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="incarnon-obtained-check" style="width:auto;">インカーノン取得済み
+              <input type="checkbox" id="incarnon-obtained-check" style="width:auto;"><span data-i18n="incarnonObtainedCheck">インカーノン取得済み</span>
             </label>
           </div>
           <div>
             <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="incarnon-completed-check" style="width:auto;">インカーノン済み
+              <input type="checkbox" id="incarnon-completed-check" style="width:auto;"><span data-i18n="incarnonCompletedCheck">インカーノン済み</span>
             </label>
           </div>
         </div>
-        <label class="field-label">メモ <span class="help-hint" id="incarnon-note-help" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
-        <textarea id="incarnon-note-input" placeholder="任意"></textarea>
+        <label class="field-label"><span data-i18n="memoLabel">メモ</span> <span class="help-hint" id="incarnon-note-help" data-i18n-title="memoHelpTitle" title="**太字**／- で箇条書き／- [ ]・- [x] でチェックリスト（保存後はクリックで完了切替）"></span></label>
+        <textarea id="incarnon-note-input" data-i18n-placeholder="optional" placeholder="任意"></textarea>
       </div>
       <div id="incarnon-bulk-feedback" class="bulk-feedback hidden"></div>
       <div class="actions">
-        <button id="incarnon-modal-cancel">キャンセル</button>
-        <button class="primary" id="incarnon-modal-save">保存</button>
+        <button id="incarnon-modal-cancel" data-i18n="cancel">キャンセル</button>
+        <button class="primary" id="incarnon-modal-save" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
 
 <script type="module" src="/collections.js"></script>
-<script src="/wallpaper.js"></script>
-<script src="/theme.js"></script>
-<script src="/scroll-top.js"></script></body>
+</body>
 </html>

@@ -8,8 +8,11 @@
 // Single shared #toast-container (created lazily, reused across calls) so
 // multiple toasts stack instead of replacing each other.
 import { icon } from "./icons.ts";
+import { effective } from "./locale.ts";
 
 let container: HTMLDivElement | null = null;
+
+const CLOSE_LABEL: Record<"ja" | "en", string> = { ja: "閉じる", en: "Close" };
 
 function getContainer(): HTMLDivElement {
   if (!container || !document.body.contains(container)) {
@@ -25,7 +28,7 @@ function getContainer(): HTMLDivElement {
 export function showToast(message: string, kind: "error" | "success" = "error"): void {
   const el = document.createElement("div");
   el.className = `toast toast-${kind}`;
-  el.innerHTML = `<span class="toast-text">${message}</span><button class="toast-close" aria-label="閉じる">${icon("x", { size: 13 })}</button>`;
+  el.innerHTML = `<span class="toast-text">${message}</span><button class="toast-close" aria-label="${CLOSE_LABEL[effective()]}">${icon("x", { size: 13 })}</button>`;
   getContainer().appendChild(el);
   // rAF so the .show transition actually animates in (adding the class in
   // the same tick as append would skip the transition — starts "already on").

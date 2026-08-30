@@ -13,9 +13,124 @@ import { questEn, questJa } from "./quest-i18n.ts";
 import { itemJa } from "./item-i18n.ts";
 import { locationJa } from "./location-i18n.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
-import { autoLinkId, forcePushToCollections } from "./wfcd-autolink.ts";
-import { NODE_TYPE_LABEL_JA } from "./node-modal.ts";
+import { forcePushToCollections, forcePushToLoadoutItem } from "./wfcd-autolink.ts";
+import { nodeTypeLabel } from "./node-modal.ts";
 import { showToast } from "./toast.ts";
+import { effective } from "./locale.ts";
+
+interface WizardStrings {
+  companionNote: string;
+  refDataFailedLog: string;
+  noMatchFreeform: string;
+  enterName: string;
+  fetching: string;
+  notFound: string;
+  pickOneSource: string;
+  vaultedSuffix: string;
+  resurgenceSuffix: (date: string) => string;
+  relicOption: (name: string, flags: string) => string;
+  missionOption: (name: string, chance: number) => string;
+  sourceLabel: string;
+  notSelected: string;
+  noSourceData: string;
+  syndicateRankNote: (name: string, standing: string) => string;
+  questChainTitle: string;
+  noQuestChain: string;
+  attachToBuild: (name: string) => string;
+  noCurrentBuild: string;
+  alsoAddToLoadouts: string;
+  paradigmLabel: string;
+  richLichLabel: string;
+  archetypeLabel: string;
+  rootNodeLabel: string;
+  checking: string;
+  resurgenceNote: (date: string) => string;
+  vaultedStatus: (note: string) => string;
+  droppingStatus: (count: number, note: string) => string;
+  sourceNote: (name: string) => string;
+  addedLinked: (name: string) => string;
+  addedToBuild: (name: string) => string;
+  addedAsGoal: (name: string) => string;
+}
+
+const STRINGS: Record<"ja" | "en", WizardStrings> = {
+  ja: {
+    companionNote: "Companion/Archwing/Necramechはこの一覧にありません（Chain Viewのノードを持たない仕様）。",
+    refDataFailedLog: "WFCD参照データの取得に失敗（自由入力は引き続き可能）",
+    noMatchFreeform: "一致なし（このまま自由入力できます）",
+    enterName: "名前を入力して",
+    fetching: "取得中…",
+    notFound: "見つかりませんでした（WFCD側の名前と完全一致している必要があります）",
+    pickOneSource: "入手先は1つ選択（OR関係なのでどれか1つでよい。レリックとは限らず通常ミッションのドロップも含む）",
+    vaultedSuffix: "・Vault済み",
+    resurgenceSuffix: (date) => `・Resurgence在庫あり(〜${date})`,
+    relicOption: (name, flags) => `${name}（レリック${flags}）`,
+    missionOption: (name, chance) => `${name}（${chance}%・通常ミッション）`,
+    sourceLabel: "入手先",
+    notSelected: "（未選択）",
+    noSourceData: "WFCD側にこのパーツの入手先データなし（既定素材として通常のミッション/敵ドロップで入手する想定）",
+    syndicateRankNote: (name, standing) => `シンジケートランクを前提条件として追加: <b>${name}</b>（購入コスト ${standing} standing）`,
+    questChainTitle: "前提クエストチェーン（Wiki要約ベース、精度は目視要確認）",
+    noQuestChain: "本表に前提クエストの登録なし（単体で追加されます）",
+    attachToBuild: (name) =>
+      `現在の目標「<b>${name}</b>」の中身（contains）に追加する（チェックを入れない場合は種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）`,
+    noCurrentBuild: "現在選択中のBuildがないため、このまま追加すると種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます",
+    alsoAddToLoadouts: "Loadoutsにも追加する（MOD構成の管理対象にする、任意）",
+    paradigmLabel: "パラダイム:",
+    richLichLabel: "リッチ系:",
+    archetypeLabel: "アーキタイプ:",
+    rootNodeLabel: "本体ノード:",
+    checking: "確認中…",
+    resurgenceNote: (date) => `（Resurgence在庫あり〜${date}）`,
+    vaultedStatus: (note) => `Vault済み（現在のミッションドロップ対象外）${note}`,
+    droppingStatus: (count, note) => `現在${count}ミッションでドロップ中${note}`,
+    sourceNote: (name) => `入手先: ${name}`,
+    addedLinked: (name) => `「${name}」を追加し、登録元と紐付けました。`,
+    addedToBuild: (name) => `「${name}」を追加し、現在の目標の中身（contains）に繋げました。`,
+    addedAsGoal: (name) =>
+      `「${name}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存の目標の中身（contains）に含めたい場合は、その目標ノードを編集して手動で追加してください。`,
+  },
+  en: {
+    companionNote: "Companion/Archwing/Necramech aren't in this list (by design — they have no Chain View node).",
+    refDataFailedLog: "Failed to fetch the WFCD reference data (free entry still works)",
+    noMatchFreeform: "No match (you can still type it freely)",
+    enterName: "Enter a name",
+    fetching: "Fetching…",
+    notFound: "Not found (the name has to match WFCD's exactly)",
+    pickOneSource: "Pick one source (they're OR-related, so any single one will do — not necessarily a relic, regular mission drops are included too)",
+    vaultedSuffix: " · Vaulted",
+    resurgenceSuffix: (date) => ` · Resurgence available (until ${date})`,
+    relicOption: (name, flags) => `${name} (relic${flags})`,
+    missionOption: (name, chance) => `${name} (${chance}% · regular mission)`,
+    sourceLabel: "Source",
+    notSelected: "(not selected)",
+    noSourceData: "WFCD has no source data for this part (assumed to be a standard material from regular mission/enemy drops)",
+    syndicateRankNote: (name, standing) => `Adds a syndicate rank as a prerequisite: <b>${name}</b> (costs ${standing} standing)`,
+    questChainTitle: "Prerequisite quest chain (based on a wiki summary — accuracy needs a visual check)",
+    noQuestChain: "No prerequisite quests registered in this table (it will be added on its own)",
+    attachToBuild: (name) =>
+      `Add to the current goal "<b>${name}</b>" as contents (leave this unchecked and it becomes a Goal instead — a standalone entry point reachable from the left sidebar list)`,
+    noCurrentBuild: "No Build is currently selected, so adding it now makes it a Goal — a standalone entry point reachable from the left sidebar list",
+    alsoAddToLoadouts: "Also add to Loadouts (manage its MOD configs there, optional)",
+    paradigmLabel: "Paradigm:",
+    richLichLabel: "Lich type:",
+    archetypeLabel: "Archetype:",
+    rootNodeLabel: "Root node:",
+    checking: "Checking…",
+    resurgenceNote: (date) => ` (Resurgence available until ${date})`,
+    vaultedStatus: (note) => `Vaulted (not in the current mission drop tables)${note}`,
+    droppingStatus: (count, note) => `Currently dropping in ${count} mission(s)${note}`,
+    sourceNote: (name) => `Source: ${name}`,
+    addedLinked: (name) => `Added "${name}" and linked it back to where it was registered.`,
+    addedToBuild: (name) => `Added "${name}" and attached it to the current goal's contents.`,
+    addedAsGoal: (name) =>
+      `Added "${name}" as a Goal. It's reachable from the left sidebar list as a standalone entry point. To nest it inside an existing goal's contents, edit that goal node and add it manually.`,
+  },
+};
+
+function t(): WizardStrings {
+  return STRINGS[effective()];
+}
 
 // Shape of a /api/wfcd/generate response. Ported ahead of pkg/wfcdgen
 // itself (Phase 11) — refine/replace with the real generated type once that
@@ -26,6 +141,7 @@ interface RelicCandidate {
   chance: number;
   isRelic: boolean;
   vaulted?: boolean;
+  resurgence?: string;
 }
 interface WfcdPart {
   node: Node;
@@ -48,9 +164,17 @@ interface WfcdSuggestion {
 interface RelicStatusResponse {
   vaulted?: boolean;
   missionCount?: number;
+  resurgence?: { available: boolean; expiry: string } | null;
 }
 
 let wfcdSuggestion: WfcdSuggestion | null = null;
+
+// Set by initDeepLink() (bottom of this file) when this page was navigated
+// to from Loadouts/Collections' "Chain Viewにも追加する" registration
+// checkbox (2026-08-30) — tells the import handler which existing
+// Loadouts/Collections entry to link the freshly-imported node back onto,
+// instead of the normal checkbox-driven/forced-push paths.
+let pendingLinkBack: { kind: "loadout-item" | "collections-frames" | "collections-weapons"; id: string } | null = null;
 
 // /api/wfcd/generate's server-side type restriction (main.ts) — the only
 // values <select id="wfcd-node-type"> may hold. Labels come from
@@ -61,7 +185,7 @@ let wfcdSuggestion: WfcdSuggestion | null = null;
 // through the 2026-08-25 item 30 Japanese-labeling pass).
 const WFCD_GEN_NODE_TYPES = ["Frame", "Weapon", "Quest"] as const;
 el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
-  (t) => `<option value="${t}">${NODE_TYPE_LABEL_JA[t] ?? t}</option>`,
+  (type) => `<option value="${type}">${nodeTypeLabel(type)}</option>`,
 ).join("");
 
 // Companion/Archwing/Necramechの英字表記はweb/loadouts.html/tsの種別
@@ -70,7 +194,7 @@ el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
 // 統一されている）をそのまま踏襲する。
 // 登録先の誘導（Loadoutsの＋アイコンから...）は蛇足と判断し削除（のっち
 // 指摘、2026-08-28）——「ここには無い」という事実だけ伝われば足りる。
-el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>Companion/Archwing/Necramechはこの一覧にありません（Chain Viewのノードを持たない仕様）。</span>`;
+el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>${t().companionNote}</span>`;
 
 // Reference data pool for the name-field keyword filter, swapped per node
 // type (Frame/Weapon/Quest) — same pattern as the Loadouts/Collections
@@ -87,7 +211,7 @@ async function loadWfcdGenRefData(): Promise<void> {
     wfcdGenRefData.Weapon = weapons;
     wfcdGenRefData.Quest = quests;
   } catch (e) {
-    console.warn("WFCD参照データの取得に失敗（自由入力は引き続き可能）", e);
+    console.warn(t().refDataFailedLog, e);
   }
 }
 void loadWfcdGenRefData();
@@ -116,7 +240,7 @@ function updateWfcdNameSuggest(): void {
     })
     .slice(0, 30);
   if (!matches.length) {
-    wfcdNameSuggest.innerHTML = `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+    wfcdNameSuggest.innerHTML = `<div class="suggest-empty">${t().noMatchFreeform}</div>`;
   } else {
     wfcdNameSuggest.innerHTML = matches
       .map((n) => {
@@ -157,7 +281,10 @@ el("wfcd-modal-cancel").addEventListener("click", () => {
   el("wfcd-modal-backdrop").classList.add("hidden");
 });
 
-el("wfcd-fetch-btn").addEventListener("click", async () => {
+// Factored out of the click handler below so initDeepLink() (bottom of this
+// file) can trigger the same fetch programmatically after pre-filling
+// #wfcd-node-type/#wfcd-name, instead of synthesizing a click.
+async function runWfcdFetch(): Promise<void> {
   const nodeType = el<HTMLSelectElement>("wfcd-node-type").value;
   const typed = el<HTMLInputElement>("wfcd-name").value.trim();
   // Input may hold the Japanese name (picked from the suggestion list, or
@@ -166,19 +293,20 @@ el("wfcd-fetch-btn").addEventListener("click", async () => {
   const preview = el("wfcd-preview");
   el("wfcd-modal-import").style.display = "none";
   if (!name) {
-    showToast("名前を入力して");
+    showToast(t().enterName);
     return;
   }
-  preview.innerHTML = `<div class="empty">取得中…</div>`;
+  preview.innerHTML = `<div class="empty">${t().fetching}</div>`;
   const res = await fetch(`/api/wfcd/generate?nodeType=${encodeURIComponent(nodeType)}&name=${encodeURIComponent(name)}`);
   if (!res.ok) {
-    preview.innerHTML = `<div class="empty">見つかりませんでした（WFCD側の名前と完全一致している必要があります）</div>`;
+    preview.innerHTML = `<div class="empty">${t().notFound}</div>`;
     return;
   }
   wfcdSuggestion = (await res.json()) as WfcdSuggestion;
   renderWfcdPreview();
   el("wfcd-modal-import").style.display = "";
-});
+}
+el("wfcd-fetch-btn").addEventListener("click", () => void runWfcdFetch());
 
 function renderWfcdPreview(): void {
   const s = wfcdSuggestion!;
@@ -188,7 +316,7 @@ function renderWfcdPreview(): void {
   // ラベルは「入手先」のみに簡略化。
   const anyCandidates = (s.parts ?? []).some((p) => (p.relicCandidates ?? []).length > 0);
   const partsNote = anyCandidates
-    ? `<div class="ph-row" style="opacity:.8;margin-top:10px;">入手先は1つ選択（OR関係なのでどれか1つでよい。レリックとは限らず通常ミッションのドロップも含む）</div>`
+    ? `<div class="ph-row" style="opacity:.8;margin-top:10px;">${t().pickOneSource}</div>`
     : "";
   const parts = (s.parts ?? [])
     .map((p, i) => {
@@ -217,20 +345,25 @@ function renderWfcdPreview(): void {
         else grouped.set(c.name, [{ c, idx: ci }]);
       });
       // Vault済みは今すぐ入手できない側なので下に沈める（のっち指摘、
-      // 2026-08-28）——非Vault済み同士/Vault済み同士の相対順はWFCDの元の
-      // 並びのまま（Array.sortは安定ソート）。
+      // 2026-08-28）——ただしVault済みでもPrime Resurgence在庫がある
+      // レリックは実質「今すぐ買える」側なので、Vault済みのみ（Resurgence
+      // 無し）より上に置く3段階ソートに変更（2026-08-30、のっち指摘:
+      // 候補が全部Vault表示になって見分けがつかなかった）。各段の中の
+      // 相対順はWFCDの元の並びのまま（Array.sortは安定ソート）。
+      const rank = (c: RelicCandidate): number => (!c.vaulted ? 0 : c.resurgence ? 1 : 2);
       const candidateOptions = Array.from(grouped.entries())
-        .sort((a, b) => Number(a[1][0]!.c.vaulted ?? false) - Number(b[1][0]!.c.vaulted ?? false))
+        .sort((a, b) => rank(a[1][0]!.c) - rank(b[1][0]!.c))
         .map(([name, entries]) => {
           const jaName = locationJa(name);
           const first = entries[0]!.c;
           if (first.isRelic) {
-            const vaultedText = first.vaulted ? "・Vault済み" : "";
-            return `<option value="${entries[0]!.idx}">${jaName}（レリック${vaultedText}）</option>`;
+            const vaultedText = first.vaulted ? t().vaultedSuffix : "";
+            const resurgenceText = first.resurgence ? t().resurgenceSuffix(first.resurgence.slice(0, 10)) : "";
+            return `<option value="${entries[0]!.idx}">${t().relicOption(jaName, `${vaultedText}${resurgenceText}`)}</option>`;
           }
           if (entries.length === 1) {
             const { c, idx } = entries[0]!;
-            return `<option value="${idx}">${jaName}（${c.chance}%・通常ミッション）</option>`;
+            return `<option value="${idx}">${t().missionOption(jaName, c.chance)}</option>`;
           }
           const inner = entries.map(({ c, idx }) => `<option value="${idx}">${c.chance}%</option>`).join("");
           return `<optgroup label="${jaName}">${inner}</optgroup>`;
@@ -241,13 +374,13 @@ function renderWfcdPreview(): void {
         <div class="part-name">${itemJa(p.node.name)}</div>
         ${
           (p.relicCandidates ?? []).length
-            ? `<label style="margin:0 0 2px;">入手先</label>
+            ? `<label style="margin:0 0 2px;">${t().sourceLabel}</label>
              <select data-part-value="${i}">
-               <option value="">（未選択）</option>
+               <option value="">${t().notSelected}</option>
                ${candidateOptions}
              </select>
              <div class="wfcd-relic-info" data-relic-info="${i}"></div>`
-            : `<div class="empty">WFCD側にこのパーツの入手先データなし（既定素材として通常のミッション/敵ドロップで入手する想定）</div>`
+            : `<div class="empty">${t().noSourceData}</div>`
         }
       </div>`;
     })
@@ -258,7 +391,7 @@ function renderWfcdPreview(): void {
     <div class="wfcd-part">
       <label style="display:flex;align-items:flex-start;gap:6px;">
         <input type="checkbox" id="wfcd-syndicate-check" checked style="margin-top:3px;">
-        <span>シンジケートランクを前提条件として追加: <b>${s.syndicateRank.node.name}</b>（購入コスト ${s.syndicateRank.standing.toLocaleString()} standing）</span>
+        <span>${t().syndicateRankNote(s.syndicateRank.node.name, s.syndicateRank.standing.toLocaleString())}</span>
       </label>
     </div>`
     : "";
@@ -266,11 +399,11 @@ function renderWfcdPreview(): void {
   const questChain = s.questChain
     ? `
     <div class="wfcd-part">
-      <div class="part-name">前提クエストチェーン（Wiki要約ベース、精度は目視要確認）</div>
+      <div class="part-name">${t().questChainTitle}</div>
       ${
         s.questChain.length > 1
           ? `<div class="ph-row">${s.questChain.map((n) => questJa(n.name)).join(" → ")}</div>`
-          : `<div class="empty">本表に前提クエストの登録なし（単体で追加されます）</div>`
+          : `<div class="empty">${t().noQuestChain}</div>`
       }
     </div>`
     : "";
@@ -294,11 +427,11 @@ function renderWfcdPreview(): void {
     <div class="wfcd-part">
       <label style="display:flex;align-items:flex-start;gap:6px;">
         <input type="checkbox" id="wfcd-attach-check" style="margin-top:3px;">
-        <span>現在の目標「<b>${currentBuild.name}</b>」の中身（contains）に追加する（チェックを入れない場合は種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます）</span>
+        <span>${t().attachToBuild(currentBuild.name)}</span>
       </label>
     </div>`
     : `
-    <div class="wfcd-part"><div class="empty">現在選択中のBuildがないため、このまま追加すると種別がGoalになり、単独の探索起点として左サイドバーの一覧から辿れます</div></div>`;
+    <div class="wfcd-part"><div class="empty">${t().noCurrentBuild}</div></div>`;
 
   // Reverse propagation to Loadouts (2026-08-25 item 27). Chain View's Node
   // types have no Companion/Archwing/Necramech (and WFCD auto-generation only
@@ -308,22 +441,25 @@ function renderWfcdPreview(): void {
   // (owned:true). Collections gets pushed unconditionally either way
   // (see the import handler below), independent of this checkbox.
   const nodeType = el<HTMLSelectElement>("wfcd-node-type").value;
+  // Hidden when arriving via a loadout-item link-back deep link — that item
+  // is already getting linked below in the import handler, so this checkbox
+  // would just offer to create a redundant second one.
   const loadoutsRow =
-    nodeType === "Frame" || nodeType === "Weapon"
+    (nodeType === "Frame" || nodeType === "Weapon") && pendingLinkBack?.kind !== "loadout-item"
       ? `
     <div class="wfcd-part">
       <label style="display:flex;align-items:flex-start;gap:6px;">
         <input type="checkbox" id="wfcd-loadouts-check" style="margin-top:3px;">
-        <span>Loadoutsにも追加する（MOD構成の管理対象にする、任意）</span>
+        <span>${t().alsoAddToLoadouts}</span>
       </label>
     </div>`
       : "";
 
   preview.innerHTML = `
-    <div class="ph-row" style="margin-top:10px;"><b>パラダイム:</b> ${s.paradigm}</div>
-    ${s.richLich ? `<div class="ph-row"><b>リッチ系:</b> ${s.richLich}</div>` : ""}
-    ${s.archetype ? `<div class="ph-row"><b>アーキタイプ:</b> ${s.archetype}</div>` : ""}
-    <div class="ph-row"><b>本体ノード:</b> ${s.root.type === "Quest" ? questJa(s.root.name) : s.root.name}（${s.root.id}）</div>
+    <div class="ph-row" style="margin-top:10px;"><b>${t().paradigmLabel}</b> ${s.paradigm}</div>
+    ${s.richLich ? `<div class="ph-row"><b>${t().richLichLabel}</b> ${s.richLich}</div>` : ""}
+    ${s.archetype ? `<div class="ph-row"><b>${t().archetypeLabel}</b> ${s.archetype}</div>` : ""}
+    <div class="ph-row"><b>${t().rootNodeLabel}</b> ${s.root.type === "Quest" ? questJa(s.root.name) : s.root.name}（${s.root.id}）</div>
     ${attachRow}
     ${loadoutsRow}
     ${syndicateRow}
@@ -353,7 +489,7 @@ async function updateRelicInfo(partIdx: number, sel: HTMLSelectElement): Promise
     info.textContent = "";
     return;
   }
-  info.textContent = "確認中…";
+  info.textContent = t().checking;
   try {
     const res = await fetch(`/api/wfcd/relic-status?name=${encodeURIComponent(candidate.name)}`);
     const data = res.ok ? ((await res.json()) as RelicStatusResponse) : null;
@@ -361,7 +497,10 @@ async function updateRelicInfo(partIdx: number, sel: HTMLSelectElement): Promise
       info.textContent = "";
       return;
     }
-    info.textContent = data.vaulted ? "Vault済み（現在のミッションドロップ対象外）" : `現在${data.missionCount ?? 0}ミッションでドロップ中`;
+    const resurgenceNote = data.resurgence?.available ? t().resurgenceNote(data.resurgence.expiry.slice(0, 10)) : "";
+    info.textContent = data.vaulted
+      ? t().vaultedStatus(resurgenceNote)
+      : t().droppingStatus(data.missionCount ?? 0, resurgenceNote);
   } catch {
     info.textContent = "";
   }
@@ -421,7 +560,7 @@ el("wfcd-modal-import").addEventListener("click", async () => {
         // Normal-mission/assassination drop: there's no "crack this" node
         // like a relic, so no requires link — just record the source in the
         // part's note.
-        partNode.note = `入手先: ${candidate.name}`;
+        partNode.note = t().sourceNote(candidate.name);
       }
     }
     nodes.push(partNode);
@@ -440,30 +579,54 @@ el("wfcd-modal-import").addEventListener("click", async () => {
   const importedNodes = importRes.ok ? ((await importRes.json()) as Node[]) : [];
   const finalRootId = importedNodes.find((n) => n.name === root.name)?.id ?? (root.id as string);
 
-  // Cross-page linking (2026-08-25 item 27): Loadouts is optional (checkbox,
-  // Frame/Weapon only), Collections is always forced regardless (skips if a
-  // same-name entry already exists). Chain-View-origin creates it
-  // owned:false — "track something not yet owned" is the point here, the
-  // opposite default from Loadouts' own registration (owned:true). Neither
-  // path ever has the user pick an id/name.
+  // Cross-page linking (2026-08-25 item 27). Frame/Weapon only (Chain View
+  // has no Companion/Archwing/Necramech node type and WFCD auto-generation
+  // only covers Frame/Weapon/Quest).
   const nodeType = el<HTMLSelectElement>("wfcd-node-type").value;
   if (nodeType === "Frame" || nodeType === "Weapon") {
-    const loadoutsCheck = document.getElementById("wfcd-loadouts-check") as HTMLInputElement | null;
-    if (loadoutsCheck?.checked) {
-      await fetch("/api/loadout-items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: autoLinkId("item"),
-          name: root.name,
-          type: nodeType,
-          configs: { A: [], B: [], C: [] },
-          note: "",
-          chainViewNodeId: finalRootId,
-        }),
-      });
+    if (pendingLinkBack?.kind === "loadout-item") {
+      // Arrived via Loadouts' registration checkbox (2026-08-30) — link the
+      // specific item that started this, instead of the checkbox/forced-push
+      // paths below (loadoutsRow is hidden for this case, see
+      // renderWfcdPreview()).
+      const res = await fetch("/api/loadouts");
+      const data = res.ok ? ((await res.json()) as { items?: Record<string, { id: string; [key: string]: unknown }> }) : null;
+      const item = data?.items?.[pendingLinkBack.id];
+      if (item) {
+        await fetch("/api/loadout-items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...item, chainViewNodeId: finalRootId }),
+        });
+      }
+      await forcePushToCollections(nodeType, root.name as string, false);
+    } else if (pendingLinkBack?.kind === "collections-frames" || pendingLinkBack?.kind === "collections-weapons") {
+      // Arrived via Collections' Frame/Weapon registration checkbox
+      // (2026-08-30) — link the specific entry that started this. Skips the
+      // forced Collections push below since that entry already exists.
+      const apiPath = pendingLinkBack.kind === "collections-frames" ? "frames" : "weapons";
+      const res = await fetch("/api/collections");
+      const data = res.ok ? ((await res.json()) as Record<string, Record<string, { id: string; [key: string]: unknown }>>) : null;
+      const entry = data?.[apiPath]?.[pendingLinkBack.id];
+      if (entry) {
+        await fetch(`/api/collections/${apiPath}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...entry, chainViewNodeId: finalRootId }),
+        });
+      }
+    } else {
+      // Normal in-page use (no deep link): Loadouts is optional (checkbox),
+      // Collections is always forced regardless (skips if a same-name entry
+      // already exists). Chain-View-origin creates it owned:false — "track
+      // something not yet owned" is the point here, the opposite default
+      // from Loadouts' own registration (owned:true).
+      const loadoutsCheck = document.getElementById("wfcd-loadouts-check") as HTMLInputElement | null;
+      if (loadoutsCheck?.checked) {
+        await forcePushToLoadoutItem(nodeType as "Frame" | "Weapon", root.name as string, finalRootId);
+      }
+      await forcePushToCollections(nodeType, root.name as string, false);
     }
-    await forcePushToCollections(nodeType, root.name as string, false);
   }
 
   // Attach to the current Build's contains (only when willAttach is true).
@@ -479,10 +642,52 @@ el("wfcd-modal-import").addEventListener("click", async () => {
   if (state.focus) await loadReport();
   const rootDisplayName =
     wfcdSuggestion.root.type === "Quest" ? questJa(root.name as string) : (root.name as string);
+  const linkedBack = !!pendingLinkBack;
+  pendingLinkBack = null; // one-shot: don't let a stale target survive into the next open of this modal
   showToast(
-    attached
-      ? `「${rootDisplayName}」を追加し、現在の目標の中身（contains）に繋げました。`
-      : `「${rootDisplayName}」をGoalとして追加しました。左サイドバーの一覧から単独の探索起点として辿れます。既存の目標の中身（contains）に含めたい場合は、その目標ノードを編集して手動で追加してください。`,
+    linkedBack
+      ? t().addedLinked(rootDisplayName)
+      : attached
+        ? t().addedToBuild(rootDisplayName)
+        : t().addedAsGoal(rootDisplayName),
     "success",
   );
 });
+
+// Deep link from Loadouts/Collections' "Chain Viewにも追加する" registration
+// checkbox (2026-08-30) — replaces the old silent background-generate
+// (autoGenerateChainViewNode, wfcd-autolink.ts) with actually opening this
+// wizard pre-filled, so relic candidates get a chance to be picked instead
+// of always being skipped. Mirrors build-sidebar.ts's `?focus=` deep-link
+// pattern: read once, strip the params immediately so a reload doesn't
+// re-trigger it.
+(function initDeepLink(): void {
+  const params = new URLSearchParams(location.search);
+  const nodeType = params.get("wfcd-generate");
+  const name = params.get("wfcd-name");
+  const linkBack = params.get("link-back");
+  if (!nodeType || !name) return;
+
+  if (linkBack) {
+    const sep = linkBack.indexOf(":");
+    const kind = sep > 0 ? linkBack.slice(0, sep) : "";
+    const id = sep > 0 ? linkBack.slice(sep + 1) : "";
+    if (kind === "loadout-item" || kind === "collections-frames" || kind === "collections-weapons") {
+      pendingLinkBack = { kind, id };
+    }
+  }
+
+  const url = new URL(location.href);
+  url.searchParams.delete("wfcd-generate");
+  url.searchParams.delete("wfcd-name");
+  url.searchParams.delete("link-back");
+  history.replaceState(null, "", url);
+
+  el<HTMLSelectElement>("wfcd-node-type").value = nodeType;
+  el<HTMLInputElement>("wfcd-name").value = name;
+  el("wfcd-preview").innerHTML = "";
+  el("wfcd-modal-import").style.display = "none";
+  wfcdSuggestion = null;
+  el("wfcd-modal-backdrop").classList.remove("hidden");
+  void runWfcdFetch();
+})();

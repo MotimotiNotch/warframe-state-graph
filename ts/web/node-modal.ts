@@ -13,22 +13,91 @@ import { icon } from "./icons.ts";
 import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { nodeDisplayName, questJa } from "./quest-i18n.ts";
 import { showToast } from "./toast.ts";
+import { effective } from "./locale.ts";
 
 export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic", "Other"];
-export const NODE_TYPE_LABEL_JA: Record<string, string> = {
-  Goal: "ゴール",
-  Weapon: "武器",
-  Frame: "フレーム",
-  Mod: "MOD",
-  Riven: "Riven",
-  Syndicate: "シンジケート",
-  Quest: "クエスト",
-  Resource: "リソース",
-  Relic: "レリック",
-  Build: "Build（旧形式）",
-  // どのカテゴリにも当てはまらないアイテム用（のっち依頼、2026-08-28: 当初「-」表示だったが「Otherが良いかも」で変更）。
-  Other: "Other",
+const NODE_TYPE_LABELS: Record<"ja" | "en", Record<string, string>> = {
+  ja: {
+    Goal: "ゴール",
+    Weapon: "武器",
+    Frame: "フレーム",
+    Mod: "MOD",
+    Riven: "Riven",
+    Syndicate: "シンジケート",
+    Quest: "クエスト",
+    Resource: "リソース",
+    Relic: "レリック",
+    Build: "Build（旧形式）",
+    // どのカテゴリにも当てはまらないアイテム用（のっち依頼、2026-08-28: 当初「-」表示だったが「Otherが良いかも」で変更）。
+    Other: "Other",
+  },
+  // The type keys are already the canonical English names, so English mode
+  // just needs the two that aren't bare identifiers spelled out.
+  en: {
+    Goal: "Goal",
+    Weapon: "Weapon",
+    Frame: "Frame",
+    Mod: "Mod",
+    Riven: "Riven",
+    Syndicate: "Syndicate",
+    Quest: "Quest",
+    Resource: "Resource",
+    Relic: "Relic",
+    Build: "Build (legacy)",
+    Other: "Other",
+  },
 };
+
+/** Node type label in the current display language (callers previously read
+ * the JA-only NODE_TYPE_LABEL_JA map directly, hence the `?? type` fallback
+ * for a type not in the table). */
+export function nodeTypeLabel(type: string): string {
+  return NODE_TYPE_LABELS[effective()][type] ?? type;
+}
+
+interface NodeModalStrings {
+  none: string;
+  noMatchingNode: string;
+  noCandidatesFreeform: string;
+  noMatchFreeform: string;
+  editTitle: string;
+  addRequiresTitle: string;
+  addContainsTitle: string;
+  newGoalTitle: string;
+  enterName: string;
+  deleteConfirm: (id: string) => string;
+}
+
+const STRINGS: Record<"ja" | "en", NodeModalStrings> = {
+  ja: {
+    none: "なし",
+    noMatchingNode: "一致するノードなし",
+    noCandidatesFreeform: "候補なし（自由入力のみ対応の種別です）",
+    noMatchFreeform: "一致なし（このまま自由入力できます）",
+    editTitle: "ノード編集",
+    addRequiresTitle: "前提ノードを追加",
+    addContainsTitle: "中身ノードを追加",
+    newGoalTitle: "新規ゴール",
+    enterName: "名前を入力して",
+    deleteConfirm: (id) => `「${id}」を削除する？（他ノードからの参照も外れます）`,
+  },
+  en: {
+    none: "None",
+    noMatchingNode: "No matching node",
+    noCandidatesFreeform: "No candidates (this type is free-entry only)",
+    noMatchFreeform: "No match (you can still type it freely)",
+    editTitle: "Edit node",
+    addRequiresTitle: "Add a prerequisite node",
+    addContainsTitle: "Add a contents node",
+    newGoalTitle: "New goal",
+    enterName: "Enter a name",
+    deleteConfirm: (id) => `Delete "${id}"? (references from other nodes are dropped too)`,
+  },
+};
+
+function t(): NodeModalStrings {
+  return STRINGS[effective()];
+}
 
 // のっち's call (2026-08-26): users shouldn't have to think about IDs at
 // all when creating a node, only the name. A UUID needs no slugification
@@ -82,7 +151,7 @@ function renderNodeTagList(kind: "requires" | "contains"): void {
         const label = n ? nodeDisplayName(n) : id;
         return `<span class="mod-tag">${label}<span class="x" data-remove-idx="${i}">${icon("x", { size: 12 })}</span></span>`;
       })
-      .join("") || `<span class="empty">なし</span>`;
+      .join("") || `<span class="empty">${t().none}</span>`;
   tagsEl.querySelectorAll("[data-remove-idx]").forEach((x) => {
     x.addEventListener("click", () => {
       list.splice(Number((x as HTMLElement).dataset.removeIdx), 1);
@@ -113,12 +182,12 @@ function updateNodeSuggest(kind: "requires" | "contains"): void {
     )
     .slice(0, 30);
   if (!matches.length) {
-    suggestEl.innerHTML = `<div class="suggest-empty">一致するノードなし</div>`;
+    suggestEl.innerHTML = `<div class="suggest-empty">${t().noMatchingNode}</div>`;
   } else {
     suggestEl.innerHTML = matches
       .map(
         (n) =>
-          `<div class="suggest-item" data-id="${n.id}">${nodeDisplayName(n)}<span style="color:var(--muted);font-size:0.75em;"> （${NODE_TYPE_LABEL_JA[n.type] ?? n.type}）</span></div>`,
+          `<div class="suggest-item" data-id="${n.id}">${nodeDisplayName(n)}<span style="color:var(--muted);font-size:0.75em;"> （${nodeTypeLabel(n.type)}）</span></div>`,
       )
       .join("");
     suggestEl.querySelectorAll(".suggest-item").forEach((itemEl) => {
@@ -181,7 +250,7 @@ function updateNodeNameSuggest(): void {
   // Rivenのようにカタログを持たない種別は、候補ゼロで黙って何も出さない
   // のではなく「自由入力のみ」と明示する（のっち依頼、2026-08-28）。
   if (!Object.prototype.hasOwnProperty.call(NODE_NAME_REF_ENDPOINTS, type)) {
-    nodeNameSuggest.innerHTML = `<div class="suggest-empty">候補なし（自由入力のみ対応の種別です）</div>`;
+    nodeNameSuggest.innerHTML = `<div class="suggest-empty">${t().noCandidatesFreeform}</div>`;
     nodeNameSuggest.classList.remove("hidden");
     return;
   }
@@ -197,7 +266,7 @@ function updateNodeNameSuggest(): void {
     .filter((n) => n.toLowerCase().includes(q) || (type === "Quest" && questJa(n) !== n && questJa(n).toLowerCase().includes(q)))
     .slice(0, 30);
   if (!matches.length) {
-    nodeNameSuggest.innerHTML = `<div class="suggest-empty">一致なし（このまま自由入力できます）</div>`;
+    nodeNameSuggest.innerHTML = `<div class="suggest-empty">${t().noMatchFreeform}</div>`;
   } else {
     nodeNameSuggest.innerHTML = matches
       .map((n) => {
@@ -244,11 +313,11 @@ export function openNodeModal(mode: NodeModalMode, node: Node | null, context?: 
   nodeModalContext = context ?? null;
   const bareGoal = mode === "create" && !context;
   el("node-modal-title").textContent =
-    mode === "edit" ? "ノード編集" : context ? (context.relation === "requires" ? "前提ノードを追加" : "中身ノードを追加") : "新規ゴール";
+    mode === "edit" ? t().editTitle : context ? (context.relation === "requires" ? t().addRequiresTitle : t().addContainsTitle) : t().newGoalTitle;
 
   const typeSel = el<HTMLSelectElement>("node-type");
   const types = typeOptionsFor(mode, context ?? null, node);
-  typeSel.innerHTML = types.map((t) => `<option value="${t}">${NODE_TYPE_LABEL_JA[t] ?? t}</option>`).join("");
+  typeSel.innerHTML = types.map((type) => `<option value="${type}">${nodeTypeLabel(type)}</option>`).join("");
   typeSel.disabled = bareGoal;
 
   el<HTMLInputElement>("node-id").value = node?.id ?? "";
@@ -287,7 +356,7 @@ el("node-modal-cancel").addEventListener("click", closeNodeModal);
 el("node-modal-save").addEventListener("click", async () => {
   const name = el<HTMLInputElement>("node-name").value.trim();
   if (!name) {
-    showToast("名前を入力して");
+    showToast(t().enterName);
     return;
   }
   const id = nodeModalMode === "create" ? generateNodeId() : el<HTMLInputElement>("node-id").value.trim();
@@ -339,7 +408,7 @@ el("node-modal-save").addEventListener("click", async () => {
 
 el("node-modal-delete").addEventListener("click", async () => {
   const id = el<HTMLInputElement>("node-id").value.trim();
-  if (!(await confirmInline(el("node-modal-delete"), `「${id}」を削除する？（他ノードからの参照も外れます）`))) return;
+  if (!(await confirmInline(el("node-modal-delete"), t().deleteConfirm(id)))) return;
   await fetch(`/api/nodes/${encodeURIComponent(id)}`, { method: "DELETE" });
   closeNodeModal();
   state.selected = null;

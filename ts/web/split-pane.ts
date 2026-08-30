@@ -5,6 +5,12 @@
 
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
+import { effective } from "./locale.ts";
+
+const SIDEBAR_TOGGLE_TITLE: Record<"ja" | "en", { show: string; hide: string }> = {
+  ja: { show: "目標一覧を表示", hide: "目標一覧を隠す" },
+  en: { show: "Show the goal list", hide: "Hide the goal list" },
+};
 
 const PANEL_WIDTH_KEY = "warframe-state-graph:panelWidths";
 
@@ -146,7 +152,7 @@ function applySidebarCollapsed(collapsed: boolean): void {
   }
   const btn = el("sidebar-toggle-btn");
   btn.innerHTML = icon(collapsed ? "panel-left-open" : "panel-left-close");
-  btn.title = collapsed ? "目標一覧を表示" : "目標一覧を隠す";
+  btn.title = collapsed ? SIDEBAR_TOGGLE_TITLE[effective()].show : SIDEBAR_TOGGLE_TITLE[effective()].hide;
 }
 
 function wireSidebarToggle(): void {

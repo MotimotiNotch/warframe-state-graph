@@ -21,6 +21,51 @@ import type { Folder } from "../server/folder.ts";
 import type { Node } from "../server/model.ts";
 import { refreshGraph, selectBuild, state } from "./graph-state.ts";
 import { nodeDisplayName } from "./quest-i18n.ts";
+import { effective } from "./locale.ts";
+
+interface SidebarStrings {
+  unfiled: string;
+  moveToFolder: string;
+  delete: string;
+  rename: string;
+  none: string;
+  noGoalsYet: string;
+  deleteBuildConfirm: (name: string) => string;
+  deleteFolderConfirm: (name: string) => string;
+  newFolderTitle: string;
+  renameFolderTitle: string;
+}
+
+const STRINGS: Record<"ja" | "en", SidebarStrings> = {
+  ja: {
+    unfiled: "未分類",
+    moveToFolder: "フォルダへ移動",
+    delete: "削除",
+    rename: "名前変更",
+    none: "なし",
+    noGoalsYet: "目標ノードがまだありません",
+    deleteBuildConfirm: (name) => `「${name}」を削除する？（他ノードからの参照も外れます）`,
+    deleteFolderConfirm: (name) => `「${name}」を削除する？（中の目標は未分類に戻ります）`,
+    newFolderTitle: "新規フォルダ",
+    renameFolderTitle: "フォルダ名を変更",
+  },
+  en: {
+    unfiled: "Unfiled",
+    moveToFolder: "Move to a folder",
+    delete: "Delete",
+    rename: "Rename",
+    none: "None",
+    noGoalsYet: "No goal nodes yet",
+    deleteBuildConfirm: (name) => `Delete "${name}"? (references from other nodes are dropped too)`,
+    deleteFolderConfirm: (name) => `Delete "${name}"? (the goals inside go back to Unfiled)`,
+    newFolderTitle: "New folder",
+    renameFolderTitle: "Rename folder",
+  },
+};
+
+function t(): SidebarStrings {
+  return STRINGS[effective()];
+}
 
 let folders: Record<string, Folder> = {};
 
@@ -76,7 +121,7 @@ function setStoredCollapsed(folderKey: string, collapsed: boolean): void {
 }
 
 function moveTargetsHtml(node: Node): string {
-  const targets = [{ id: "", name: "未分類" }, ...Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, "ja"))];
+  const targets = [{ id: "", name: t().unfiled }, ...Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, "ja"))];
   return targets
     .map(
       (f) =>
@@ -90,8 +135,8 @@ function buildRowHtml(n: Node): string {
   return `
     <div class="sb-build-row${current ? " current" : ""}" data-build-id="${n.id}">
       <span class="sb-build-name">${escapeHtml(nodeDisplayName(n))}</span>
-      <button class="icon-btn sb-move-btn" data-move-toggle="${n.id}" title="フォルダへ移動">${icon("folder", { size: 13 })}</button>
-      <button class="icon-btn sb-delete-btn" data-build-delete="${n.id}" title="削除">${icon("trash-2", { size: 13 })}</button>
+      <button class="icon-btn sb-move-btn" data-move-toggle="${n.id}" title="${t().moveToFolder}">${icon("folder", { size: 13 })}</button>
+      <button class="icon-btn sb-delete-btn" data-build-delete="${n.id}" title="${t().delete}">${icon("trash-2", { size: 13 })}</button>
     </div>`;
 }
 
@@ -105,13 +150,13 @@ function folderSectionHtml(folderKey: string, name: string, builds: Node[], dele
         <span class="sb-folder-count">${builds.length}</span>
         ${
           deletable
-            ? `<button class="icon-btn sb-folder-rename" data-folder-rename="${folderKey}" title="名前変更">${icon("pencil", { size: 12 })}</button>
-               <button class="icon-btn sb-folder-delete" data-folder-delete="${folderKey}" title="削除">${icon("x", { size: 12 })}</button>`
+            ? `<button class="icon-btn sb-folder-rename" data-folder-rename="${folderKey}" title="${t().rename}">${icon("pencil", { size: 12 })}</button>
+               <button class="icon-btn sb-folder-delete" data-folder-delete="${folderKey}" title="${t().delete}">${icon("x", { size: 12 })}</button>`
             : ""
         }
       </div>
       <div class="sb-folder-body${collapsed ? " hidden" : ""}" data-folder-body="${folderKey}">
-        ${builds.length ? builds.map(buildRowHtml).join("") : `<div class="sb-empty">なし</div>`}
+        ${builds.length ? builds.map(buildRowHtml).join("") : `<div class="sb-empty">${t().none}</div>`}
       </div>
     </div>`;
 }
@@ -133,8 +178,8 @@ function render(): void {
   const folderList = Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, "ja"));
   const sections = folderList
     .map((f) => folderSectionHtml(f.id, f.name, (byFolder.get(f.id) ?? []).sort(byNameJa), true))
-    .concat(folderSectionHtml(UNFILED_KEY, "未分類", unfiled.sort(byNameJa), false));
-  container.innerHTML = builds.length ? sections.join("") : `<div class="sb-empty">目標ノードがまだありません</div>`;
+    .concat(folderSectionHtml(UNFILED_KEY, t().unfiled, unfiled.sort(byNameJa), false));
+  container.innerHTML = builds.length ? sections.join("") : `<div class="sb-empty">${t().noGoalsYet}</div>`;
   wireInteractions(container);
 }
 
@@ -242,7 +287,7 @@ function wireInteractions(container: HTMLElement): void {
       const id = btn.dataset.buildDelete!;
       const node = state.graph!.nodes[id];
       if (!node) return;
-      if (!(await confirmInline(btn, `「${nodeDisplayName(node)}」を削除する？（他ノードからの参照も外れます）`))) return;
+      if (!(await confirmInline(btn, t().deleteBuildConfirm(nodeDisplayName(node))))) return;
       await fetch(`/api/nodes/${encodeURIComponent(id)}`, { method: "DELETE" });
       await refreshGraph();
       refreshSidebar();
@@ -261,7 +306,7 @@ function wireInteractions(container: HTMLElement): void {
       e.stopPropagation();
       const id = btn.dataset.folderDelete!;
       const name = folders[id]?.name ?? "";
-      if (!(await confirmInline(btn, `「${name}」を削除する？（中の目標は未分類に戻ります）`))) return;
+      if (!(await confirmInline(btn, t().deleteFolderConfirm(name)))) return;
       await fetch(`/api/folders/${encodeURIComponent(id)}`, { method: "DELETE" });
       delete folders[id];
       // The server also clears folderId off every affected node
@@ -284,7 +329,7 @@ let folderModalTargetId: string | null = null;
 function openFolderModal(mode: "create" | "rename", targetId?: string): void {
   folderModalMode = mode;
   folderModalTargetId = targetId ?? null;
-  el("folder-modal-title").textContent = mode === "create" ? "新規フォルダ" : "フォルダ名を変更";
+  el("folder-modal-title").textContent = mode === "create" ? t().newFolderTitle : t().renameFolderTitle;
   const input = el<HTMLInputElement>("folder-modal-name");
   input.value = mode === "rename" && targetId ? (folders[targetId]?.name ?? "") : "";
   el("folder-modal-backdrop").classList.remove("hidden");
