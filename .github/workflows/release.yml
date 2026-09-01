@@ -116,6 +116,16 @@ jobs:
             { gsub(/%VERSION%/, ver); print }
           ' .github/release-body.md > release-body.md
 
+          # compareリンクだけは残す（generate_release_notesに任せると
+          # "What's Changed"と"New Contributors"まで付いてきて、配布ページとしては
+          # 長すぎるうえ「作者が初コントリビュータ」という誤解を招く表示になる）。
+          if [ -n "$prev" ]; then
+            echo "" >> release-body.md
+            echo "---" >> release-body.md
+            echo "" >> release-body.md
+            echo "全コミット差分: https://github.com/${{ github.repository }}/compare/${prev}...${version}" >> release-body.md
+          fi
+
           echo "--- composed release body ---"
           cat release-body.md
 
@@ -124,4 +134,3 @@ jobs:
         with:
           files: ts/dist/warframe-state-graph-${{ github.ref_name }}.zip
           body_path: release-body.md
-          generate_release_notes: true
