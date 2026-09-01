@@ -60,10 +60,10 @@ const MANUAL_TOPICS: ManualTopic[] = [
   {
     id: "page-standing",
     title: "Standing",
-    body: `<p>全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</p>
+    body: `<p>全18シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</p>
       <ul>
         <li>6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）は2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）。そのためChain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新します</li>
-        <li>他の10シンジケートは敵対関係を持たず、ランクは0以上のみ</li>
+        <li>他の12シンジケートは敵対関係を持たず、ランクは0以上のみ</li>
         <li>貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがあります</li>
         <li>武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使ってください</li>
       </ul>

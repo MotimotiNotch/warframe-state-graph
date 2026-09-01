@@ -42,6 +42,8 @@ test("SyndicateInfo min/max rank", () => {
     ["The Quills", 0, 5],
     ["Kahl's Garrison", 0, 5],
     ["Operational Supply", 0, 3],
+    ["Cavia", 0, 5],
+    ["The Hex", 0, 5],
   ];
   for (const [name, wantMin, wantMaxRank] of cases) {
     const s = findSyndicate(name);
@@ -49,6 +51,15 @@ test("SyndicateInfo min/max rank", () => {
     expect(minRank(s!)).toBe(wantMin);
     expect(maxRank(s!)).toBe(wantMaxRank);
   }
+});
+
+// Guards the count the UI copy states out loud ("全18シンジケート" / "all 18
+// syndicates" in standing.html, standing.ts, manual.ts and both READMEs) —
+// adding a syndicate without updating that copy should fail here, not ship.
+test("syndicate roster: 18 entries, unique names", () => {
+  expect(ALL_SYNDICATES.length).toBe(18);
+  expect(ALL_SYNDICATES.filter((s) => s.faction === "none").length).toBe(12);
+  expect(new Set(ALL_SYNDICATES.map((s) => s.name)).size).toBe(ALL_SYNDICATES.length);
 });
 
 test("all syndicates: ranks and sacrifices lengths match", () => {

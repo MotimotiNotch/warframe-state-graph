@@ -67,7 +67,7 @@ bun run dev
 - **Chain View** (`/`): 依存関係グラフの表示・ドリルダウン・ワンタップトグル・WFCD自動ノード生成（フレーム/武器/クエスト/シンジケート等）
 - **Loadouts** (`/loadouts.html`): フレーム/武器/コンパニオンのMODコンフィグ(A/B/C、コンパニオンは単一構成)・ビルドセットの管理
 - **Collections** (`/collections.html`): Riven / Kuva・Tenet・Coda武器の入手ログ、フレーム入手状況、デュビリ進捗
-- **Standing** (`/standing.html`): 16シンジケート（6大シンジケート＋オープンワールド等10）の現在ランク・最高到達実績管理
+- **Standing** (`/standing.html`): 18シンジケート（6大シンジケート＋オープンワールド等12）の現在ランク・最高到達実績管理
 - **Stats** (`/stats.html`): 星図/Steel Path進捗、Intrinsics、4データソース横断の読み取り専用集計（進行度に応じて解放される追加セクションもあり、詳細は下記「⚠️ ネタバレについての注意」参照）
 - **Note** (`/note.html`): 1ページ丸ごとの永続Markdownメモ（定期的に見返す用）
 
@@ -129,7 +129,7 @@ SmartScreenの警告解除に必要な「ダウンロード実績（レピュテ
 - `server/store.ts`: `data/graph.json` の永続化、ノードの付け替え/独立させる機能（循環参照ガード付き）
 - `server/loadout.ts`: MODコンフィグ・ビルドセットの永続化
 - `server/collection.ts`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
-- `server/standing.ts`: 16シンジケートの現在ランク・最高到達実績永続化
+- `server/standing.ts`: 18シンジケートの現在ランク・最高到達実績永続化
 - `server/questchain.ts`: クエストの前提関係（Wiki由来の静的テーブル）
 - `server/stats.ts`: 星図/Steel Path進捗・Intrinsicsおよび進行度に応じて解放される追加セクションの永続化、4データソース横断集計
 - `server/starchart.ts`: 星図（惑星単位）の総ノード数集計

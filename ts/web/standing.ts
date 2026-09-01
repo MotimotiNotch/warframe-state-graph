@@ -59,10 +59,10 @@ const STRINGS: Record<Locale, UIStrings> = {
     refreshTitle: "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください",
     helpToggleTitle: "このページについて",
     helpPopover:
-      "<div style='margin-bottom:8px;'>全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</div>" +
+      "<div style='margin-bottom:8px;'>全18シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</div>" +
       "<ul style='margin:0 0 10px;padding-left:18px;'>" +
       "<li>6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）は2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）。そのためChain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新します</li>" +
-      "<li>他の10シンジケートは敵対関係を持たず、ランクは0以上のみ</li>" +
+      "<li>他の12シンジケートは敵対関係を持たず、ランクは0以上のみ</li>" +
       "<li>貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがあります</li>" +
       "<li>武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使ってください</li>" +
       "</ul>" +
@@ -95,10 +95,10 @@ const STRINGS: Record<Locale, UIStrings> = {
     refreshTitle: "Press this if a new frame/weapon etc. added by a game update isn't showing up as a candidate",
     helpToggleTitle: "About this page",
     helpPopover:
-      "<div style='margin-bottom:8px;'>Records your current rank across all 16 syndicates (excluding Conclave/Cephalon Simaris).</div>" +
+      "<div style='margin-bottom:8px;'>Records your current rank across all 18 syndicates (excluding Conclave/Cephalon Simaris).</div>" +
       "<ul style='margin:0 0 10px;padding-left:18px;'>" +
       "<li>The 6 major syndicates (Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka) have 2 hostile pairs — raising one can lower its opposite (dropping below 0 demotes it, down to Rank -2). So unlike Chain View's <code>requires</code>-chain toggle, this page holds and updates the current rank value directly.</li>" +
-      "<li>The other 10 syndicates have no hostile relationship and only ever range from Rank 0 upward.</li>" +
+      "<li>The other 12 syndicates have no hostile relationship and only ever range from Rank 0 upward.</li>" +
       "<li>The contribution-item breakdown couldn't be confirmed from the underlying data for a few syndicates, so those stay marked \"Unknown\".</li>" +
       "<li>To track the specific rank needed to buy a weapon, use Chain View's own node generation (the WFCD auto-generated syndicate candidates) instead.</li>" +
       "</ul>" +
@@ -150,7 +150,9 @@ const SYNDICATE_JA: Record<string, string> = {
   "Solaris United": "ソラリス連合",
   Ventkids: "ベントキッド",
   Entrati: "エントラティ",
-  Necraloid: "ネクラロイド",
+  Necraloid: "ネクロロイド",
+  Cavia: "カビア",
+  "The Hex": "ヘックス",
   "Kahl's Garrison": "KAHL守備隊",
   "Operational Supply": "作戦補給班",
   "The Holdfasts": "ホールドファスト",
@@ -233,7 +235,7 @@ function escapeHtml(s: unknown): string {
 }
 
 // 6大シンジケート（敵対relationshipあり）だけがマイナスランクまで下がりうる。それ以外の
-// 10シンジケート（pkg/standing.FactionNone）は常に0〜最高ランクの範囲に収まる
+// 12シンジケート（server/standing.tsのfaction:"none"）は常に0〜最高ランクの範囲に収まる
 // （server/standing.tsのminRank/maxRankと同じロジックをフロント側でも複製）。
 function minRank(s: SyndicateInfo): number {
   return s.faction === "left" || s.faction === "right" ? -2 : 0;
@@ -295,7 +297,7 @@ function sacrificeTable(s: SyndicateInfo, highest: number, current: number): str
   return `<table>${rows}</table>${note}${recovery}`;
 }
 
-// showAchievement: 敵対relationship持ち（6大シンジケート）だけtrue。降格が無い10シンジケートは
+// showAchievement: 敵対relationship持ち（6大シンジケート）だけtrue。降格が無い12シンジケートは
 // 「現在ランク＝最高到達ランク」が常に一致するため、最高到達実績バッジも捧げ物一覧も冗長——
 // プルダウン1つだけに削る。
 function renderSyndicateList(containerId: string, list: SyndicateInfo[], showAchievement: boolean): void {
