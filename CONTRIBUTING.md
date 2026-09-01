@@ -123,6 +123,12 @@ bun test
   が通ることが前提、`ts/server/engine.ts`/`model.ts`に触れる場合はCODEOWNERSにより作者の
   レビューが必須になる。
 - リリースは`main`上のタグ（`vX.Y.Z`）push契機で自動化されている（`.github/workflows/release.yml`）。
+- **Release本文は「説明書」ではなく「最新版の配布ページ」**として扱う。SNS等から来た人が
+  READMEを経由せずDownloadまで辿り着ける長さに保ち、詳しい説明はREADMEへのリンクで済ませる
+  （READMEをRelease本文にコピーしない）。雛形は`.github/release-body.md`。
+- 「今回の変更点」は`.github/release-notes/<tag>.md`を置けばそれがそのまま載る。置かない場合は
+  前タグからの`feat`/`fix`/`perf`コミット件名から自動生成されるが、件名は開発者向けの英文なので
+  利用者向けには手書きの方が望ましい。
 
 ## PR
 

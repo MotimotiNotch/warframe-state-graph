@@ -4,6 +4,13 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/motimotinotch)
 
+### ▶ [最新版をダウンロード（Releases）](https://github.com/MotimotiNotch/warframe-state-graph/releases/latest)
+
+Windows / インストール不要 / 無料。zipを展開して `warframe-state-graph.exe` を実行するだけ。
+このページは「どういうツールか詳しく知る」ための説明書で、**入手はReleasesが入口**。
+
+---
+
 ゲーム内の依存関係グラフ（アイテム/MOD/シンジケート等）と自分の所持状態・目標を接続し、
 放置しても「次の1手」を動的に再構成する個人用ツール。
 

@@ -4,6 +4,13 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/motimotinotch)
 
+### ▶ [Download the latest release](https://github.com/MotimotiNotch/warframe-state-graph/releases/latest)
+
+Windows / no install / free. Unzip and run `warframe-state-graph.exe`.
+This page is the manual — **Releases is where you get the tool**.
+
+---
+
 A personal tool that connects the game's in-game dependency graph (items, mods,
 syndicates, etc.) to your own ownership state and goals, so it can keep
 reconstructing "what's the next move" even after you've been away for a while.
