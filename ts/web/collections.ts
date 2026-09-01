@@ -17,6 +17,7 @@ import { icon, iconLabel } from "./icons.ts";
 import { renderMiniGraph } from "./minigraph.ts";
 import { renderNoteMd } from "./notemd.ts";
 import { showToast } from "./toast.ts";
+import { initWfcdRefresh } from "./wfcd-refresh.ts";
 import {
   buildEquipExportText,
   buildFrameEntryExportText,
@@ -636,23 +637,8 @@ function ja(stat: string): string {
   return glossaryMap[stat] || RIVEN_STAT_JA[stat] || stat;
 }
 
-el("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
-el("refresh-wfcd-btn").addEventListener("click", async () => {
-  const btn = el("refresh-wfcd-btn");
-  (btn as HTMLButtonElement).disabled = true;
-  btn.classList.add("spinning");
-  btn.title = t().refreshUpdating;
-  await fetch("/api/wfcd/refresh", { method: "POST" });
-  btn.classList.remove("spinning");
-  btn.classList.add("success");
-  btn.innerHTML = icon("check");
-  btn.title = t().refreshDone;
-  setTimeout(() => {
-    btn.classList.remove("success");
-    btn.innerHTML = icon("refresh-cw");
-    (btn as HTMLButtonElement).disabled = false;
-    btn.title = t().refreshTitle;
-  }, 2000);
+initWfcdRefresh({
+  labels: () => ({ updating: t().refreshUpdating, done: t().refreshDone, title: t().refreshTitle }),
 });
 
 el("help-toggle").innerHTML = icon("info");

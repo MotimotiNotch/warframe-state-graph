@@ -12,6 +12,7 @@ import { initSidebar, refreshSidebar } from "./build-sidebar.ts";
 import { renderBreadcrumb } from "./graph-nav.ts";
 import { renderGraph } from "./graph-render.ts";
 import { renderPanel } from "./inspector.ts";
+import { initWfcdRefresh } from "./wfcd-refresh.ts";
 import { applyI18nText, effective, onLocaleChange } from "./locale.ts";
 
 // graph-state.ts <-> graph-nav.ts/graph-render.ts/inspector.ts/build-sidebar.ts
@@ -221,23 +222,8 @@ onLocaleChange(() => {
 });
 applyI18nText(TOOLBAR_STRINGS);
 
-el("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
-el<HTMLButtonElement>("refresh-wfcd-btn").addEventListener("click", async () => {
-  const btn = el<HTMLButtonElement>("refresh-wfcd-btn");
-  btn.disabled = true;
-  btn.classList.add("spinning");
-  btn.title = tb().refreshUpdating;
-  await fetch("/api/wfcd/refresh", { method: "POST" });
-  btn.classList.remove("spinning");
-  btn.classList.add("success");
-  btn.innerHTML = icon("check");
-  btn.title = tb().refreshDone;
-  setTimeout(() => {
-    btn.classList.remove("success");
-    btn.innerHTML = icon("refresh-cw");
-    btn.disabled = false;
-    btn.title = tb().refreshTitle;
-  }, 2000);
+initWfcdRefresh({
+  labels: () => ({ updating: tb().refreshUpdating, done: tb().refreshDone, title: tb().refreshTitle }),
 });
 
 el("legend-toggle").innerHTML = icon("info");

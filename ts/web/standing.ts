@@ -3,6 +3,7 @@ import type { Data, SyndicateInfo } from "../server/standing.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { showToast } from "./toast.ts";
+import { initWfcdRefresh } from "./wfcd-refresh.ts";
 import "./booster.ts";
 import "./spoiler-warning.ts";
 import "./quest-onboarding.ts";
@@ -184,23 +185,8 @@ function itemJa(item: string): string {
   return (SACRIFICE_ITEM_JA[name] || name) + item.slice(i);
 }
 
-el("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
-el("refresh-wfcd-btn").addEventListener("click", async () => {
-  const btn = el("refresh-wfcd-btn") as HTMLButtonElement;
-  btn.disabled = true;
-  btn.classList.add("spinning");
-  btn.title = t().refreshUpdating;
-  await fetch("/api/wfcd/refresh", { method: "POST" });
-  btn.classList.remove("spinning");
-  btn.classList.add("success");
-  btn.innerHTML = icon("check");
-  btn.title = t().refreshDone;
-  setTimeout(() => {
-    btn.classList.remove("success");
-    btn.innerHTML = icon("refresh-cw");
-    btn.disabled = false;
-    btn.title = t().refreshTitle;
-  }, 2000);
+initWfcdRefresh({
+  labels: () => ({ updating: t().refreshUpdating, done: t().refreshDone, title: t().refreshTitle }),
 });
 
 el("help-toggle").innerHTML = icon("info");

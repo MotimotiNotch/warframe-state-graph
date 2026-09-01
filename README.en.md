@@ -34,7 +34,7 @@ supporting features, not the core.
 
 - **External network access**: read-only fetches of game data (items, mods,
   quests, etc.) from WFCD (`raw.githubusercontent.com/WFCD/...`,
-  `api.warframestat.us`) and calamity-inc
+  `drops.warframestat.us`, `api.warframestat.us`) and calamity-inc
   (`raw.githubusercontent.com/calamity-inc/...`, used for the star chart's
   total node counts — a separate public Warframe data project of the same
   kind as WFCD). No personal information is sent or received.
@@ -81,6 +81,8 @@ server-side changes automatically; `web/*.ts` is rebuilt on every request, so
 saving a file and reloading the browser is enough to see the latest version).
 
 - **Chain View** (`/`): dependency graph display/drill-down/one-tap toggling, WFCD auto node generation (frames/weapons/quests/syndicates, etc.)
+
+Every page shows when the external data was fetched (`WFCD Sep 1, 2026`) to the left of its refresh button. Relic Vault status is inferred from a relic being *absent* from the drop tables, so stale data surfaces as a wrong answer rather than a missing one — the reading is there to tell the two apart.
 - **Loadouts** (`/loadouts.html`): mod configs (A/B/C, single config for companions) and build-set management for frames/weapons/companions
 - **Collections** (`/collections.html`): Riven / Kuva·Tenet·Coda weapon acquisition log, frame ownership status, Duviri progress
 - **Standing** (`/standing.html`): current rank / highest-reached tracking across 18 syndicates (the 6 major syndicates + 12 open-world etc.)
