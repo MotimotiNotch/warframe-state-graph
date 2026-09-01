@@ -26,6 +26,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The release body lists what changed since the previous tag, so
+          # the whole history and every tag has to be present — the default
+          # shallow clone has neither.
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -71,8 +76,52 @@ jobs:
           Copy-Item assets/release-readme.txt package/WarframeStateGraph/README.txt
           Compress-Archive -Path package/WarframeStateGraph -DestinationPath "dist/warframe-state-graph-${{ github.ref_name }}.zip"
 
+      # The Release page, not the Code page, is what SNS links to: someone
+      # arriving from a post wants the download, and only the minority who
+      # want the details should have to travel on to the README. So the body
+      # is a distribution page (what it is in one line, then Download, then
+      # what changed), never a copy of the README.
+      #
+      # generate_release_notes alone produced just a "Full Changelog" link
+      # here — GitHub builds that list from merged PRs, and this repo's own
+      # releases are cut from direct pushes to main — so the change list is
+      # built from the commit subjects instead. It stays appended below the
+      # body, which is where the compare link comes from.
+      - name: Compose release notes
+        shell: bash
+        working-directory: .
+        run: |
+          version="${{ github.ref_name }}"
+          prev=$(git describe --tags --abbrev=0 "${version}^" 2>/dev/null || true)
+          range="${version}"
+          [ -n "$prev" ] && range="${prev}..${version}"
+
+          # 「今回の変更点」は手書きが最優先: .github/release-notes/<tag>.md を
+          # 置いておけばそれがそのまま載る。コミット件名は開発者向けの英文なので、
+          # 利用者に見せる一覧としては本来そちらが正しい。
+          if [ -f ".github/release-notes/${version}.md" ]; then
+            cp ".github/release-notes/${version}.md" changes.txt
+          else
+            # 手書きが無い時のフォールバック。Conventional Commits の feat/fix/perf
+            # だけを拾う（chore/docs/test/refactor は配布ページに出す価値が無い）。
+            git log --no-merges --pretty=format:'%s' "$range" > subjects.txt
+            sed -E -n 's/^feat(\(.+\))?!?: /- 追加: /p; s/^fix(\(.+\))?!?: /- 修正: /p; s/^perf(\(.+\))?!?: /- 改善: /p' subjects.txt > changes.txt
+          fi
+          [ -s changes.txt ] || echo "- 内部的な変更のみ（利用者から見える変更はありません）" > changes.txt
+
+          awk -v ver="$version" '
+            /^<!--/ { skip = 1 }
+            skip { if (/-->/) skip = 0; next }
+            /^%CHANGES%$/ { while ((getline line < "changes.txt") > 0) print line; next }
+            { gsub(/%VERSION%/, ver); print }
+          ' .github/release-body.md > release-body.md
+
+          echo "--- composed release body ---"
+          cat release-body.md
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: ts/dist/warframe-state-graph-${{ github.ref_name }}.zip
+          body_path: release-body.md
           generate_release_notes: true

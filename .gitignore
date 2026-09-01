@@ -6,3 +6,8 @@ data/backups/
 
 # ローカルビルド成果物
 *.exe
+
+# release.ymlのCompose release notesステップがCIで生成する中間ファイル
+/release-body.md
+/changes.txt
+/subjects.txt

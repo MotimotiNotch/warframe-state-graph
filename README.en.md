@@ -4,6 +4,13 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/motimotinotch)
 
+### ▶ [Download the latest release](https://github.com/MotimotiNotch/warframe-state-graph/releases/latest)
+
+Windows / no install / free. Unzip and run `warframe-state-graph.exe`.
+This page is the manual — **Releases is where you get the tool**.
+
+---
+
 A personal tool that connects the game's in-game dependency graph (items, mods,
 syndicates, etc.) to your own ownership state and goals, so it can keep
 reconstructing "what's the next move" even after you've been away for a while.
@@ -34,7 +41,7 @@ supporting features, not the core.
 
 - **External network access**: read-only fetches of game data (items, mods,
   quests, etc.) from WFCD (`raw.githubusercontent.com/WFCD/...`,
-  `api.warframestat.us`) and calamity-inc
+  `drops.warframestat.us`, `api.warframestat.us`) and calamity-inc
   (`raw.githubusercontent.com/calamity-inc/...`, used for the star chart's
   total node counts — a separate public Warframe data project of the same
   kind as WFCD). No personal information is sent or received.
@@ -81,9 +88,11 @@ server-side changes automatically; `web/*.ts` is rebuilt on every request, so
 saving a file and reloading the browser is enough to see the latest version).
 
 - **Chain View** (`/`): dependency graph display/drill-down/one-tap toggling, WFCD auto node generation (frames/weapons/quests/syndicates, etc.)
+
+Every page shows when the external data was fetched (`WFCD Sep 1, 2026`) to the left of its refresh button. Relic Vault status is inferred from a relic being *absent* from the drop tables, so stale data surfaces as a wrong answer rather than a missing one — the reading is there to tell the two apart.
 - **Loadouts** (`/loadouts.html`): mod configs (A/B/C, single config for companions) and build-set management for frames/weapons/companions
 - **Collections** (`/collections.html`): Riven / Kuva·Tenet·Coda weapon acquisition log, frame ownership status, Duviri progress
-- **Standing** (`/standing.html`): current rank / highest-reached tracking across 16 syndicates (the 6 major syndicates + 10 open-world etc.)
+- **Standing** (`/standing.html`): current rank / highest-reached tracking across 18 syndicates (the 6 major syndicates + 12 open-world etc.)
 - **Stats** (`/stats.html`): star chart / Steel Path progress, Intrinsics, read-only aggregation across 4 data sources (also has additional sections that unlock with progress — see "⚠️ A note on spoilers" above)
 - **Note** (`/note.html`): a single persistent Markdown memo covering the whole page (for periodic review)
 
@@ -163,7 +172,7 @@ is the backend, `ts/web/` is the frontend.
 - `server/store.ts`: persistence for `data/graph.json`, node re-parenting/detaching (with a cycle guard)
 - `server/loadout.ts`: persistence for mod configs and build sets
 - `server/collection.ts`: persistence for the Riven / Kuva·Tenet·Coda weapon acquisition log
-- `server/standing.ts`: persistence for current rank / highest-reached across the 16 syndicates
+- `server/standing.ts`: persistence for current rank / highest-reached across the 18 syndicates
 - `server/questchain.ts`: quest prerequisite relationships (a static, wiki-sourced table)
 - `server/stats.ts`: persistence for star chart / Steel Path progress, Intrinsics, and progress-gated additional sections, plus aggregation across 4 data sources
 - `server/starchart.ts`: total node-count aggregation for the star chart (per planet)

@@ -1,6 +1,6 @@
 // Port of pkg/standing. Current rank (not a one-way toggle — the 6 major
 // syndicates have hostile-pair factions and can be demoted to Rank -2) for
-// all 16 syndicates (everything except Conclave/Cephalon Simaris). See the
+// all 18 syndicates (everything except Conclave/Cephalon Simaris). See the
 // original Go package doc comment (pkg/standing/model.go) for the full
 // research trail (faction hostility mechanics, per-syndicate sourcing) —
 // mechanically copied here, not re-derived, per the migration plan's
@@ -186,6 +186,52 @@ export const EXTENDED_SYNDICATES: SyndicateInfo[] = [
       sac("Eidolon Shard×20"),
       sac("Eidolon Shard×30"),
     ],
+  },
+  // Cavia / The Hex were missing from the original 16 (Issue #3). Ranks and
+  // per-rank offerings taken verbatim from the official wiki's rank tables
+  // (wiki.warframe.com/w/Cavia, /w/The_Hex_(Syndicate), read as raw wikitext
+  // 2026-09-01 so the numbers are the table's own, not a summary of it);
+  // rank titles cross-checked against a second source. Same shape as every
+  // other non-hostile syndicate: Rank 0 Neutral, no negative side.
+  {
+    name: "Cavia",
+    faction: "none",
+    ranks: ["Assistant", "Researcher", "Colleague", "Scholar", "Illuminate"],
+    sacrifices: [
+      sac("Shrill Voca×3", "Entrati Obols×300", "Rubedo×1100"),
+      sac("Shrill Voca×5", "Voidgel Orb×60", "Necracoil×12", "Stela×8"),
+      sac("Bellow Voca×2", "Shrill Voca×8", "Necracoil×15", "Stela×16"),
+      sac("Echo Voca×1", "Bellow Voca×10", "Entrati Obols×1500", "Entrati Lanthorn×5"),
+      sac("Echo Voca×10", "Necracoil×25", "Entrati Lanthorn×10", "Stela×32"),
+    ],
+  },
+  {
+    name: "The Hex",
+    faction: "none",
+    ranks: ["Leftovers", "Fresh Slice", "2-For-1", "Hot & Fresh", "Pizza Party"],
+    sacrifices: [
+      sac("Efervon Sample×15", "Höllvanian Pitchweave Fragment×15"),
+      sac("Experimental Arc-Relay×5", "Entrati Obols×12", "Höllvanian Pitchweave Fragment×25"),
+      sac(
+        "The Countessa Comic×1",
+        "On-lyne CD×1",
+        "Chuggin' Along Sixpack×1",
+        "Mood Crystal×1",
+        "Cheddar Crowns Cereal×1",
+        "35mm Film×1",
+      ),
+      sac("Techrot Chitin×25", "Necracoil×25", "Efervon Sample×40"),
+      sac(
+        "Techrot Motherboard×5",
+        "The Countessa Comic×1",
+        "On-lyne CD×1",
+        "Chuggin' Along Sixpack×1",
+        "Mood Crystal×1",
+        "Cheddar Crowns Cereal×1",
+        "35mm Film×1",
+      ),
+    ],
+    note: "ランク4は素材に加えて、KIMでメンバー6人全員と一定の親密度に達し、該当クエストのフィナーレをクリアしている必要がある",
   },
 ];
 

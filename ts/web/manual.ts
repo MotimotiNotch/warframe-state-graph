@@ -60,10 +60,10 @@ const MANUAL_TOPICS: ManualTopic[] = [
   {
     id: "page-standing",
     title: "Standing",
-    body: `<p>全16シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</p>
+    body: `<p>全18シンジケート（Conclave/Cephalon Simarisを除く）の現在ランクを記録する場所です。</p>
       <ul>
         <li>6大シンジケート（Steel Meridian/Arbiters of Hexis/Cephalon Suda ⇔ Red Veil/The Perrin Sequence/New Loka）は2陣営が敵対関係にあり、片方を上げるともう片方が下がりうる（0を割ると降格し最大Rank -2まで下降）。そのためChain Viewの<code>requires</code>連鎖トグルとは別に、現在ランクの値そのものを直接保持・更新します</li>
-        <li>他の10シンジケートは敵対関係を持たず、ランクは0以上のみ</li>
+        <li>他の12シンジケートは敵対関係を持たず、ランクは0以上のみ</li>
         <li>貢献アイテムの中身は一部シンジケートで実データからの解釈が確定できず「不明」表示のままのものがあります</li>
         <li>武器購入に必要な特定ランクの管理はChain View側のノード生成（WFCD自動生成のシンジケート候補）を使ってください</li>
       </ul>
@@ -91,6 +91,14 @@ const MANUAL_TOPICS: ManualTopic[] = [
     section: "Chain View — グラフ操作",
     body: "新フレーム/新武器等がゲームアップデートで追加されたのに候補に出てこない時に押してください。",
     targetId: "refresh-wfcd-btn",
+  },
+  {
+    id: "wfcd-asof",
+    title: "WFCDデータの取得日時",
+    section: "Chain View — グラフ操作",
+    body: `<p>更新ボタンの左にある「WFCD ○○」は、外部データをいつ取得したかの表示です（データはファイル単位で取り込まれるため、もっとも古いものの日付を出しています）。</p>
+      <p>これが必要なのは、レリックのVault判定が「ドロップ表に載っていないこと」を根拠にしているからです。データが古いと、実際には入手できるレリックがVault済と表示される——つまり「情報が無い」ではなく「間違った答え」になります。古ければ隣の更新ボタンで全部取り直せます。</p>`,
+    targetId: "wfcd-asof",
   },
   {
     id: "update-follow-up",

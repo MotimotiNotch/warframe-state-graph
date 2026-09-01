@@ -4,6 +4,13 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/motimotinotch)
 
+### ▶ [最新版をダウンロード（Releases）](https://github.com/MotimotiNotch/warframe-state-graph/releases/latest)
+
+Windows / インストール不要 / 無料。zipを展開して `warframe-state-graph.exe` を実行するだけ。
+このページは「どういうツールか詳しく知る」ための説明書で、**入手はReleasesが入口**。
+
+---
+
 ゲーム内の依存関係グラフ（アイテム/MOD/シンジケート等）と自分の所持状態・目標を接続し、
 放置しても「次の1手」を動的に再構成する個人用ツール。
 
@@ -26,7 +33,7 @@ Chain View以外のページ（Loadouts/Collections/Standing/Stats/Note）は「
 
 ## 🔒 通信・データについて
 
-- **外部通信**: WFCD（`raw.githubusercontent.com/WFCD/...`、`api.warframestat.us`）およびcalamity-inc
+- **外部通信**: WFCD（`raw.githubusercontent.com/WFCD/...`、`drops.warframestat.us`、`api.warframestat.us`）およびcalamity-inc
   （`raw.githubusercontent.com/calamity-inc/...`、星図の総ノード数取得用、WFCDとは別の同種の公開Warframe
   データプロジェクト）から、アイテム/MOD/クエスト等のゲームデータを読み取り専用で取得するのみ。
   個人情報の送受信は行わない。
@@ -65,9 +72,11 @@ bun run dev
 `http://127.0.0.1:8788` にローカルWebサーバーが立ち上がる（`--hot`でサーバー側の変更も自動反映、`web/*.ts`は毎リクエスト再ビルドなので保存するだけでブラウザ側リロードだけで最新反映される）。
 
 - **Chain View** (`/`): 依存関係グラフの表示・ドリルダウン・ワンタップトグル・WFCD自動ノード生成（フレーム/武器/クエスト/シンジケート等）
+
+各ページの更新ボタンの左には、外部データをいつ取得したかの表示（`WFCD 2026/9/1` 等）が出る。レリックのVault判定は「ドロップ表に載っていないこと」を根拠にしているため、古いデータは欠落ではなく誤答として現れる——その切り分けのための表示。
 - **Loadouts** (`/loadouts.html`): フレーム/武器/コンパニオンのMODコンフィグ(A/B/C、コンパニオンは単一構成)・ビルドセットの管理
 - **Collections** (`/collections.html`): Riven / Kuva・Tenet・Coda武器の入手ログ、フレーム入手状況、デュビリ進捗
-- **Standing** (`/standing.html`): 16シンジケート（6大シンジケート＋オープンワールド等10）の現在ランク・最高到達実績管理
+- **Standing** (`/standing.html`): 18シンジケート（6大シンジケート＋オープンワールド等12）の現在ランク・最高到達実績管理
 - **Stats** (`/stats.html`): 星図/Steel Path進捗、Intrinsics、4データソース横断の読み取り専用集計（進行度に応じて解放される追加セクションもあり、詳細は下記「⚠️ ネタバレについての注意」参照）
 - **Note** (`/note.html`): 1ページ丸ごとの永続Markdownメモ（定期的に見返す用）
 
@@ -129,7 +138,7 @@ SmartScreenの警告解除に必要な「ダウンロード実績（レピュテ
 - `server/store.ts`: `data/graph.json` の永続化、ノードの付け替え/独立させる機能（循環参照ガード付き）
 - `server/loadout.ts`: MODコンフィグ・ビルドセットの永続化
 - `server/collection.ts`: Riven / Kuva・Tenet・Coda武器の入手ログ永続化
-- `server/standing.ts`: 16シンジケートの現在ランク・最高到達実績永続化
+- `server/standing.ts`: 18シンジケートの現在ランク・最高到達実績永続化
 - `server/questchain.ts`: クエストの前提関係（Wiki由来の静的テーブル）
 - `server/stats.ts`: 星図/Steel Path進捗・Intrinsicsおよび進行度に応じて解放される追加セクションの永続化、4データソース横断集計
 - `server/starchart.ts`: 星図（惑星単位）の総ノード数集計

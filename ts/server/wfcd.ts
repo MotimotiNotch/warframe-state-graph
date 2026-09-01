@@ -17,6 +17,11 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
+// warframe-items stays on GitHub raw: warframestat.us serves its own merged
+// item API (api.warframestat.us/items, one 40MB array in a different shape),
+// not the per-category files this code reads, so there is no drop-in mirror
+// for these the way there is for warframe-drop-data below (checked
+// 2026-09-01).
 const MOD_SOURCE_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Mods.json";
 const QUEST_SOURCE_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Quests.json";
 const ARCHWING_SOURCE_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Archwing.json";
@@ -136,9 +141,73 @@ export async function cachedNames(cacheDir: string, cacheFile: string, fetchFn: 
   });
 }
 
+// Written by refreshCache() and read by cacheStatus(); excluded from the
+// status scan itself so it never counts as cached data. Without it, the
+// moment right after a refresh (cache emptied, nothing re-fetched yet) has
+// no timestamp to report at all, and the UI would have to say "not fetched"
+// about data that is in fact about to be fetched fresh.
+const REFRESH_MARKER = "refreshed-at.txt";
+
 /** Deletes the whole cache directory; every endpoint re-fetches lazily on next access. */
 export async function refreshCache(cacheDir: string): Promise<void> {
   await fs.rm(cacheDir, { recursive: true, force: true });
+  try {
+    await fs.mkdir(cacheDir, { recursive: true });
+    await fs.writeFile(path.join(cacheDir, REFRESH_MARKER), new Date().toISOString(), "utf8");
+  } catch {
+    // best-effort: losing the marker only costs the "as of" display its
+    // reading between the refresh and the first re-fetch, not the refresh
+  }
+}
+
+export interface CacheStatus {
+  /** Oldest cached file's fetch time, or the last refresh when nothing is
+   * cached yet — i.e. "no data shown here was fetched before this". */
+  asOf: string | null;
+  /** Newest cached file's fetch time. null when nothing is cached. */
+  newest: string | null;
+  /** Number of cached data files (the refresh marker isn't one). */
+  files: number;
+}
+
+/** How stale the WFCD data can be, from the cache's own mtimes — each file
+ * is fetched on first use and then kept until a refresh, so the oldest one
+ * bounds the whole set. Anything not cached yet gets fetched fresh on next
+ * access, which is why an empty cache reports the refresh time rather than
+ * "unknown". */
+export async function cacheStatus(cacheDir: string): Promise<CacheStatus> {
+  let names: string[];
+  try {
+    names = await fs.readdir(cacheDir);
+  } catch {
+    return { asOf: null, newest: null, files: 0 }; // never fetched (fresh install)
+  }
+  let oldestMs = Infinity;
+  let newestMs = -Infinity;
+  let files = 0;
+  for (const name of names) {
+    if (name === REFRESH_MARKER) continue;
+    let st;
+    try {
+      st = await fs.stat(path.join(cacheDir, name));
+    } catch {
+      continue; // deleted between readdir and stat
+    }
+    if (!st.isFile()) continue;
+    files++;
+    oldestMs = Math.min(oldestMs, st.mtimeMs);
+    newestMs = Math.max(newestMs, st.mtimeMs);
+  }
+  if (files > 0) {
+    return { asOf: new Date(oldestMs).toISOString(), newest: new Date(newestMs).toISOString(), files };
+  }
+  let refreshedAt: string | null = null;
+  try {
+    refreshedAt = (await fs.readFile(path.join(cacheDir, REFRESH_MARKER), "utf8")).trim() || null;
+  } catch {
+    // no marker: cache directory exists but was never populated or refreshed
+  }
+  return { asOf: refreshedAt, newest: null, files: 0 };
 }
 
 // Warframes.json holds warframe bodies (productCategory "Suits") alongside
@@ -233,7 +302,12 @@ export async function fetchRelicNames(): Promise<string[]> {
 // ---------------------------------------------------------------------------
 // relics.go: relic-vault detection + Prime Resurgence (Varzia) rotation.
 
-const MISSION_REWARDS_URL = "https://raw.githubusercontent.com/WFCD/warframe-drop-data/master/data/missionRewards.json";
+// drops.warframestat.us is WFCD's own delivery host for warframe-drop-data;
+// GitHub raw is the development host (rate-limited, not a CDN, and pinned to
+// whatever `master` happens to look like). Both bodies verified
+// byte-identical (sha256 over the full response, 2026-09-01) before the
+// switch, so this is a delivery change only.
+const MISSION_REWARDS_URL = "https://drops.warframestat.us/data/missionRewards.json";
 
 // Recognized relic era prefixes. "Vanguard" (2026-08-27) is a special-named
 // Axi-tier relic series from Prime Resurgence — wiki.warframe.com/w/Vanguard_Relic:
@@ -412,7 +486,9 @@ export async function resurgenceRelicNames(cacheDir: string): Promise<Map<string
 // ---------------------------------------------------------------------------
 // syndicates.go: syndicate weapon reward tables + weapon->rank reverse lookup.
 
-const SYNDICATES_URL = "https://raw.githubusercontent.com/WFCD/warframe-drop-data/master/data/syndicates.json";
+// Same mirror as MISSION_REWARDS_URL above (also verified byte-identical
+// against GitHub raw on 2026-09-01).
+const SYNDICATES_URL = "https://drops.warframestat.us/data/syndicates.json";
 
 // Standing here is the cost spent to buy at that rank, not the cumulative
 // standing needed to reach it (verified against real data — an important

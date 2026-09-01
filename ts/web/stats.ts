@@ -7,6 +7,7 @@ import type { Data as StatsData } from "../server/stats.ts";
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
 import { nodeDisplayName, questJa } from "./quest-i18n.ts";
+import { initWfcdRefresh } from "./wfcd-refresh.ts";
 import { applyI18nText, effective, onLocaleChange } from "./locale.ts";
 import "./booster.ts";
 import "./spoiler-warning.ts";
@@ -296,29 +297,16 @@ const state: {
   mainQuestNames: [],
 };
 
-el("refresh-wfcd-btn").innerHTML = icon("refresh-cw");
-el("refresh-wfcd-btn").addEventListener("click", async () => {
-  const btn = el("refresh-wfcd-btn");
-  (btn as HTMLButtonElement).disabled = true;
-  btn.classList.add("spinning");
-  btn.title = t().refreshUpdating;
-  await fetch("/api/wfcd/refresh", { method: "POST" });
+initWfcdRefresh({
+  labels: () => ({ updating: t().refreshUpdating, done: t().refreshDone, title: t().refreshTitle }),
   // The star chart/Railjack Proxima denominators (per-planet total node
   // count) live in the same cache, so a dedicated starchart-refresh button
   // would be redundant — folded into this one (2026-08-22, feedback).
-  await Promise.all([loadPlanets(), loadProxima()]);
-  renderStarchart();
-  renderProxima();
-  btn.classList.remove("spinning");
-  btn.classList.add("success");
-  btn.innerHTML = icon("check");
-  btn.title = t().refreshDone;
-  setTimeout(() => {
-    btn.classList.remove("success");
-    btn.innerHTML = icon("refresh-cw");
-    (btn as HTMLButtonElement).disabled = false;
-    btn.title = t().refreshTitle;
-  }, 2000);
+  onRefreshed: async () => {
+    await Promise.all([loadPlanets(), loadProxima()]);
+    renderStarchart();
+    renderProxima();
+  },
 });
 
 el("help-toggle").innerHTML = icon("info");

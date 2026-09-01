@@ -59,6 +59,7 @@ import {
   cachedNames,
   cachedRelicMissionCounts,
   cachedSyndicates,
+  cacheStatus,
   cachedVaultTrader,
   CategoryWarframes,
   fetchArchwingNames,
@@ -1612,6 +1613,21 @@ const server = Bun.serve({
           return json({ name: await lookupI18nName(wfcdCacheDir, uniqueName, lang) });
         } catch (err) {
           return errorResponse(err, 404);
+        }
+      },
+    },
+
+    // How old the cached WFCD data is, for the "as of" reading each page
+    // shows next to its refresh button (Issue #4) — Vault status is inferred
+    // from an absence in the drop tables, so a stale cache reads as a wrong
+    // answer rather than a missing one, and the user needs to be able to see
+    // which it is.
+    "/api/wfcd/status": {
+      GET: async () => {
+        try {
+          return json(await cacheStatus(wfcdCacheDir));
+        } catch (err) {
+          return errorResponse(err, 500);
         }
       },
     },
