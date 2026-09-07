@@ -15,6 +15,7 @@
 // against those still-classic siblings.
 
 import { getTopRightBar, icon } from "./icons.ts";
+import { effective as locale, onLocaleChange, type Locale } from "./locale.ts";
 
 const STATE_KEY = "warframe-state-graph:boosters";
 const POS_KEY = "warframe-state-graph:booster-panel-pos";
@@ -23,21 +24,132 @@ const CUSTOM_KEY = "warframe-state-graph:booster-custom-list";
 const OPEN_KEY = "warframe-state-graph:booster-panel-open";
 const DEFAULT_POS = { top: 10, left: 10 };
 const DEFAULT_LIST = ["xp", "credit"]; // the original 2 kinds, carried over as the initial list
-const DURATIONS_HOURS = [
-  { label: "3日", hours: 72 },
-  { label: "7日", hours: 168 },
-  { label: "30日", hours: 720 },
-  { label: "90日", hours: 2160 },
+// The purchasable durations, kept as days so the option label can be built
+// per locale instead of being frozen as a Japanese string in this table.
+const DURATIONS = [
+  { days: 3, hours: 72 },
+  { days: 7, hours: 168 },
+  { days: 30, hours: 720 },
+  { days: 90, hours: 2160 },
 ];
 // All 5 purchasable boosters per the official wiki (wiki.warframe.com/w/Booster).
-const BOOSTERS = [
-  { id: "xp", label: "経験値" }, // Affinity Booster
-  { id: "credit", label: "クレジット" }, // Credit Booster
-  { id: "resource", label: "リソース" }, // Resource Booster (2x pickups)
-  { id: "resource_drop", label: "リソースドロップ率" }, // Resource Drop Chance Booster
-  { id: "mod_drop", label: "MODドロップ率" }, // Mod Drop Chance Booster
-];
-const BOOSTER_BY_ID: Record<string, (typeof BOOSTERS)[number]> = Object.fromEntries(BOOSTERS.map((b) => [b.id, b]));
+// Labels live in STRINGS below, keyed by these ids — the English side uses the
+// wiki's own names, which is what the Japanese labels were translated from.
+const BOOSTER_IDS = ["xp", "credit", "resource", "resource_drop", "mod_drop"];
+const IS_BOOSTER_ID = new Set(BOOSTER_IDS);
+
+interface BoosterStrings {
+  toggleLabel: string;
+  dragTitle: string;
+  panelTitle: string;
+  helpTitle: string;
+  helpHtml: string;
+  closeTitle: string;
+  customNamePlaceholder: string;
+  add: string;
+  start: string;
+  stop: string;
+  finished: string;
+  allAdded: string;
+  emptyList: string;
+  removeCustomTitle: string;
+  removeTitle: string;
+  addArbitraryTitle: string;
+  startArbitraryTitle: string;
+  daysPlaceholder: string;
+  hoursPlaceholder: string;
+  daysUnit: string;
+  hoursUnit: string;
+  boosters: Record<string, string>;
+  durationDays: (days: number) => string;
+  remainingLong: (days: number, hours: number) => string;
+  remainingShort: (hours: number, mins: number) => string;
+}
+
+const STRINGS: Record<Locale, BoosterStrings> = {
+  ja: {
+    toggleLabel: "タイマー",
+    dragTitle: "ドラッグして移動",
+    panelTitle: "タイマー",
+    helpTitle: "使い方",
+    helpHtml: `プルダウンは購入時の固定期間（3/7/30/90日）専用。<br>
+            <code>+</code>ボタンで任意の日数/時間を指定可能（上限365日23時間）。<br>
+            稼働中に<code>+</code>を押すと「追加」になり、残り時間に加算されます。<br>
+            下の自由入力欄からは、カタログに無い名前でもタイマーを追加できます。`,
+    closeTitle: "閉じる",
+    customNamePlaceholder: "任意の名前(例: サーティエイド)",
+    add: "追加",
+    start: "開始",
+    stop: "停止",
+    finished: "終了",
+    allAdded: "全種類を追加済み",
+    emptyList: "上のプルダウン、または自由入力から追加して",
+    removeCustomTitle: "削除（名前ごと消えます）",
+    removeTitle: "リストから外す",
+    addArbitraryTitle: "任意の時間を追加",
+    startArbitraryTitle: "任意の日数/時間を指定して開始",
+    daysPlaceholder: "日",
+    hoursPlaceholder: "時間",
+    daysUnit: "日",
+    hoursUnit: "時間",
+    boosters: {
+      xp: "経験値",
+      credit: "クレジット",
+      resource: "リソース",
+      resource_drop: "リソースドロップ率",
+      mod_drop: "MODドロップ率",
+    },
+    durationDays: (days) => `${days}日`,
+    remainingLong: (days, hours) => `${days}日${hours}時間`,
+    remainingShort: (hours, mins) => `${hours}時間${mins}分`,
+  },
+  en: {
+    toggleLabel: "Timers",
+    dragTitle: "Drag to move",
+    panelTitle: "Timers",
+    helpTitle: "How to use",
+    helpHtml: `The dropdown only covers the durations you can buy (3/7/30/90 days).<br>
+            The <code>+</code> button takes any number of days/hours (up to 365d 23h).<br>
+            Pressing <code>+</code> while a timer is running adds to the time left instead of restarting it.<br>
+            The free-text field below starts a timer under any name, including ones not in the catalogue.`,
+    closeTitle: "Close",
+    customNamePlaceholder: "Any name (e.g. Nightwave)",
+    add: "Add",
+    start: "Start",
+    stop: "Stop",
+    finished: "Done",
+    allAdded: "All kinds added",
+    emptyList: "Add one from the dropdown above, or by name",
+    removeCustomTitle: "Delete (the name goes with it)",
+    removeTitle: "Remove from the list",
+    addArbitraryTitle: "Add an arbitrary amount of time",
+    startArbitraryTitle: "Start with an arbitrary number of days/hours",
+    daysPlaceholder: "days",
+    hoursPlaceholder: "hours",
+    daysUnit: "d",
+    hoursUnit: "h",
+    boosters: {
+      xp: "Affinity",
+      credit: "Credit",
+      resource: "Resource",
+      resource_drop: "Resource Drop Chance",
+      mod_drop: "Mod Drop Chance",
+    },
+    durationDays: (days) => `${days} days`,
+    remainingLong: (days, hours) => `${days}d ${hours}h`,
+    remainingShort: (hours, mins) => `${hours}h ${mins}m`,
+  },
+};
+
+function t(): BoosterStrings {
+  return STRINGS[locale()];
+}
+
+/** Catalogue booster label in the current language. A custom (user-named)
+ * timer never goes through here — its label is whatever the user typed. */
+function boosterLabel(id: string): string {
+  return t().boosters[id] ?? id;
+}
 const customOpenIds = new Set<string>(); // booster ids with the "add custom duration" form open (transient, not persisted)
 
 interface PanelPos {
@@ -94,7 +206,7 @@ function loadList(): string[] {
     const raw = localStorage.getItem(LIST_KEY);
     if (raw) {
       const arr = JSON.parse(raw) as unknown;
-      if (Array.isArray(arr)) return arr.filter((id): id is string => typeof id === "string" && !!BOOSTER_BY_ID[id]);
+      if (Array.isArray(arr)) return arr.filter((id): id is string => typeof id === "string" && IS_BOOSTER_ID.has(id));
     }
   } catch {
     /* fall through to default */
@@ -249,7 +361,7 @@ function injectStyle(): void {
 }
 
 function formatRemaining(ms: number): string {
-  if (ms <= 0) return "終了";
+  if (ms <= 0) return t().finished;
   const totalSec = Math.floor(ms / 1000);
   const days = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
@@ -258,27 +370,27 @@ function formatRemaining(ms: number): string {
   if (days === 0 && hours === 0) {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
-  if (days > 0) return `${days}日${hours}時間`;
-  return `${hours}時間${mins}分`;
+  if (days > 0) return t().remainingLong(days, hours);
+  return t().remainingShort(hours, mins);
 }
 
 function render(): void {
   const list = loadList();
-  const remaining = BOOSTERS.filter((b) => !list.includes(b.id));
+  const remaining = BOOSTER_IDS.filter((id) => !list.includes(id));
   renderAddRow(remaining);
   renderList(list);
 }
 
-function renderAddRow(remaining: typeof BOOSTERS): void {
+function renderAddRow(remaining: string[]): void {
   const el = document.getElementById("booster-add-row");
   if (!el) return;
   if (!remaining.length) {
-    el.innerHTML = `<div class="b-empty">全種類を追加済み</div>`;
+    el.innerHTML = `<div class="b-empty">${t().allAdded}</div>`;
     return;
   }
   el.innerHTML = `
-      <select id="booster-add-select">${remaining.map((b) => `<option value="${b.id}">${b.label}</option>`).join("")}</select>
-      <button class="b-action" id="booster-add-btn">追加</button>
+      <select id="booster-add-select">${remaining.map((id) => `<option value="${id}">${boosterLabel(id)}</option>`).join("")}</select>
+      <button class="b-action" id="booster-add-btn">${t().add}</button>
     `;
   document.getElementById("booster-add-btn")!.addEventListener("click", () => {
     const id = (document.getElementById("booster-add-select") as HTMLSelectElement).value;
@@ -297,11 +409,11 @@ function renderList(list: string[]): void {
   const body = document.getElementById("booster-list-body");
   if (!body) return;
   const entries: { id: string; label: string; custom: boolean }[] = [
-    ...list.map((id) => ({ id, label: BOOSTER_BY_ID[id]!.label, custom: false })),
+    ...list.map((id) => ({ id, label: boosterLabel(id), custom: false })),
     ...customList.map((c) => ({ id: c.id, label: c.label, custom: true })),
   ];
   if (!entries.length) {
-    body.innerHTML = `<div class="b-empty">上のプルダウン、または自由入力から追加して</div>`;
+    body.innerHTML = `<div class="b-empty">${t().emptyList}</div>`;
     return;
   }
   body.innerHTML = entries
@@ -309,13 +421,13 @@ function renderList(list: string[]): void {
       const entry = state[id];
       const remaining = entry ? entry.expiry - Date.now() : 0;
       const customOpen = customOpenIds.has(id);
-      const removeTitle = custom ? "削除（名前ごと消えます）" : "リストから外す";
+      const removeTitle = custom ? t().removeCustomTitle : t().removeTitle;
       const customRow = customOpen
         ? `
         <div class="b-custom-row">
-          <input type="number" min="0" max="365" step="1" placeholder="日" data-custom-days="${id}">日
-          <input type="number" min="0" max="23" step="1" placeholder="時間" data-custom-hours="${id}">時間
-          <button class="b-action" data-custom-confirm="${id}">${remaining > 0 ? "追加" : "開始"}</button>
+          <input type="number" min="0" max="365" step="1" placeholder="${t().daysPlaceholder}" data-custom-days="${id}">${t().daysUnit}
+          <input type="number" min="0" max="23" step="1" placeholder="${t().hoursPlaceholder}" data-custom-hours="${id}">${t().hoursUnit}
+          <button class="b-action" data-custom-confirm="${id}">${remaining > 0 ? t().add : t().start}</button>
         </div>`
         : "";
       if (entry && remaining > 0) {
@@ -323,19 +435,19 @@ function renderList(list: string[]): void {
           <div class="b-row">
             <span class="b-label">${label}</span>
             <span class="b-time" data-expiry="${entry.expiry}" data-id="${id}">${formatRemaining(remaining)}</span>
-            <button class="b-action" data-stop="${id}">停止</button>
-            <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の時間を追加">${icon("plus", { size: 12 })}</button>
+            <button class="b-action" data-stop="${id}">${t().stop}</button>
+            <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="${t().addArbitraryTitle}">${icon("plus", { size: 12 })}</button>
             <button class="b-action b-remove" data-remove="${id}" title="${removeTitle}">${icon("x", { size: 12 })}</button>
           </div>
           ${customRow}`;
       }
-      const options = DURATIONS_HOURS.map((d) => `<option value="${d.hours}">${d.label}</option>`).join("");
+      const options = DURATIONS.map((d) => `<option value="${d.hours}">${t().durationDays(d.days)}</option>`).join("");
       return `
         <div class="b-row">
           <span class="b-label">${label}</span>
           <select data-duration="${id}">${options}</select>
-          <button class="b-action" data-start="${id}">開始</button>
-          <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="任意の日数/時間を指定して開始">${icon("plus", { size: 12 })}</button>
+          <button class="b-action" data-start="${id}">${t().start}</button>
+          <button class="b-action b-custom-toggle${customOpen ? " active" : ""}" data-custom-toggle="${id}" title="${t().startArbitraryTitle}">${icon("plus", { size: 12 })}</button>
           <button class="b-action b-remove" data-remove="${id}" title="${removeTitle}">${icon("x", { size: 12 })}</button>
         </div>
         ${customRow}`;
@@ -502,7 +614,7 @@ function init(): void {
   // .btn-label span (not a raw text node) so compact-mode.ts's
   // body.compact .btn-label{display:none} can collapse this to icon-only
   // too, same as every other labeled button (2026-08-29).
-  btn.innerHTML = icon("zap") + '<span class="btn-label">タイマー</span>';
+  btn.innerHTML = icon("zap") + `<span class="btn-label">${t().toggleLabel}</span>`;
   // prepend, not appendChild: see the file-header comment for why this can't
   // rely on script-execution order to land left of theme.js/scratch.js/etc.
   getTopRightBar().prepend(btn);
@@ -512,24 +624,19 @@ function init(): void {
   panel.className = "hidden";
   panel.innerHTML = `
       <div class="b-head" id="booster-drag-handle">
-        <span class="b-grip" title="ドラッグして移動">${icon("grip-vertical", { size: 14 })}</span>
-        <span class="b-title">${icon("zap", { size: 14 })}タイマー</span>
+        <span class="b-grip" id="booster-grip">${icon("grip-vertical", { size: 14 })}</span>
+        <span class="b-title">${icon("zap", { size: 14 })}<span id="booster-panel-title"></span></span>
         <div class="popover-wrap">
-          <button class="icon-btn" id="booster-help-toggle" title="使い方">${icon("circle-alert", { size: 14 })}</button>
-          <div class="popover hidden" id="booster-help-popover">
-            プルダウンは購入時の固定期間（3/7/30/90日）専用。<br>
-            <code>+</code>ボタンで任意の日数/時間を指定可能（上限365日23時間）。<br>
-            稼働中に<code>+</code>を押すと「追加」になり、残り時間に加算されます。<br>
-            下の自由入力欄からは、カタログに無い名前でもタイマーを追加できます。
-          </div>
+          <button class="icon-btn" id="booster-help-toggle">${icon("circle-alert", { size: 14 })}</button>
+          <div class="popover hidden" id="booster-help-popover"></div>
         </div>
-        <button id="booster-close" title="閉じる">${icon("x", { size: 14 })}</button>
+        <button id="booster-close">${icon("x", { size: 14 })}</button>
       </div>
       <div class="b-body">
         <div class="b-add-row" id="booster-add-row"></div>
         <div class="b-custom-add-row">
-          <input type="text" id="booster-custom-name-input" placeholder="任意の名前(例: サーティエイド)" maxlength="40">
-          <button class="b-action" id="booster-custom-name-add-btn">追加</button>
+          <input type="text" id="booster-custom-name-input" maxlength="40">
+          <button class="b-action" id="booster-custom-name-add-btn"></button>
         </div>
         <div id="booster-list-body"></div>
       </div>
@@ -571,7 +678,25 @@ function init(): void {
     btn.classList.add("active");
   }
 
-  render();
+  // The panel's chrome is built by JS exactly once, so it can't carry
+  // data-i18n attributes for applyI18nText — re-apply it here, at init and on
+  // every switch (SKILL.md Core Mandate 3). render() covers the rows, which
+  // rebuild their own markup from t() anyway.
+  function applyLocaleText(): void {
+    const strings = t();
+    btn.querySelector<HTMLElement>(".btn-label")!.textContent = strings.toggleLabel;
+    panel.querySelector<HTMLElement>("#booster-grip")!.title = strings.dragTitle;
+    panel.querySelector<HTMLElement>("#booster-panel-title")!.textContent = strings.panelTitle;
+    panel.querySelector<HTMLElement>("#booster-help-toggle")!.title = strings.helpTitle;
+    panel.querySelector<HTMLElement>("#booster-help-popover")!.innerHTML = strings.helpHtml;
+    panel.querySelector<HTMLElement>("#booster-close")!.title = strings.closeTitle;
+    panel.querySelector<HTMLInputElement>("#booster-custom-name-input")!.placeholder = strings.customNamePlaceholder;
+    panel.querySelector<HTMLElement>("#booster-custom-name-add-btn")!.textContent = strings.add;
+    render();
+  }
+  applyLocaleText();
+  onLocaleChange(applyLocaleText);
+
   setInterval(tick, 1000);
 }
 

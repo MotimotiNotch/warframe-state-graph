@@ -3,6 +3,9 @@
 // MOC). Same simple icon-only pattern as theme.ts, but an
 // external <a> link rather than a state-toggling <button>.
 import { getTopRightBar, icon } from "./icons.ts";
+import { effective as locale, onLocaleChange, type Locale } from "./locale.ts";
+
+const TITLE: Record<Locale, string> = { ja: "Ko-fiで支援する", en: "Support on Ko-fi" };
 
 const KOFI_URL = "https://ko-fi.com/motimotinotch";
 
@@ -36,9 +39,12 @@ function init(): void {
   link.href = KOFI_URL;
   link.target = "_blank";
   link.rel = "noopener noreferrer";
-  link.title = "Ko-fiで支援する";
+  link.title = TITLE[locale()];
   link.innerHTML = icon("heart", { size: 22 });
   getTopRightBar().appendChild(link);
+  onLocaleChange(() => {
+    link.title = TITLE[locale()];
+  });
 }
 
 init();

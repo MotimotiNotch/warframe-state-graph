@@ -16,7 +16,7 @@ import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { forcePushToCollections, forcePushToLoadoutItem } from "./wfcd-autolink.ts";
 import { nodeTypeLabel } from "./node-modal.ts";
 import { showToast } from "./toast.ts";
-import { effective } from "./locale.ts";
+import { effective, onLocaleChange } from "./locale.ts";
 
 interface WizardStrings {
   companionNote: string;
@@ -184,9 +184,25 @@ let pendingLinkBack: { kind: "loadout-item" | "collections-frames" | "collection
 // (2026-08-27 fix — it had silently stayed on raw English option text
 // through the 2026-08-25 item 30 Japanese-labeling pass).
 const WFCD_GEN_NODE_TYPES = ["Frame", "Weapon", "Quest"] as const;
-el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
-  (type) => `<option value="${type}">${nodeTypeLabel(type)}</option>`,
-).join("");
+// Re-rendered on locale change, not just written once at module load: the
+// option text comes from nodeTypeLabel() (locale-aware), so a dropdown built
+// at load time froze at whatever language was active then and kept showing
+// フレーム/武器/クエスト after switching to English (found 2026-09-07 during
+// the manual check of this branch). Same class of bug as the Collections
+// incarnon heading (2026-08-30) — JS that writes text exactly once has to be
+// re-applied from onLocaleChange, because it can't carry a data-i18n
+// attribute for applyI18nText to pick up.
+function renderWfcdNodeTypeOptions(): void {
+  const select = el<HTMLSelectElement>("wfcd-node-type");
+  // Only the labels change, so keep whatever the user had selected —
+  // reassigning innerHTML otherwise snaps the dropdown back to Frame.
+  const selected = select.value;
+  select.innerHTML = WFCD_GEN_NODE_TYPES.map(
+    (type) => `<option value="${type}">${nodeTypeLabel(type)}</option>`,
+  ).join("");
+  if (selected) select.value = selected;
+}
+renderWfcdNodeTypeOptions();
 
 // Companion/Archwing/Necramechの英字表記はweb/loadouts.html/tsの種別
 // プルダウン・見出し文言と同じもの（「相棒」等の和訳を独自に当てない——
@@ -194,7 +210,17 @@ el<HTMLSelectElement>("wfcd-node-type").innerHTML = WFCD_GEN_NODE_TYPES.map(
 // 統一されている）をそのまま踏襲する。
 // 登録先の誘導（Loadoutsの＋アイコンから...）は蛇足と判断し削除（のっち
 // 指摘、2026-08-28）——「ここには無い」という事実だけ伝われば足りる。
-el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>${t().companionNote}</span>`;
+function renderWfcdNote(): void {
+  el("wfcd-note").innerHTML = `${icon("triangle-alert", { size: 13 })}<span>${t().companionNote}</span>`;
+}
+renderWfcdNote();
+
+// The wizard's two write-once spots. Everything else in this module builds its
+// text inside an event handler, so it already re-reads t() at call time.
+onLocaleChange(() => {
+  renderWfcdNodeTypeOptions();
+  renderWfcdNote();
+});
 
 // Reference data pool for the name-field keyword filter, swapped per node
 // type (Frame/Weapon/Quest) — same pattern as the Loadouts/Collections

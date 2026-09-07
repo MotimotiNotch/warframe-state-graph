@@ -1,6 +1,9 @@
 // Port of web/scroll-top.js. Floating "back to top" button, shown only past
 // a scroll threshold.
 import { icon } from "./icons.ts";
+import { effective as locale, onLocaleChange, type Locale } from "./locale.ts";
+
+const TITLE: Record<Locale, string> = { ja: "一番上に戻る", en: "Back to top" };
 
 function injectStyle(): void {
   const style = document.createElement("style");
@@ -28,7 +31,7 @@ function init(): void {
 
   const btn = document.createElement("button");
   btn.id = "scroll-top-btn";
-  btn.title = "一番上に戻る";
+  btn.title = TITLE[locale()];
   btn.innerHTML = icon("chevron-up", { size: 20 });
   document.body.appendChild(btn);
 
@@ -41,6 +44,10 @@ function init(): void {
   }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
+
+  onLocaleChange(() => {
+    btn.title = TITLE[locale()];
+  });
 }
 
 if (document.readyState === "loading") {

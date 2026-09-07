@@ -3,10 +3,24 @@
 // (Phase 10), not here.
 import type { Data, Entry } from "../server/glossary.ts";
 import { el } from "./dom.ts";
-import { effective } from "./locale.ts";
+import { applyI18nText, effective, onLocaleChange } from "./locale.ts";
 
-const STRINGS: Record<"ja" | "en", { fetchFailed: string; noEntries: string; noCategory: string; entryCount: (n: number) => string; jaHeader: string }> = {
+const STRINGS: Record<
+  "ja" | "en",
+  {
+    pageHeading: string;
+    pageHint: string;
+    fetchFailed: string;
+    noEntries: string;
+    noCategory: string;
+    entryCount: (n: number) => string;
+    jaHeader: string;
+  }
+> = {
   ja: {
+    pageHeading: "Glossary（用語対応表、デバッグ用）",
+    pageHint:
+      '現在アプリ内に登録されている英→日対応の一覧（<code>/api/glossary</code>、読み取り専用）。編集はヘッダーの設定モーダル「用語」タブから。',
     fetchFailed: "取得に失敗しました",
     noEntries: "登録なし",
     noCategory: "（カテゴリなし）",
@@ -14,6 +28,9 @@ const STRINGS: Record<"ja" | "en", { fetchFailed: string; noEntries: string; noC
     jaHeader: "日本語",
   },
   en: {
+    pageHeading: "Glossary (term mapping, debug view)",
+    pageHint:
+      'The English-to-Japanese mappings currently registered in the app (<code>/api/glossary</code>, read-only). Edit them from the “Glossary” tab of the settings modal in the header.',
     fetchFailed: "Failed to fetch",
     noEntries: "Nothing registered",
     noCategory: "(no category)",
@@ -65,4 +82,18 @@ async function load(): Promise<void> {
     .join("");
 }
 
+// STRINGS carries a formatter (entryCount), so it can't be handed to
+// applyI18nText() directly — pass just the two static-markup keys.
+function applyStaticText(): void {
+  applyI18nText({
+    ja: { pageHeading: STRINGS.ja.pageHeading, pageHint: STRINGS.ja.pageHint },
+    en: { pageHeading: STRINGS.en.pageHeading, pageHint: STRINGS.en.pageHint },
+  });
+}
+
+applyStaticText();
 void load();
+onLocaleChange(() => {
+  applyStaticText();
+  void load();
+});

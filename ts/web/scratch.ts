@@ -14,6 +14,67 @@ import type { Counter, Data } from "../server/scratch.ts";
 import { el } from "./dom.ts";
 import { getTopRightBar, icon } from "./icons.ts";
 import { createLiveEditor, type LiveEditor } from "./notemd.ts";
+import { effective as locale, onLocaleChange, type Locale } from "./locale.ts";
+
+interface ScratchStrings {
+  [key: string]: string;
+  toggleLabel: string;
+  dragTitle: string;
+  panelTitle: string;
+  helpTitle: string;
+  helpHtml: string;
+  closeTitle: string;
+  countersHeading: string;
+  addCounter: string;
+  countersEmpty: string;
+  counterLabelPlaceholder: string;
+  decTitle: string;
+  incTitle: string;
+  deleteTitle: string;
+}
+
+const STRINGS: Record<Locale, ScratchStrings> = {
+  ja: {
+    toggleLabel: "クイックメモ",
+    dragTitle: "ドラッグして移動",
+    panelTitle: "クイックメモ",
+    helpTitle: "記法チートシート",
+    helpHtml: `<code>**太字**</code> で太字<br>
+            <code>- </code> で箇条書き<br>
+            <code>- [ ]</code> / <code>- [x]</code> でチェックリスト（クリックで切替）<br>
+            編集中の行だけ生のMarkdown表示、他の行は整形表示になります。`,
+    closeTitle: "閉じる",
+    countersHeading: "カウントアップ",
+    addCounter: "カウントアップを追加",
+    countersEmpty: "まだありません",
+    counterLabelPlaceholder: "メモ",
+    decTitle: "-1",
+    incTitle: "+1",
+    deleteTitle: "削除",
+  },
+  en: {
+    toggleLabel: "Quick Memo",
+    dragTitle: "Drag to move",
+    panelTitle: "Quick Memo",
+    helpTitle: "Markdown cheat sheet",
+    helpHtml: `<code>**bold**</code> for bold<br>
+            <code>- </code> for a bullet<br>
+            <code>- [ ]</code> / <code>- [x]</code> for a checklist (click to toggle)<br>
+            Only the line you are editing shows raw Markdown; the rest render formatted.`,
+    closeTitle: "Close",
+    countersHeading: "Counters",
+    addCounter: "Add a counter",
+    countersEmpty: "Nothing yet",
+    counterLabelPlaceholder: "Memo",
+    decTitle: "-1",
+    incTitle: "+1",
+    deleteTitle: "Delete",
+  },
+};
+
+function t(): ScratchStrings {
+  return STRINGS[locale()];
+}
 
 const POS_KEY = "warframe-state-graph:scratch-panel-pos";
 const OPEN_KEY = "warframe-state-graph:scratch-panel-open";
@@ -217,18 +278,18 @@ function renderCounters(): void {
   if (!body || !cache) return;
   const counters = cache.counters || [];
   if (!counters.length) {
-    body.innerHTML = `<div class="counters-empty">まだありません</div>`;
+    body.innerHTML = `<div class="counters-empty">${t().countersEmpty}</div>`;
     return;
   }
   body.innerHTML = counters
     .map(
       (c) => `
       <div class="scratch-counter-row" data-counter-id="${c.id}">
-        <input type="text" class="sc-label-input" placeholder="メモ" value="${escapeHtmlLocal(c.label)}">
-        <button class="sc-dec" title="-1">${icon("minus", { size: 12 })}</button>
+        <input type="text" class="sc-label-input" placeholder="${t().counterLabelPlaceholder}" value="${escapeHtmlLocal(c.label)}">
+        <button class="sc-dec" title="${t().decTitle}">${icon("minus", { size: 12 })}</button>
         <input type="number" class="sc-value" value="${c.value}">
-        <button class="sc-inc" title="+1">${icon("plus", { size: 12 })}</button>
-        <button class="sc-del" title="削除">${icon("x", { size: 12 })}</button>
+        <button class="sc-inc" title="${t().incTitle}">${icon("plus", { size: 12 })}</button>
+        <button class="sc-del" title="${t().deleteTitle}">${icon("x", { size: 12 })}</button>
       </div>
     `,
     )
@@ -377,7 +438,7 @@ function init(): void {
   const btn = document.createElement("button");
   btn.id = "scratch-toggle-btn";
   // .btn-label span, same reason as booster.ts's タイマー button (2026-08-29).
-  btn.innerHTML = icon("pencil") + '<span class="btn-label">クイックメモ</span>';
+  btn.innerHTML = icon("pencil") + `<span class="btn-label">${t().toggleLabel}</span>`;
   // Explicit placement, not append/prepend: both this module and booster.ts
   // are bundled modules now, executing (deferred) after the still-classic
   // siblings (theme/scroll-top) have already appended their own
@@ -398,28 +459,45 @@ function init(): void {
   panel.className = "hidden";
   panel.innerHTML = `
       <div class="s-head" id="scratch-drag-handle">
-        <span class="s-grip" title="ドラッグして移動">${icon("grip-vertical", { size: 14 })}</span>
-        <span class="s-title">${icon("pencil", { size: 14 })}クイックメモ</span>
+        <span class="s-grip" id="scratch-grip">${icon("grip-vertical", { size: 14 })}</span>
+        <span class="s-title">${icon("pencil", { size: 14 })}<span id="scratch-panel-title"></span></span>
         <div class="popover-wrap">
-          <button class="icon-btn" id="scratch-help-toggle" title="記法チートシート">${icon("circle-alert", { size: 14 })}</button>
-          <div class="popover hidden" id="scratch-help-popover">
-            <code>**太字**</code> で太字<br>
-            <code>- </code> で箇条書き<br>
-            <code>- [ ]</code> / <code>- [x]</code> でチェックリスト（クリックで切替）<br>
-            編集中の行だけ生のMarkdown表示、他の行は整形表示になります。
-          </div>
+          <button class="icon-btn" id="scratch-help-toggle">${icon("circle-alert", { size: 14 })}</button>
+          <div class="popover hidden" id="scratch-help-popover"></div>
         </div>
-        <button id="scratch-close" title="閉じる">${icon("x", { size: 14 })}</button>
+        <button id="scratch-close">${icon("x", { size: 14 })}</button>
       </div>
       <div class="s-body">
         <div id="scratch-note-editor"></div>
-        <div class="s-section-title">カウントアップ</div>
+        <div class="s-section-title" id="scratch-counters-heading"></div>
         <div id="scratch-counters-body"></div>
-        <button id="scratch-add-counter-btn" class="add-counter-btn">${icon("plus", { size: 12 })}カウントアップを追加</button>
+        <button id="scratch-add-counter-btn" class="add-counter-btn">${icon("plus", { size: 12 })}<span id="scratch-add-counter-label"></span></button>
       </div>
     `;
   document.body.appendChild(panel);
   applyPanelPos(panel, loadPanelPos());
+
+  // The panel's chrome is built by JS exactly once, so it can't carry
+  // data-i18n attributes for applyI18nText — re-apply it here instead, both
+  // at init and from onLocaleChange (SKILL.md Core Mandate 3). Text nodes are
+  // written into dedicated spans rather than rebuilding innerHTML, so the
+  // listeners wired below survive a language switch.
+  function applyLocaleText(): void {
+    const s = t();
+    btn.querySelector<HTMLElement>(".btn-label")!.textContent = s.toggleLabel;
+    panel.querySelector<HTMLElement>("#scratch-grip")!.title = s.dragTitle;
+    panel.querySelector<HTMLElement>("#scratch-panel-title")!.textContent = s.panelTitle;
+    panel.querySelector<HTMLElement>("#scratch-help-toggle")!.title = s.helpTitle;
+    panel.querySelector<HTMLElement>("#scratch-help-popover")!.innerHTML = s.helpHtml;
+    panel.querySelector<HTMLElement>("#scratch-close")!.title = s.closeTitle;
+    panel.querySelector<HTMLElement>("#scratch-counters-heading")!.textContent = s.countersHeading;
+    panel.querySelector<HTMLElement>("#scratch-add-counter-label")!.textContent = s.addCounter;
+    // Counter rows carry their own placeholder/titles, and are only present
+    // once the panel has been opened at least once.
+    if (cache) renderCounters();
+  }
+  applyLocaleText();
+  onLocaleChange(applyLocaleText);
 
   btn.addEventListener("click", () => togglePanel(btn, panel));
   panel.querySelector("#scratch-close")!.addEventListener("click", () => togglePanel(btn, panel));
