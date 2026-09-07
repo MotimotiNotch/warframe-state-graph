@@ -3,6 +3,8 @@
 // the original file's header for scope notes (Zaw/Kitgun/Amp part names,
 // Necramech parts, frame-specific special parts, and open-world bounty
 // materials are deliberately not covered here).
+import { effective } from "./locale.ts";
+
 const ITEM_JA: Record<string, string> = {
   // Standard frame parts
   Blueprint: "設計図",
@@ -72,6 +74,10 @@ const ITEM_JA_KEYS_BY_LENGTH = Object.keys(ITEM_JA).sort((a, b) => b.length - a.
  * an existing Ash Prime Blueprint node). Falls back to a suffix match so
  * translation still finds the part name inside that longer string. */
 export function itemJa(name: string): string {
+  // English mode hands back WFCD's own English name untouched (Issue #9) —
+  // same effective() guard standing.ts's itemJa() and stats.ts's planetJa()
+  // already use. Storage is always the English name, so this is the identity.
+  if (effective() === "en") return name;
   if (ITEM_JA[name]) return ITEM_JA[name];
   for (const key of ITEM_JA_KEYS_BY_LENGTH) {
     if (name.endsWith(` ${key}`)) return name.slice(0, -key.length) + ITEM_JA[key];

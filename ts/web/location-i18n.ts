@@ -4,6 +4,8 @@
 // item-i18n.ts/quest-i18n.ts — node names, level ranges, Rotation labels,
 // boss names, and quest-completion conditions are out of scope, so
 // locationJa() only substitutes the matched tokens and leaves the rest as-is.
+import { effective } from "./locale.ts";
+
 const PLANET_JA: Record<string, string> = {
   Mercury: "水星",
   Venus: "金星",
@@ -49,6 +51,10 @@ const MISSION_JA: Record<string, string> = {
 /** Replaces only the leading "Planet/" segment with its Japanese name.
  * Returns the input unchanged if it doesn't match. */
 export function planetJa(location: string): string {
+  // English mode leaves WFCD's Drop.Location string untouched (Issue #9);
+  // missionJa() below carries the same guard so locationJa() (their
+  // composition) needs none of its own.
+  if (effective() === "en") return location;
   const m = location.match(/^([A-Za-z' ]+)\//);
   if (!m || !m[1]) return location;
   const ja = PLANET_JA[m[1]];
@@ -58,6 +64,7 @@ export function planetJa(location: string): string {
 /** Replaces the bracketed mission-type token, exact match only (so a
  * partial match inside the parens never misfires). */
 export function missionJa(location: string): string {
+  if (effective() === "en") return location;
   return location.replace(/\(([^()]+)\)/, (whole, inner: string) => {
     const ja = MISSION_JA[inner];
     return ja ? `(${ja})` : whole;
