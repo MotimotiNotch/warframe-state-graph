@@ -4,6 +4,7 @@
 // Mutalist Alad V Assassinate/The Hex Finale) had no matching page entry and
 // are deliberately left untranslated rather than guessed.
 import { itemJa } from "./item-i18n.ts";
+import { effective } from "./locale.ts";
 const QUEST_JA: Record<string, string> = {
   Awakening: "目覚め",
   "Vor's Prize": "Vorの秘宝",
@@ -51,6 +52,10 @@ const QUEST_JA: Record<string, string> = {
 };
 
 export function questJa(name: string): string {
+  // English mode keeps the WFCD English quest name (Issue #9). questEn()
+  // below needs no guard: an English name simply misses QUEST_EN and passes
+  // through, and a Japanese name typed by hand still resolves correctly.
+  if (effective() === "en") return name;
   return QUEST_JA[name] ?? name;
 }
 

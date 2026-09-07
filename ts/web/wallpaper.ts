@@ -15,6 +15,7 @@
 // to live on collections.html (see server/glossary.ts's header comment,
 // Phase 10) — it's ported here now as part of the whole modal, not split out.
 import { icon } from "./icons.ts";
+import { effective as locale, onLocaleChange, type Locale } from "./locale.ts";
 import type { Data as GlossaryData, Entry as GlossaryEntry } from "../server/glossary.ts";
 
 const STORAGE_KEY = "warframe-state-graph:wallpaper";
@@ -151,6 +152,121 @@ function applyWallpaper(settings: Settings): void {
     document.body.style.removeProperty("--wallpaper-position");
     document.body.classList.remove("has-wallpaper");
   }
+}
+
+interface WallpaperStrings {
+  tabDisplay: string;
+  tabGlossary: string;
+  setWallpaper: string;
+  changeWallpaper: string;
+  adjustPosition: string;
+  resetWallpaper: string;
+  setIcon: string;
+  changeIcon: string;
+  resetIcon: string;
+  blurTitle: string;
+  blurLabel: string;
+  sizeHint: (wallpaperMb: number, iconMb: number) => string;
+  loading: string;
+  deleteTitle: string;
+  glossaryEmpty: string;
+  glossaryHint: string;
+  glossaryNewEn: string;
+  glossaryNewJa: string;
+  glossaryNewCat: string;
+  addBtn: string;
+  glossaryTitle: string;
+  displayTitle: string;
+  close: string;
+  glossaryAddValidation: string;
+  positionTitle: string;
+  positionHint: string;
+  cancel: string;
+  confirm: string;
+  headerIconTitle: string;
+  oversizeConfirm: (mb: string) => string;
+  oversizeIconConfirm: (mb: string) => string;
+  saveFailed: string;
+}
+
+const STRINGS: Record<Locale, WallpaperStrings> = {
+  ja: {
+    tabDisplay: "表示",
+    tabGlossary: "用語",
+    setWallpaper: "壁紙を設定",
+    changeWallpaper: "壁紙を変更",
+    adjustPosition: "位置を調整",
+    resetWallpaper: "壁紙をリセット",
+    setIcon: "アイコンを設定",
+    changeIcon: "アイコンを変更",
+    resetIcon: "アイコンをリセット",
+    blurTitle: "パネルのぼかし強さ（下げるほど壁紙が透けて見える）",
+    blurLabel: "ぼかし",
+    sizeHint: (wallpaperMb, iconMb) =>
+      `画像サイズの目安: 壁紙は${wallpaperMb}MBまで、アイコンは${iconMb}MBまで（超えると保存に失敗しやすい）`,
+    loading: "読み込み中…",
+    deleteTitle: "削除",
+    glossaryEmpty: "用語がまだ登録されていません",
+    glossaryHint: "ゲーム内用語の英→日対応。日本語欄を編集するとその場で保存される。",
+    glossaryNewEn: "英語キー",
+    glossaryNewJa: "日本語表記",
+    glossaryNewCat: "カテゴリ",
+    addBtn: "追加",
+    glossaryTitle: "用語マッピング",
+    displayTitle: "壁紙 / アイコン",
+    close: "閉じる",
+    glossaryAddValidation: "英語キーと日本語表記を入力して",
+    positionTitle: "壁紙の位置を調整",
+    positionHint: "枠内で画像をドラッグして、見せたい部分を決める。",
+    cancel: "キャンセル",
+    confirm: "確定",
+    headerIconTitle: "クリックして壁紙/アイコン/ぼかしを変更",
+    oversizeConfirm: (mb) => `画像サイズが${mb}MBあり、ブラウザの保存容量制限で失敗する可能性がある。それでも設定を試す？`,
+    oversizeIconConfirm: (mb) =>
+      `画像サイズが${mb}MBある。アイコンは小さく表示されるだけなので、もっと軽い画像の方がおすすめ。それでも設定を試す？`,
+    saveFailed: "画像が大きすぎて保存できなかった。もう少し軽い画像を試して。",
+  },
+  en: {
+    tabDisplay: "Display",
+    tabGlossary: "Glossary",
+    setWallpaper: "Set a wallpaper",
+    changeWallpaper: "Change the wallpaper",
+    adjustPosition: "Adjust the position",
+    resetWallpaper: "Reset the wallpaper",
+    setIcon: "Set an icon",
+    changeIcon: "Change the icon",
+    resetIcon: "Reset the icon",
+    blurTitle: "Panel blur strength (lower lets more of the wallpaper through)",
+    blurLabel: "Blur",
+    sizeHint: (wallpaperMb, iconMb) =>
+      `Size guide: up to ${wallpaperMb}MB for a wallpaper, ${iconMb}MB for an icon (saving tends to fail past that)`,
+    loading: "Loading…",
+    deleteTitle: "Delete",
+    glossaryEmpty: "No terms registered yet",
+    glossaryHint: "English-to-Japanese mapping for in-game terms. Editing the Japanese cell saves it right away.",
+    glossaryNewEn: "English key",
+    glossaryNewJa: "Japanese text",
+    glossaryNewCat: "Category",
+    addBtn: "Add",
+    glossaryTitle: "Term mapping",
+    displayTitle: "Wallpaper / Icon",
+    close: "Close",
+    glossaryAddValidation: "Enter both an English key and the Japanese text",
+    positionTitle: "Adjust the wallpaper position",
+    positionHint: "Drag the image inside the frame to pick the part you want to show.",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    headerIconTitle: "Click to change the wallpaper / icon / blur",
+    oversizeConfirm: (mb) =>
+      `This image is ${mb}MB, which may hit the browser's storage limit and fail. Try setting it anyway?`,
+    oversizeIconConfirm: (mb) =>
+      `This image is ${mb}MB. An icon is only ever shown small, so a lighter image is a better fit. Try setting it anyway?`,
+    saveFailed: "The image was too large to save. Try a lighter one.",
+  },
+};
+
+function t(): WallpaperStrings {
+  return STRINGS[locale()];
 }
 
 function injectStyle(): void {
@@ -303,7 +419,7 @@ function createHiddenInputs(): void {
     if (file.size > WARN_BYTES) {
       const mb = (file.size / (1024 * 1024)).toFixed(1);
       const proceed = confirm(
-        `画像サイズが${mb}MBあり、ブラウザの保存容量制限で失敗する可能性がある。それでも設定を試す？`
+        t().oversizeConfirm(mb)
       );
       if (!proceed) {
         wallpaperInput.value = "";
@@ -317,7 +433,7 @@ function createHiddenInputs(): void {
       // "adjust position" click, 2026-08-18).
       const next: Settings = { ...loadSettings(), image: reader.result as string, posX: 50, posY: 50 };
       if (!saveSettings(next)) {
-        alert("画像が大きすぎて保存できなかった。もう少し軽い画像を試して。");
+        alert(t().saveFailed);
         return;
       }
       applyWallpaper(next);
@@ -344,7 +460,7 @@ function createHiddenInputs(): void {
     if (file.size > ICON_WARN_BYTES) {
       const mb = (file.size / (1024 * 1024)).toFixed(1);
       const proceed = confirm(
-        `画像サイズが${mb}MBある。アイコンは小さく表示されるだけなので、もっと軽い画像の方がおすすめ。それでも設定を試す？`
+        t().oversizeIconConfirm(mb)
       );
       if (!proceed) {
         iconInput.value = "";
@@ -355,7 +471,7 @@ function createHiddenInputs(): void {
     reader.onload = () => {
       const dataUrl = reader.result as string;
       if (!saveCustomIcon(dataUrl)) {
-        alert("画像が大きすぎて保存できなかった。もう少し軽い画像を試して。");
+        alert(t().saveFailed);
         return;
       }
       applyCustomIcon(dataUrl);
@@ -368,8 +484,8 @@ function createHiddenInputs(): void {
 function buildTabBar(): string {
   return `
       <div class="hi-tabs">
-        <button class="hi-tab ${modalTab === "display" ? "active" : ""}" data-hi-tab="display">表示</button>
-        <button class="hi-tab ${modalTab === "glossary" ? "active" : ""}" data-hi-tab="glossary">用語</button>
+        <button class="hi-tab ${modalTab === "display" ? "active" : ""}" data-hi-tab="display">${t().tabDisplay}</button>
+        <button class="hi-tab ${modalTab === "glossary" ? "active" : ""}" data-hi-tab="glossary">${t().tabGlossary}</button>
       </div>`;
 }
 
@@ -379,24 +495,24 @@ function buildDisplayTabContent(): string {
   const hasCustomIcon = !!loadCustomIcon();
 
   return `
-      <button class="hi-choice" id="hi-choice-wallpaper">${icon("image")}${hasWallpaper ? "壁紙を変更" : "壁紙を設定"}</button>
+      <button class="hi-choice" id="hi-choice-wallpaper">${icon("image")}${hasWallpaper ? t().changeWallpaper : t().setWallpaper}</button>
       ${
         hasWallpaper
           ? `
         <div class="hi-sub">
-          <button class="hi-choice" id="hi-position-btn">位置を調整</button>
-          <button class="hi-choice hi-reset" id="hi-wallpaper-reset">${icon("x")}壁紙をリセット</button>
+          <button class="hi-choice" id="hi-position-btn">${t().adjustPosition}</button>
+          <button class="hi-choice hi-reset" id="hi-wallpaper-reset">${icon("x")}${t().resetWallpaper}</button>
         </div>`
           : ""
       }
-      <button class="hi-choice" id="hi-choice-icon"><img src="/favicon.svg" alt="" style="width:16px;height:16px;">${hasCustomIcon ? "アイコンを変更" : "アイコンを設定"}</button>
-      ${hasCustomIcon ? `<button class="hi-choice hi-reset" id="hi-icon-reset">${icon("x")}アイコンをリセット</button>` : ""}
-      <label class="hi-field hi-blur-row" title="パネルのぼかし強さ（下げるほど壁紙が透けて見える）">
-        ぼかし
+      <button class="hi-choice" id="hi-choice-icon"><img src="/favicon.svg" alt="" style="width:16px;height:16px;">${hasCustomIcon ? t().changeIcon : t().setIcon}</button>
+      ${hasCustomIcon ? `<button class="hi-choice hi-reset" id="hi-icon-reset">${icon("x")}${t().resetIcon}</button>` : ""}
+      <label class="hi-field hi-blur-row" title="${t().blurTitle}">
+        ${t().blurLabel}
         <input type="range" id="hi-blur-slider" min="${BLUR_MIN}" max="${BLUR_MAX}" step="1" value="${settings.blur}">
         <span id="hi-blur-value">${settings.blur}px</span>
       </label>
-      <p class="hi-hint">画像サイズの目安: 壁紙は${Math.round(WARN_BYTES / 1024 / 1024)}MBまで、アイコンは${Math.round(ICON_WARN_BYTES / 1024 / 1024)}MBまで（超えると保存に失敗しやすい）</p>
+      <p class="hi-hint">${t().sizeHint(Math.round(WARN_BYTES / 1024 / 1024), Math.round(ICON_WARN_BYTES / 1024 / 1024))}</p>
     `;
 }
 
@@ -406,7 +522,7 @@ function buildDisplayTabContent(): string {
 function buildGlossaryTabContent(): string {
   if (!glossaryCache) {
     void fetchGlossary();
-    return `<p class="hi-hint">読み込み中…</p>`;
+    return `<p class="hi-hint">${t().loading}</p>`;
   }
   const entries = Object.values(glossaryCache.entries).sort((a, b) =>
     a.category === b.category ? a.enKey.localeCompare(b.enKey) : a.category.localeCompare(b.category)
@@ -429,34 +545,34 @@ function buildGlossaryTabContent(): string {
             <tr>
               <td class="hi-glossary-en" title="${escapeHtml(e.enKey)}">${escapeHtml(e.enKey)}</td>
               <td><input type="text" class="hi-glossary-ja-input" data-glossary-key="${escapeHtml(e.enKey)}" data-glossary-cat="${escapeHtml(e.category)}" value="${escapeHtml(e.ja)}"></td>
-              <td><button class="hi-choice hi-reset hi-glossary-del" data-glossary-del="${escapeHtml(e.enKey)}" title="削除">${icon("x")}</button></td>
+              <td><button class="hi-choice hi-reset hi-glossary-del" data-glossary-del="${escapeHtml(e.enKey)}" title="${t().deleteTitle}">${icon("x")}</button></td>
             </tr>`
             )
             .join("")}
         </table>`
       )
-      .join("") || `<p class="hi-hint">用語がまだ登録されていません</p>`;
+      .join("") || `<p class="hi-hint">${t().glossaryEmpty}</p>`;
 
   return `
-      <p class="hi-hint">ゲーム内用語の英→日対応。日本語欄を編集するとその場で保存される。</p>
+      <p class="hi-hint">${t().glossaryHint}</p>
       ${sections}
       <div class="hi-glossary-add">
-        <input type="text" id="hi-glossary-new-en" placeholder="英語キー">
-        <input type="text" id="hi-glossary-new-ja" placeholder="日本語表記">
-        <input type="text" id="hi-glossary-new-cat" placeholder="カテゴリ" value="Riven">
-        <button class="hi-choice" id="hi-glossary-add-btn">${icon("plus")}追加</button>
+        <input type="text" id="hi-glossary-new-en" placeholder="${t().glossaryNewEn}">
+        <input type="text" id="hi-glossary-new-ja" placeholder="${t().glossaryNewJa}">
+        <input type="text" id="hi-glossary-new-cat" placeholder="${t().glossaryNewCat}" value="Riven">
+        <button class="hi-choice" id="hi-glossary-add-btn">${icon("plus")}${t().addBtn}</button>
       </div>
     `;
 }
 
 function buildModalContent(): string {
-  const title = modalTab === "glossary" ? "用語マッピング" : "壁紙 / アイコン";
+  const title = modalTab === "glossary" ? t().glossaryTitle : t().displayTitle;
   const body = modalTab === "glossary" ? buildGlossaryTabContent() : buildDisplayTabContent();
   return `
       <h3>${title}</h3>
       ${buildTabBar()}
       ${body}
-      <div class="hi-cancel-row"><button id="hi-cancel">閉じる</button></div>
+      <div class="hi-cancel-row"><button id="hi-cancel">${t().close}</button></div>
     `;
 }
 
@@ -480,7 +596,7 @@ function wireGlossaryTabContent(box: Element): void {
       const ja = box.querySelector<HTMLInputElement>("#hi-glossary-new-ja")!.value.trim();
       const category = box.querySelector<HTMLInputElement>("#hi-glossary-new-cat")!.value.trim() || "General";
       if (!enKey || !ja) {
-        alert("英語キーと日本語表記を入力して");
+        alert(t().glossaryAddValidation);
         return;
       }
       void saveGlossaryEntry({ enKey, ja, category });
@@ -584,14 +700,14 @@ function openPositionModal(settings: Settings, onConfirm: (x: number, y: number)
   overlay.id = "wallpaper-position-modal";
   overlay.innerHTML = `
       <div class="wp-box">
-        <h3>壁紙の位置を調整</h3>
-        <p class="wp-hint">枠内で画像をドラッグして、見せたい部分を決める。</p>
+        <h3>${t().positionTitle}</h3>
+        <p class="wp-hint">${t().positionHint}</p>
         <div class="wp-frame">
           <img id="wp-drag-img" src="${settings.image}" style="object-fit:cover;object-position:${settings.posX}% ${settings.posY}%;">
         </div>
         <div class="wp-buttons">
-          <button id="wp-cancel">キャンセル</button>
-          <button id="wp-confirm">確定</button>
+          <button id="wp-cancel">${t().cancel}</button>
+          <button id="wp-confirm">${t().confirm}</button>
         </div>
       </div>
     `;
@@ -646,8 +762,14 @@ function bindHeaderIconEasterEgg(): void {
   const headerIcon = document.querySelector<HTMLElement>(".app-icon");
   if (!headerIcon) return;
   headerIcon.style.cursor = "pointer";
-  headerIcon.title = "クリックして壁紙/アイコン/ぼかしを変更";
+  headerIcon.title = t().headerIconTitle;
   headerIcon.addEventListener("click", openHeaderIconChoiceModal);
+  // The modal itself is rebuilt from t() every time it opens, so only this
+  // always-present title needs re-applying on a live switch.
+  onLocaleChange(() => {
+    headerIcon.title = t().headerIconTitle;
+    refreshHeaderIconModal();
+  });
 }
 
 injectStyle();

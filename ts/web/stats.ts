@@ -358,7 +358,7 @@ function renderChainViewAgg(): void {
   // stored node.name — this tile grid was missed when 76e7138 switched every
   // other node-label surface (graph/sidebar/Inspector/combobox) over to it
   // (found 2026-08-30).
-  builds.sort((a, b) => a.pct - b.pct || nodeDisplayName(a.node).localeCompare(nodeDisplayName(b.node), "ja"));
+  builds.sort((a, b) => a.pct - b.pct || nodeDisplayName(a.node).localeCompare(nodeDisplayName(b.node), effective()));
   container.innerHTML = builds
     .map(
       ({ node, satisfied, total, pct }) =>
@@ -966,7 +966,7 @@ function renderQuestProgress(): void {
         state.mainQuestNames.findIndex((m) => m.toLowerCase() === a.toLowerCase()) -
         state.mainQuestNames.findIndex((m) => m.toLowerCase() === b.toLowerCase()),
     );
-  const subQuests = quests.filter((q) => !isMainQuest(q)).sort((a, b) => questJa(a).localeCompare(questJa(b), "ja"));
+  const subQuests = quests.filter((q) => !isMainQuest(q)).sort((a, b) => questJa(a).localeCompare(questJa(b), effective()));
   container.innerHTML = `
     <div class="quest-group-title">${t().mainQuestGroupTitle}</div>
     ${mainQuests.map(questRowHtml).join("")}

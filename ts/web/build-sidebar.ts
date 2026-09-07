@@ -98,7 +98,7 @@ function selectableBuilds(): Node[] {
 }
 
 function byNameJa(a: Node, b: Node): number {
-  return a.name.localeCompare(b.name, "ja");
+  return a.name.localeCompare(b.name, effective());
 }
 
 const COLLAPSE_KEY_PREFIX = "warframe-state-graph:sidebar:collapsed:";
@@ -121,7 +121,7 @@ function setStoredCollapsed(folderKey: string, collapsed: boolean): void {
 }
 
 function moveTargetsHtml(node: Node): string {
-  const targets = [{ id: "", name: t().unfiled }, ...Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, "ja"))];
+  const targets = [{ id: "", name: t().unfiled }, ...Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, effective()))];
   return targets
     .map(
       (f) =>
@@ -175,7 +175,7 @@ function render(): void {
       unfiled.push(n);
     }
   }
-  const folderList = Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, "ja"));
+  const folderList = Object.values(folders).sort((a, b) => a.name.localeCompare(b.name, effective()));
   const sections = folderList
     .map((f) => folderSectionHtml(f.id, f.name, (byFolder.get(f.id) ?? []).sort(byNameJa), true))
     .concat(folderSectionHtml(UNFILED_KEY, t().unfiled, unfiled.sort(byNameJa), false));

@@ -3,6 +3,7 @@
 // paints) happens in each page's inline head script, synchronously — this
 // module only owns the toggle button UI and click handling.
 import { getTopRightBar, icon } from "./icons.ts";
+import { effective as locale, onLocaleChange, type Locale } from "./locale.ts";
 
 const KEY = "warframe-state-graph:theme";
 
@@ -35,7 +36,14 @@ function persist(theme: Theme): void {
   }
 }
 
-const LABEL: Record<Theme, string> = { light: "ライト", dark: "ダーク" };
+const LABEL: Record<Locale, Record<Theme, string>> = {
+  ja: { light: "ライト", dark: "ダーク" },
+  en: { light: "Light", dark: "Dark" },
+};
+const TITLE: Record<Locale, (label: string) => string> = {
+  ja: (label) => `テーマ: ${label}（クリックで切替）`,
+  en: (label) => `Theme: ${label} (click to switch)`,
+};
 const ICON_NAME: Record<Theme, string> = { light: "sun", dark: "moon" };
 const ICON_SIZE = 22;
 
@@ -67,7 +75,7 @@ function updateButton(): void {
   if (!btn) return;
   const t = effective();
   btn.innerHTML = icon(ICON_NAME[t], { size: ICON_SIZE });
-  btn.title = `テーマ: ${LABEL[t]}（クリックで切替）`;
+  btn.title = TITLE[locale()](LABEL[locale()][t]);
 }
 
 function toggle(): void {
@@ -84,6 +92,7 @@ function init(): void {
   getTopRightBar().appendChild(btn);
   btn.addEventListener("click", toggle);
   updateButton();
+  onLocaleChange(updateButton);
 }
 
 if (document.readyState === "loading") {
