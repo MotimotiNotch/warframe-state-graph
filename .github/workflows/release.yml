@@ -130,7 +130,7 @@ jobs:
           cat release-body.md
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ts/dist/warframe-state-graph-${{ github.ref_name }}.zip
           body_path: release-body.md
