@@ -79,12 +79,33 @@ export function cascadeUnsatisfyDependents(g: Graph, nodeId: string, seen: Set<s
 }
 
 /**
- * When a node becomes satisfied, checks every node that lists it in
- * `contains` (its container parent(s)) — if every one of that parent's
- * `contains` children is now satisfied, the parent auto-becomes satisfied
- * too, and the same `cascadeSatisfyRequires` a manual toggle would trigger
- * runs for it. Recurses upward, since completing a parent can in turn
- * complete a grandparent.
+ * When a node becomes satisfied, checks every container parent of it — if
+ * everything that parent still needs is now satisfied, the parent
+ * auto-becomes satisfied too, and the same `cascadeSatisfyRequires` a manual
+ * toggle would trigger runs for it. Recurses upward, since completing a
+ * parent can in turn complete a grandparent.
+ *
+ * "Everything it needs" means BOTH edge kinds: every `contains` child and
+ * every `requires` prerequisite. Checking only `contains` let a parent that
+ * held both kinds flip to satisfied with its prerequisites still unmet, and
+ * `cascadeSatisfyRequires` then rewrote those unmet prerequisites to
+ * satisfied as well — a node the graph was drawing as BLOCKED silently
+ * became SATISFIED, dragging its whole prerequisite chain with it. Found in
+ * the sister project (Sirube, ported from this same engine) against real
+ * data on 2026-09-02, where a goal that had gained both edge kinds marked
+ * itself and 7 prerequisites done. `resolveState()` has always refused to
+ * call such a node ACTIONABLE; the cascade simply wasn't asking the same
+ * question. Issue #7.
+ *
+ * The trigger is widened to match: a parent is re-checked when the node that
+ * just became satisfied is one of its `contains` children OR one of its
+ * `requires` prerequisites. A container has no work of its own — that is
+ * what makes it a container — so "nothing left to do" is just as true when
+ * the last thing filled in was on the prerequisite side. Parents with no
+ * `contains` at all are skipped, so plain prerequisite edges keep their
+ * meaning and never auto-satisfy anything. Tightening the condition without
+ * widening the trigger is the trap: the parent would then never be
+ * re-checked after its final prerequisite landed, and could never complete.
  *
  * One direction only (2026-08-26, のっちの判断): reverting one child later
  * does NOT auto-revert the parent — a container node with no other way to
@@ -100,8 +121,12 @@ export function cascadeSatisfyContainsParents(g: Graph, nodeId: string, seen: Se
 
   for (const [parentId, parent] of Object.entries(g.nodes)) {
     if (parent.satisfied) continue;
-    if (!parent.contains.includes(nodeId)) continue;
-    if (!parent.contains.every((childId) => g.nodes[childId]?.satisfied)) continue;
+    if (parent.contains.length === 0) continue; // only containers aggregate
+    if (!parent.contains.includes(nodeId) && !parent.requires.includes(nodeId)) continue;
+    const ready =
+      parent.contains.every((childId) => g.nodes[childId]?.satisfied) &&
+      parent.requires.every((reqId) => g.nodes[reqId]?.satisfied);
+    if (!ready) continue;
     parent.satisfied = true;
     cascadeSatisfyRequires(g, parentId);
     cascadeSatisfyContainsParents(g, parentId, seen);
