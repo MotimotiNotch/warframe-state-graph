@@ -25,6 +25,11 @@ function applyInline(escaped: string): string {
   return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
+/** applyInline の textContent 版（マークアップを剥いだ表示文字列）。 */
+function stripInline(raw: string): string {
+  return raw.replace(/\*\*(.+?)\*\*/g, "$1");
+}
+
 export function noteMdToHtml(text: string | null | undefined): string {
   const lines = String(text || "").split("\n");
   let html = "";
@@ -102,6 +107,16 @@ function lineToRenderedDiv(line: string, idx: number): string {
   return `<div class="note-line" data-line="${idx}">${line ? applyInline(escapeHtml(line)) : "<br>"}</div>`;
 }
 
+/** lineToRenderedDiv が出す div の textContent。生テキストと突き合わせて
+ *  「その行のDOMは無傷か」を判定するのに使う（recoverFromDom）。 */
+function renderedTextOf(line: string): string {
+  const checkMatch = line.match(/^- \[([ xX])\](?: (.*))?$/);
+  if (checkMatch) return stripInline(checkMatch[2] || "");
+  const bulletMatch = line.match(/^- (.*)$/);
+  if (bulletMatch) return "•" + stripInline(bulletMatch[1]!);
+  return stripInline(line);
+}
+
 export interface LiveEditor {
   setText(newText: string | null | undefined): void;
 }
@@ -172,6 +187,90 @@ export function createLiveEditor(
     if (activeLine < 0) return;
     const el = getLineEl(activeLine);
     if (el) lines[activeLine] = (el.textContent ?? "").replace(/\n/g, "");
+  }
+
+  // ---- DOM構造が壊れたときの復旧 -------------------------------------------
+  // このエディタはDOMをrender()でしか書かず、読み戻すのはsyncActiveLineTextが
+  // 見る1要素（[data-line=activeLine]）だけ。つまりブラウザ任せの編集のうち
+  // *構造*を変えるもの——全選択削除・複数行にまたがる削除・貼り付け・ドラッグ
+  // ——を通ると、linesは既に存在しないDOMを指したままになる。全消しが最悪で、
+  // Chromeは[data-line]のラッパごと消し（2回目のBackspaceでcontainerが空に
+  // なる）、次に打った文字はcontainer直下の裸のテキストノードになる。すると
+  // currentLineAndCol()が[data-line]祖先を見つけられずnullを返し、既に
+  // preventDefault()済みのEnterがそのままreturnして**何も起きない**。カーソルを
+  // 外すと直るのは、focusoutのrender()がラッパを作り直すからで、同時に古いlines
+  // から消したはずの本文が復活していた（2026-09-12にChromeで再現・確認）。
+  function structureIsStale(): boolean {
+    if (container.querySelectorAll("[data-line]").length !== lines.length) return true;
+    return activeLine >= 0 && !getLineEl(activeLine);
+  }
+
+  /** 中身を削られた「表示だけの行」の生テキストを組み直す。残っているクラスで
+   *  元が何だったかは分かるので、記法の頭を付け直す——そのまま表示文字列を採ると
+   *  箇条書きの "•" が本文に混ざって保存されてしまう。中身が空になった行は
+   *  ユーザーがその行ごと消したということなので、空行として返す（"- [ ]"だけの
+   *  行を勝手に生やさない）。 */
+  function rawFromDamaged(lineEl: HTMLElement, shown: string): string {
+    if (!shown) return "";
+    if (lineEl.classList.contains("note-md-bullet")) return "- " + shown.replace(/^•/, "");
+    if (lineEl.classList.contains("note-md-check")) {
+      const box = lineEl.querySelector<HTMLInputElement>("input[data-line-checkbox]");
+      return `- [${box?.checked ? "x" : " "}] ${shown}`;
+    }
+    return shown;
+  }
+
+  /** 現在のDOMからlines/activeLine/キャレットを組み直し、描き直す。 */
+  function recoverFromDom(): void {
+    const sel = window.getSelection();
+    const anchorNode = sel && sel.rangeCount ? sel.anchorNode : null;
+    const anchorOffset = sel ? sel.anchorOffset : 0;
+
+    // 要素の子は1行、裸のテキストノードの連なりも1行。空のcontainerに
+    // ブラウザが置く詰め物の<br>は行として数えない。
+    const parts: { text: string; nodes: Node[] }[] = [];
+    let run: { text: string; nodes: Node[] } | null = null;
+    for (const node of Array.from(container.childNodes)) {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName !== "BR") {
+        const lineEl = node as HTMLElement;
+        const shown = (lineEl.textContent ?? "").replace(/\n/g, "");
+        const idx = lineEl.dataset.line === undefined ? -1 : Number(lineEl.dataset.line);
+        const old = idx >= 0 ? lines[idx] : undefined;
+        // 無傷で残っている行だけはlines側の生テキストを採る。表示文字列から
+        // 逆算すると "- [x] foo" が "foo" に、"**a**" が "a" に潰れるため。
+        const intact = old !== undefined && (idx === activeLine ? old === shown : renderedTextOf(old) === shown);
+        parts.push({ text: intact ? old! : rawFromDamaged(lineEl, shown), nodes: [lineEl] });
+        run = null;
+      } else if (node.nodeType === Node.TEXT_NODE) {
+        if (!run) {
+          run = { text: "", nodes: [] };
+          parts.push(run);
+        }
+        run.text += (node.textContent ?? "").replace(/\n/g, "");
+        run.nodes.push(node);
+      }
+    }
+    if (!parts.length) parts.push({ text: "", nodes: [] });
+
+    let caretIdx = 0;
+    let caretCol = 0;
+    if (anchorNode === container) {
+      caretIdx = Math.min(anchorOffset, parts.length - 1);
+    } else if (anchorNode) {
+      const i = parts.findIndex((p) => p.nodes.some((n) => n === anchorNode || n.contains(anchorNode)));
+      if (i >= 0) {
+        caretIdx = i;
+        const range = document.createRange();
+        range.setStart(parts[i]!.nodes[0]!, 0);
+        range.setEnd(anchorNode, anchorOffset);
+        caretCol = range.toString().length;
+      }
+    }
+
+    lines = parts.map((p) => p.text);
+    activeLine = Math.min(caretIdx, lines.length - 1);
+    render();
+    placeCaret(activeLine, caretCol);
   }
 
   function emitChange(): void {
@@ -289,10 +388,24 @@ export function createLiveEditor(
     }
   });
 
+  // 構造を壊す編集（全消し・複数行削除・貼り付け・ドラッグ）はここで拾って
+  // linesをDOMに合わせ直す。1行の中で打っているだけの通常の入力では
+  // structureIsStale()が偽なので、従来通り再描画は起きない（IMEやキャレットに
+  // 触らない）。
+  container.addEventListener("input", (e) => {
+    if ((e as InputEvent).isComposing) return;
+    if (!structureIsStale()) return;
+    recoverFromDom();
+    emitChange();
+  });
+
   container.addEventListener("keydown", (e) => {
     if (e.isComposing) return;
     if (e.key === "Enter") {
       e.preventDefault();
+      // preventDefault済みなので、ここでcurrentLineAndColがnullを返すと
+      // 「Enterを押しても何も起きない」になる。先に構造を直しておく。
+      if (structureIsStale()) recoverFromDom();
       syncActiveLineText();
       const pos = currentLineAndCol();
       if (!pos) return;
@@ -320,7 +433,11 @@ export function createLiveEditor(
   });
 
   container.addEventListener("compositionend", () => {
-    syncActiveLineText();
+    // input側はisComposing中の構造破壊を素通りさせている（変換中に描き直すと
+    // 未確定文字列が飛ぶ）ので、確定したここで拾う。選択範囲ごと変換で
+    // 置き換えた場合がこれに当たる。
+    if (structureIsStale()) recoverFromDom();
+    else syncActiveLineText();
     emitChange();
   });
 
