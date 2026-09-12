@@ -185,17 +185,86 @@ test("cascadeSatisfyContainsParents satisfies a parent once every part is done",
 
 // Completing a container should also run the same requires-cascade a manual
 // toggle would (the container isn't a special case once it's satisfied).
+// The parent's own prerequisite is already met here — see the Issue #7 tests
+// below for what happens when it isn't.
 test("cascadeSatisfyContainsParents also cascades the newly-satisfied parent's own requires", () => {
   const g = newGraph();
-  g.nodes.build = node("build", { contains: ["part"], requires: ["syndicate-rank"] });
+  g.nodes.build = node("build", { contains: ["part"], requires: ["rank-2"] });
   g.nodes.part = node("part", { satisfied: false });
-  g.nodes["syndicate-rank"] = node("syndicate-rank", { satisfied: false });
+  g.nodes["rank-2"] = node("rank-2", { requires: ["rank-1"], satisfied: true });
+  g.nodes["rank-1"] = node("rank-1", { satisfied: false });
 
   g.nodes.part!.satisfied = true;
   cascadeSatisfyContainsParents(g, "part");
 
   expect(g.nodes.build?.satisfied).toBe(true);
-  expect(g.nodes["syndicate-rank"]?.satisfied).toBe(true);
+  expect(g.nodes["rank-1"]?.satisfied).toBe(true); // reached through rank-2's own chain
+});
+
+// Issue #7. Checking only `contains` let a parent holding both edge kinds
+// flip to satisfied with its prerequisites still unmet — and
+// cascadeSatisfyRequires then rewrote those unmet prerequisites too, so a
+// node the graph was drawing as BLOCKED silently became SATISFIED and took
+// its whole prerequisite chain with it.
+test("cascadeSatisfyContainsParents does not satisfy a parent whose own requires are unmet", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["part-a", "part-b"], requires: ["quest"] });
+  g.nodes["part-a"] = node("part-a", { satisfied: true });
+  g.nodes["part-b"] = node("part-b", { satisfied: false });
+  g.nodes.quest = node("quest", { satisfied: false });
+
+  g.nodes["part-b"]!.satisfied = true;
+  cascadeSatisfyContainsParents(g, "part-b");
+
+  expect(g.nodes.build?.satisfied).toBe(false);
+  expect(g.nodes.quest?.satisfied).toBe(false); // and the prerequisite was not dragged along
+});
+
+// Tightening the condition without widening the trigger is the trap: the
+// parent would never be re-checked once its final prerequisite landed, and
+// could never complete. A container has no work of its own, so "nothing left
+// to do" is just as true when the last thing filled in was a prerequisite.
+test("cascadeSatisfyContainsParents aggregates when the last thing satisfied is a prerequisite", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["part"], requires: ["quest"] });
+  g.nodes.part = node("part", { satisfied: true });
+  g.nodes.quest = node("quest", { satisfied: false });
+
+  g.nodes.quest!.satisfied = true;
+  cascadeSatisfyContainsParents(g, "quest");
+
+  expect(g.nodes.build?.satisfied).toBe(true);
+});
+
+// Widening the trigger must not give plain prerequisite edges a new meaning:
+// a node that merely requires another is not a container and never
+// auto-completes.
+test("cascadeSatisfyContainsParents leaves a requires-only dependent alone", () => {
+  const g = newGraph();
+  g.nodes.dependent = node("dependent", { requires: ["quest"] });
+  g.nodes.quest = node("quest", { satisfied: false });
+
+  g.nodes.quest!.satisfied = true;
+  cascadeSatisfyContainsParents(g, "quest");
+
+  expect(g.nodes.dependent?.satisfied).toBe(false);
+});
+
+// The cascade must answer the same question resolveState() does — if it is
+// willing to mark a node satisfied, resolveState must have been willing to
+// call it ACTIONABLE. Two sources of truth is how Issue #7 happened.
+test("cascadeSatisfyContainsParents never satisfies a node resolveState calls BLOCKED", () => {
+  const g = newGraph();
+  g.nodes.build = node("build", { contains: ["part"], requires: ["quest"] });
+  g.nodes.part = node("part", { satisfied: false });
+  g.nodes.quest = node("quest", { satisfied: false });
+
+  g.nodes.part!.satisfied = true;
+  const before = resolveState(g, "build");
+  cascadeSatisfyContainsParents(g, "part");
+
+  expect(before).toBe("BLOCKED");
+  expect(g.nodes.build?.satisfied).toBe(false);
 });
 
 // Grandparent chain: completing the deepest part should bubble up two levels.
