@@ -16,20 +16,25 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { checkI18n, checkItemList, ShapeError } from "./wfcd-shape.ts";
 
 // warframe-items stays on GitHub raw: warframestat.us serves its own merged
 // item API (api.warframestat.us/items, one 40MB array in a different shape),
 // not the per-category files this code reads, so there is no drop-in mirror
 // for these the way there is for warframe-drop-data below (checked
 // 2026-09-01).
-const MOD_SOURCE_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Mods.json";
-const QUEST_SOURCE_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Quests.json";
-const ARCHWING_SOURCE_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Archwing.json";
-const WEAPON_SOURCE_URLS = [
-  "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Primary.json",
-  "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Secondary.json",
-  "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Melee.json",
-];
+//
+// Pinned to a tag rather than master (Issue #15): WFCD #992 changed the
+// format in a minor bump (1.1275.92 -> 1.1276.0) and it reached every
+// install on its next cache refresh, silently. With a tag, new items arrive
+// only when this constant is bumped — run `bun run check:wfcd <new tag>`
+// first (see CONTRIBUTING.md).
+export const WFCD_ITEMS_REF = "v1.1276.1";
+
+/** URL of a file under warframe-items' data/json/ at `ref`. */
+export function wfcdItemsURL(file: string, ref: string = WFCD_ITEMS_REF): string {
+  return `https://raw.githubusercontent.com/WFCD/warframe-items/${ref}/data/json/${file}`;
+}
 
 // Category file names under warframe-items/data/json/ (items.go's constants).
 export const CategoryWarframes = "Warframes";
@@ -52,19 +57,41 @@ export const CategoryComponents = "Components";
 
 export const weaponCategories = [CategoryPrimary, CategorySecondary, CategoryMelee];
 
-function itemsCategoryURL(category: string): string {
-  return `https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/${category}.json`;
-}
+/** Every warframe-items file this app fetches, with the check each gets —
+ * what `bun run check:wfcd` verifies before WFCD_ITEMS_REF is bumped. Add
+ * to it when a new file starts being fetched. */
+export const WFCD_ITEMS_FILES: { file: string; kind: "items" | "i18n"; drops?: boolean }[] = [
+  ...[CategoryWarframes, CategoryPrimary, CategorySecondary, CategoryMelee, CategoryPets, CategorySentinels]
+    .concat([CategoryResources, CategoryMisc, CategoryRelics, CategoryGear, CategoryMods, CategoryArchwing, "Quests"])
+    .map((c) => ({ file: `${c}.json`, kind: "items" as const })),
+  { file: `${CategoryComponents}.json`, kind: "items", drops: true },
+  { file: "i18n/ja.json", kind: "i18n" },
+];
 
-interface NameEntry {
-  name?: string;
-}
+/** The last shape check that failed since the last refresh, for
+ * /api/wfcd/status. Kept in memory: a failed fetch is never cached, so the
+ * disk has nothing to show for it. */
+let lastShapeError: { file: string; message: string; at: string } | null = null;
 
-async function fetchNames(url: string): Promise<string[]> {
+/** Fetches warframe-items' data/json/<file> at the pinned ref and runs
+ * `check` on it before anything reads it (or caches it). */
+async function fetchChecked<T>(file: string, check: (file: string, data: unknown) => void): Promise<T> {
+  const url = wfcdItemsURL(file);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch ${url}: status ${res.status}`);
-  const entries = (await res.json()) as NameEntry[];
-  return entries.filter((e) => e.name).map((e) => e.name!);
+  const data: unknown = await res.json();
+  try {
+    check(file, data);
+  } catch (err) {
+    if (err instanceof ShapeError) lastShapeError = { file, message: err.message, at: new Date().toISOString() };
+    throw err;
+  }
+  return data as T;
+}
+
+async function fetchNames(category: string): Promise<string[]> {
+  const entries = await fetchChecked<{ name: string }[]>(`${category}.json`, checkItemList);
+  return entries.map((e) => e.name);
 }
 
 export interface Drop {
@@ -99,10 +126,8 @@ export interface Item {
 }
 
 export async function fetchItemsFull(category: string): Promise<Item[]> {
-  const url = itemsCategoryURL(category);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`fetch ${url}: status ${res.status}`);
-  return (await res.json()) as Item[];
+  const drops = category === CategoryComponents;
+  return fetchChecked<Item[]>(`${category}.json`, (file, data) => checkItemList(file, data, { drops }));
 }
 
 /** The category file exactly as fetched (components not resolved). */
@@ -224,6 +249,7 @@ const REFRESH_MARKER = "refreshed-at.txt";
 /** Deletes the whole cache directory; every endpoint re-fetches lazily on next access. */
 export async function refreshCache(cacheDir: string): Promise<void> {
   componentIndexes.delete(cacheDir);
+  lastShapeError = null;
   await fs.rm(cacheDir, { recursive: true, force: true });
   try {
     await fs.mkdir(cacheDir, { recursive: true });
@@ -242,6 +268,10 @@ export interface CacheStatus {
   newest: string | null;
   /** Number of cached data files (the refresh marker isn't one). */
   files: number;
+  /** The warframe-items tag the data comes from. */
+  ref: string;
+  /** Set when a fetched file failed its shape check since the last refresh. */
+  shapeError: { file: string; message: string; at: string } | null;
 }
 
 /** How stale the WFCD data can be, from the cache's own mtimes — each file
@@ -250,6 +280,10 @@ export interface CacheStatus {
  * access, which is why an empty cache reports the refresh time rather than
  * "unknown". */
 export async function cacheStatus(cacheDir: string): Promise<CacheStatus> {
+  return { ...(await cacheTimes(cacheDir)), ref: WFCD_ITEMS_REF, shapeError: lastShapeError };
+}
+
+async function cacheTimes(cacheDir: string): Promise<Pick<CacheStatus, "asOf" | "newest" | "files">> {
   let names: string[];
   try {
     names = await fs.readdir(cacheDir);
@@ -300,12 +334,12 @@ export async function fetchNecramechNames(): Promise<string[]> {
 }
 
 export async function fetchArchwingNames(): Promise<string[]> {
-  return fetchNames(ARCHWING_SOURCE_URL);
+  return fetchNames(CategoryArchwing);
 }
 
 /** Mods.json has rarity-variant duplicates under the same name; deduped. */
 export async function fetchModNames(): Promise<string[]> {
-  const names = await fetchNames(MOD_SOURCE_URL);
+  const names = await fetchNames(CategoryMods);
   return [...new Set(names)];
 }
 
@@ -314,14 +348,14 @@ export async function fetchModNames(): Promise<string[]> {
 // this backs Stats "quest progress" where only "did I actually clear this"
 // matters, so it uses the full list including side quests.
 export async function fetchQuestNames(): Promise<string[]> {
-  return fetchNames(QUEST_SOURCE_URL);
+  return fetchNames("Quests");
 }
 
 export async function fetchWeaponNames(): Promise<string[]> {
   const seen = new Set<string>();
   const names: string[] = [];
-  for (const url of WEAPON_SOURCE_URLS) {
-    for (const n of await fetchNames(url)) {
+  for (const category of weaponCategories) {
+    for (const n of await fetchNames(category)) {
       if (!seen.has(n)) {
         seen.add(n);
         names.push(n);
@@ -348,7 +382,7 @@ export async function fetchCompanionNames(): Promise<string[]> {
  * 2026-08-28), so merged in filtered to that type. */
 export async function fetchResourceNames(): Promise<string[]> {
   const [resources, misc] = await Promise.all([
-    fetchNames(itemsCategoryURL(CategoryResources)),
+    fetchNames(CategoryResources),
     fetchItemsFull(CategoryMisc),
   ]);
   const names = new Set(resources);
@@ -615,9 +649,6 @@ export function findSyndicateWeaponRank(data: Record<string, SyndicateEntry[]>, 
 // Split per language by WFCD/warframe-items #992 (the single 52MB i18n.json
 // now 404s); each file is `{ [uniqueName]: { name, description, ... } }`,
 // one level shallower than the old `{ [uniqueName]: { [lang]: { name } } }`.
-function i18nURL(lang: string): string {
-  return `https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/i18n/${lang}.json`;
-}
 
 // lang goes into both the URL and a cache file name.
 const LANG_PATTERN = /^[a-z]{2}(-[a-z]{2,4})?$/i;
@@ -628,10 +659,7 @@ interface I18nEntry {
 type I18nData = Record<string, I18nEntry>;
 
 async function fetchI18nData(lang: string): Promise<I18nData> {
-  const url = i18nURL(lang);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`fetch ${url}: status ${res.status}`);
-  return (await res.json()) as I18nData;
+  return fetchChecked<I18nData>(`i18n/${lang}.json`, checkI18n);
 }
 
 /** uniqueName's translated name for lang (e.g. "ja"). Unlike the Go original

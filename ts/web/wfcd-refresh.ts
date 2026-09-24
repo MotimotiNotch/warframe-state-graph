@@ -20,6 +20,8 @@ interface CacheStatus {
   asOf: string | null;
   newest: string | null;
   files: number;
+  ref: string;
+  shapeError: { file: string; message: string; at: string } | null;
 }
 
 export interface RefreshLabels {
@@ -37,28 +39,38 @@ interface AsOfStrings {
   tipSingle: string; // {date}
   tipRange: string; // {date} {newest} {files}
   tipNever: string;
+  shapeError: string;
+  tipShapeError: string; // {ref} {file} {message}
 }
 
 const AS_OF: Record<Locale, AsOfStrings> = {
   ja: {
     prefix: "WFCD ",
     never: "未取得",
-    tipSingle: "外部データ（WFCD）の取得日時: {date}",
+    tipSingle: "外部データ（WFCD {ref}）の取得日時: {date}",
     tipRange:
-      "外部データ（WFCD）はファイル単位で取り込まれます。もっとも古いもので {date}、もっとも新しいもので {newest}（{files}件）。" +
+      "外部データ（WFCD {ref}）はファイル単位で取り込まれます。もっとも古いもので {date}、もっとも新しいもので {newest}（{files}件）。" +
       "レリックのVault判定はこのデータの「載っていないこと」を根拠にしているため、古いままだと入手可能なレリックがVault済みと出ることがあります。" +
       "左の更新ボタンで全部取り直せます。",
-    tipNever: "外部データ（WFCD）はまだ取得していません。必要になった時点で自動的に取得されます。",
+    tipNever: "外部データ（WFCD {ref}）はまだ取得していません。必要になった時点で自動的に取得されます。",
+    shapeError: "取り込みエラー",
+    tipShapeError:
+      "外部データ（WFCD {ref}）の {file} が想定と違う形だったため、取り込めませんでした。このファイルを使う機能は動きません。" +
+      "アプリ側の対応が必要です（詳細: {message}）",
   },
   en: {
     prefix: "WFCD ",
     never: "not fetched",
-    tipSingle: "External (WFCD) data fetched: {date}",
+    tipSingle: "External (WFCD {ref}) data fetched: {date}",
     tipRange:
-      "External (WFCD) data is cached file by file. Oldest {date}, newest {newest} ({files} files). " +
+      "External (WFCD {ref}) data is cached file by file. Oldest {date}, newest {newest} ({files} files). " +
       "Relic Vault status is inferred from a relic being absent from this data, so a stale cache can report an " +
       "obtainable relic as vaulted. The refresh button on the left re-fetches all of it.",
-    tipNever: "External (WFCD) data hasn't been fetched yet. It is fetched automatically the first time it is needed.",
+    tipNever: "External (WFCD {ref}) data hasn't been fetched yet. It is fetched automatically the first time it is needed.",
+    shapeError: "import error",
+    tipShapeError:
+      "{file} from the external (WFCD {ref}) data didn't have the expected shape, so it wasn't imported. Features that use it won't work " +
+      "until the app is updated (detail: {message})",
   },
 };
 
@@ -80,6 +92,7 @@ function injectStyle(): void {
         margin-right: 6px;
         cursor: help;
       }
+      #${LABEL_ID}.shape-error { color: var(--danger, #e5484d); }
       @media (max-width: 700px) { #${LABEL_ID} { display: none; } }
     `;
   document.head.appendChild(style);
@@ -105,17 +118,25 @@ function render(): void {
   const label = maybeEl(LABEL_ID);
   if (!label) return;
   const s = AS_OF[effective()];
+  const ref = lastStatus?.ref ?? "";
+  const err = lastStatus?.shapeError;
+  label.classList.toggle("shape-error", !!err);
+  if (err) {
+    label.textContent = s.prefix + s.shapeError;
+    label.title = fill(s.tipShapeError, { ref, file: err.file, message: err.message });
+    return;
+  }
   if (!lastStatus || !lastStatus.asOf) {
     label.textContent = s.prefix + s.never;
-    label.title = s.tipNever;
+    label.title = fill(s.tipNever, { ref });
     return;
   }
   const asOf = formatDate(lastStatus.asOf);
   label.textContent = s.prefix + asOf;
   label.title =
     lastStatus.newest && lastStatus.newest !== lastStatus.asOf
-      ? fill(s.tipRange, { date: asOf, newest: formatDate(lastStatus.newest), files: String(lastStatus.files) })
-      : fill(s.tipSingle, { date: asOf });
+      ? fill(s.tipRange, { ref, date: asOf, newest: formatDate(lastStatus.newest), files: String(lastStatus.files) })
+      : fill(s.tipSingle, { ref, date: asOf });
 }
 
 async function reload(): Promise<void> {
