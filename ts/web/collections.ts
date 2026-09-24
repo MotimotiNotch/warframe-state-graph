@@ -639,6 +639,9 @@ function ja(stat: string): string {
 
 initWfcdRefresh({
   labels: () => ({ updating: t().refreshUpdating, done: t().refreshDone, title: t().refreshTitle }),
+  onRefreshed: async () => {
+    await Promise.all([loadWeaponNames(), loadFrameNames(), loadCompanionNames(), loadArchwingNames(), loadNecramechNames()]);
+  },
 });
 
 el("help-toggle").innerHTML = icon("info");
@@ -1352,8 +1355,10 @@ el("kuva-form-save").addEventListener("click", () => {
 
 // Keyword-filter combobox (self-rolled, same idea as Loadouts). names is
 // parameterized so it can be reused for Frame name lists etc. too (defaults
-// to state.weaponNames when omitted, matching existing call sites).
-function setupWeaponCombobox(inputId: string, suggestId: string, names?: string[]): void {
+// to state.weaponNames when omitted, matching existing call sites). It is a
+// getter read on every keystroke, not the array itself: a captured array
+// kept serving the pre-refresh list after a WFCD cache refresh (Issue #16).
+function setupWeaponCombobox(inputId: string, suggestId: string, names?: () => string[]): void {
   const input = el<HTMLInputElement>(inputId);
   const suggest = el(suggestId);
   function hide(): void {
@@ -1365,7 +1370,7 @@ function setupWeaponCombobox(inputId: string, suggestId: string, names?: string[
       hide();
       return;
     }
-    const pool = names || state.weaponNames;
+    const pool = names ? names() : state.weaponNames;
     const matches = pool.filter((n) => n.toLowerCase().includes(q)).slice(0, 30);
     suggest.innerHTML = matches.length
       ? matches.map((n) => `<div class="suggest-item">${escapeHtml(n)}</div>`).join("")
@@ -1919,9 +1924,9 @@ Promise.all([
   // popover's ja() labels reflect glossary's latest translations as well.
   renderRivenPositivePopover();
   renderRivenNegativeSelect();
-  setupWeaponCombobox("frame-name-input", "frame-name-suggest", state.frameNames);
+  setupWeaponCombobox("frame-name-input", "frame-name-suggest", () => state.frameNames);
   (Object.keys(EQUIP_KINDS) as EquipKind[]).forEach((kind) => {
-    setupWeaponCombobox(`${kind}-name-input`, `${kind}-name-suggest`, state[EQUIP_KINDS[kind].refNamesKey] || []);
+    setupWeaponCombobox(`${kind}-name-input`, `${kind}-name-suggest`, () => state[EQUIP_KINDS[kind].refNamesKey] || []);
     initPlainCollapsible(kind);
   });
   initIncarnonCollapse();

@@ -17,6 +17,7 @@ import { forcePushToCollections, forcePushToLoadoutItem } from "./wfcd-autolink.
 import { nodeTypeLabel } from "./node-modal.ts";
 import { showToast } from "./toast.ts";
 import { effective, onLocaleChange } from "./locale.ts";
+import { onWfcdRefreshed } from "./wfcd-refresh.ts";
 
 interface WizardStrings {
   companionNote: string;
@@ -241,6 +242,7 @@ async function loadWfcdGenRefData(): Promise<void> {
   }
 }
 void loadWfcdGenRefData();
+onWfcdRefreshed(loadWfcdGenRefData);
 
 const wfcdNameInput = el<HTMLInputElement>("wfcd-name");
 const wfcdNameSuggest = el("wfcd-name-suggest");
