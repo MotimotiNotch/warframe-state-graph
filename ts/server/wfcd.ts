@@ -47,6 +47,8 @@ export const CategoryArcanes = "Arcanes";
 export const CategoryRelics = "Relics";
 export const CategoryResources = "Resources";
 export const CategoryMisc = "Misc";
+export const CategoryGear = "Gear";
+export const CategoryComponents = "Components";
 
 export const weaponCategories = [CategoryPrimary, CategorySecondary, CategoryMelee];
 
@@ -71,6 +73,7 @@ export interface Drop {
 }
 
 export interface Component {
+  uniqueName?: string;
   name: string;
   itemCount?: number;
   drops?: Drop[];
@@ -102,10 +105,80 @@ export async function fetchItemsFull(category: string): Promise<Item[]> {
   return (await res.json()) as Item[];
 }
 
-/** Per-category full-item fetch with caching (unlike CachedNames, keeps
- * components/drops/disposition etc. that node generation needs). */
-export async function cachedItemsFull(cacheDir: string, category: string): Promise<Item[]> {
+/** The category file exactly as fetched (components not resolved). */
+async function cachedItemsRaw(cacheDir: string, category: string): Promise<Item[]> {
   return cachedJSON(cacheDir, `${category}-full.json`, () => fetchItemsFull(category));
+}
+
+/** Per-category full-item fetch with caching (unlike CachedNames, keeps
+ * components/drops/disposition etc. that node generation needs).
+ *
+ * Since WFCD/warframe-items #992 (v1.1276.0, 2026-09-24) `components[]` holds
+ * only `{ uniqueName, itemCount }`; this fills `name` and `drops` back in so
+ * callers see the same shape as before. A cache written before #992 already
+ * has them and passes through untouched. */
+export async function cachedItemsFull(cacheDir: string, category: string): Promise<Item[]> {
+  const items = await cachedItemsRaw(cacheDir, category);
+  if (!items.some((it) => it.components?.some((c) => !c.name))) return items;
+  const index = await componentIndex(cacheDir);
+  for (const it of items) {
+    it.components = it.components?.map((c) => (c.name ? c : resolveComponent(index, c)));
+  }
+  return items;
+}
+
+// Where a bare component reference can point. Components.json holds the
+// item-specific parts (blueprints, chassis, ...) with their drops; generic
+// materials (Neurode, Orokin Cell), Necramech parts and weapons used as
+// ingredients (Viper for Twin Vipers) live in their own category files
+// instead. Every component reference in the item categories resolved against
+// this list on 2026-09-24 (4103 references, none left over).
+const COMPONENT_SOURCES = [CategoryComponents, CategoryMisc, CategoryResources, CategoryPrimary, CategorySecondary, CategoryMelee, CategoryGear];
+
+const componentIndexes = new Map<string, Promise<Map<string, Item>>>();
+
+function componentIndex(cacheDir: string): Promise<Map<string, Item>> {
+  let p = componentIndexes.get(cacheDir);
+  if (!p) {
+    p = (async () => {
+      const index = new Map<string, Item>();
+      for (const cat of COMPONENT_SOURCES) {
+        for (const it of await cachedItemsRaw(cacheDir, cat)) {
+          if (it.uniqueName && !index.has(it.uniqueName)) index.set(it.uniqueName, it);
+        }
+      }
+      return index;
+    })();
+    // A failed fetch must not stick: the next call retries.
+    p.catch(() => componentIndexes.delete(cacheDir));
+    componentIndexes.set(cacheDir, p);
+  }
+  return p;
+}
+
+function resolveComponent(index: Map<string, Item & { drops?: Drop[] }>, ref: Component): Component {
+  const uniqueName = ref.uniqueName ?? "";
+  const hit = index.get(uniqueName);
+  const name = hit?.name ?? uniqueName.slice(uniqueName.lastIndexOf("/") + 1);
+  return { ...ref, name, drops: hit ? componentDrops(index, hit) : undefined };
+}
+
+/** Components.json entries carry their own drops; the other categories
+ * never did. Before #992 a Resources part (Bonewidow Capsule) was embedded
+ * with the drops of its own blueprint ("Bonewidow Capsule Blueprint" from
+ * NecraLoid), so that one step down is taken here — for Resources only.
+ * Taking it for weapons and Misc too turned 15 single-blueprint items into
+ * multi-part (Akbronco via Bronco's blueprint) when diffed against
+ * v1.1275.92 on 2026-09-24, since their old embedded drops were not the
+ * blueprint's. */
+function componentDrops(index: Map<string, Item & { drops?: Drop[] }>, entry: Item & { drops?: Drop[] }): Drop[] | undefined {
+  if (entry.drops?.length) return entry.drops;
+  if (entry.category !== CategoryResources) return undefined;
+  for (const c of entry.components ?? []) {
+    const bp = c.uniqueName ? index.get(c.uniqueName) : undefined;
+    if (bp?.category === CategoryComponents && bp.drops?.length && c.uniqueName!.endsWith("Blueprint")) return bp.drops;
+  }
+  return undefined;
 }
 
 /** Exact-name (case-insensitive) lookup within an already-fetched item list. */
@@ -150,6 +223,7 @@ const REFRESH_MARKER = "refreshed-at.txt";
 
 /** Deletes the whole cache directory; every endpoint re-fetches lazily on next access. */
 export async function refreshCache(cacheDir: string): Promise<void> {
+  componentIndexes.delete(cacheDir);
   await fs.rm(cacheDir, { recursive: true, force: true });
   try {
     await fs.mkdir(cacheDir, { recursive: true });
@@ -538,27 +612,36 @@ export function findSyndicateWeaponRank(data: Record<string, SyndicateEntry[]>, 
 // ---------------------------------------------------------------------------
 // i18n.go: item-name Japanese (or other language) translations.
 
-const I18N_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/i18n.json";
+// Split per language by WFCD/warframe-items #992 (the single 52MB i18n.json
+// now 404s); each file is `{ [uniqueName]: { name, description, ... } }`,
+// one level shallower than the old `{ [uniqueName]: { [lang]: { name } } }`.
+function i18nURL(lang: string): string {
+  return `https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/i18n/${lang}.json`;
+}
+
+// lang goes into both the URL and a cache file name.
+const LANG_PATTERN = /^[a-z]{2}(-[a-z]{2,4})?$/i;
 
 interface I18nEntry {
   name?: string;
 }
-type I18nData = Record<string, Record<string, I18nEntry>>;
+type I18nData = Record<string, I18nEntry>;
 
-async function fetchI18nData(): Promise<I18nData> {
-  const res = await fetch(I18N_URL);
-  if (!res.ok) throw new Error(`fetch ${I18N_URL}: status ${res.status}`);
+async function fetchI18nData(lang: string): Promise<I18nData> {
+  const url = i18nURL(lang);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch ${url}: status ${res.status}`);
   return (await res.json()) as I18nData;
 }
 
 /** uniqueName's translated name for lang (e.g. "ja"). Unlike the Go original
- * (which streams i18n.json token-by-token to avoid holding all ~52MB in
- * memory), this just JSON.parses the whole cached file — see this file's
- * header comment for the spike-test numbers that justified the simpler
- * approach for a single-user local tool. */
+ * (which streamed the old all-language i18n.json token-by-token), this just
+ * JSON.parses the whole cached file — see this file's header comment; the
+ * per-language file is now ~4.5MB for ja, a tenth of what that was measured on. */
 export async function lookupI18nName(cacheDir: string, uniqueName: string, lang: string): Promise<string> {
-  const data = await cachedJSON(cacheDir, "i18n.json", fetchI18nData);
-  const name = data[uniqueName]?.[lang]?.name;
+  if (!LANG_PATTERN.test(lang)) throw new Error(`invalid lang ${JSON.stringify(lang)}`);
+  const data = await cachedJSON(cacheDir, `i18n-${lang}.json`, () => fetchI18nData(lang));
+  const name = data[uniqueName]?.name;
   if (!name) throw new Error(`lang ${JSON.stringify(lang)} not found for ${JSON.stringify(uniqueName)}`);
   return name;
 }

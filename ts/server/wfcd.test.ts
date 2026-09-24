@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { cacheStatus, cachedJSON, findSyndicateWeaponRank, isRelicVaulted, refreshCache, type SyndicateEntry } from "./wfcd.ts";
+import { cacheStatus, cachedItemsFull, cachedJSON, findSyndicateWeaponRank, isRelicVaulted, lookupI18nName, refreshCache, type SyndicateEntry } from "./wfcd.ts";
 
 test("isRelicVaulted: normalizes refinement suffix and 'Relic' suffix before lookup", () => {
   const active = new Set(["Axi A22", "Meso B2"]);
@@ -75,4 +75,73 @@ test("cacheStatus: a refresh reports its own time, not 'never fetched'", async (
   expect(st.files).toBe(0); // the marker itself is not counted as data
   expect(st.newest).toBeNull();
   expect(new Date(st.asOf!).getTime()).toBeGreaterThanOrEqual(before - 1000);
+});
+
+// WFCD/warframe-items #992: components[] became bare references and i18n.json
+// was split per language. These seed the cache directly so no fetch happens.
+async function seed(files: Record<string, unknown>): Promise<void> {
+  await fs.mkdir(cacheDir, { recursive: true });
+  for (const [name, v] of Object.entries(files)) await fs.writeFile(path.join(cacheDir, name), JSON.stringify(v), "utf8");
+}
+
+const BP = "/Lotus/Types/Recipes/WarframeRecipes/RhinoBlueprint";
+const NEURODE = "/Lotus/Types/Items/MiscItems/Neurode";
+const CAPSULE = "/Lotus/Types/Gameplay/InfestedMicroplanet/Resources/Mechs/ThanomechPartSystemsItem";
+const CAPSULE_BP = "/Lotus/Types/Recipes/DeimosRecipes/Mechs/ThanotechPartSystemsBlueprint";
+const capsuleDrop = { location: "NecraLoid (Loid), Clearance Modus", chance: 100 };
+
+async function seedNewFormat(warframes: unknown[]): Promise<void> {
+  await seed({
+    "Warframes-full.json": warframes,
+    "Components-full.json": [
+      { uniqueName: BP, name: "Blueprint", category: "Components", drops: [{ location: "Mars/War (Assassination)", chance: 38.72 }] },
+      { uniqueName: CAPSULE_BP, name: "Blueprint", category: "Components", drops: [capsuleDrop] },
+    ],
+    "Misc-full.json": [{ uniqueName: NEURODE, name: "Neurodes", category: "Misc" }],
+    "Resources-full.json": [
+      { uniqueName: CAPSULE, name: "Bonewidow Capsule", category: "Resources", components: [{ uniqueName: CAPSULE_BP, itemCount: 1 }] },
+    ],
+    "Primary-full.json": [],
+    "Secondary-full.json": [],
+    "Melee-full.json": [],
+    "Gear-full.json": [],
+  });
+}
+
+test("cachedItemsFull: fills name and drops back into bare component references", async () => {
+  await seedNewFormat([{ name: "Rhino", components: [{ uniqueName: BP, itemCount: 1 }, { uniqueName: NEURODE, itemCount: 1 }] }]);
+  const [rhino] = await cachedItemsFull(cacheDir, "Warframes");
+  expect(rhino!.components!.map((c) => c.name)).toEqual(["Blueprint", "Neurodes"]);
+  expect(rhino!.components![0]!.drops).toHaveLength(1);
+  expect(rhino!.components![0]!.itemCount).toBe(1);
+  expect(rhino!.components![1]!.drops).toBeUndefined(); // generic material: no drops of its own
+});
+
+test("cachedItemsFull: a material without drops takes its own blueprint's drops", async () => {
+  await seedNewFormat([{ name: "Bonewidow", components: [{ uniqueName: CAPSULE, itemCount: 1 }] }]);
+  const [bonewidow] = await cachedItemsFull(cacheDir, "Warframes");
+  expect(bonewidow!.components![0]!.name).toBe("Bonewidow Capsule");
+  expect(bonewidow!.components![0]!.drops).toEqual([capsuleDrop]);
+});
+
+test("cachedItemsFull: an unknown reference falls back to the path tail instead of a nameless part", async () => {
+  await seedNewFormat([{ name: "X", components: [{ uniqueName: "/Lotus/Types/Unknown/ThingItem", itemCount: 1 }] }]);
+  const [x] = await cachedItemsFull(cacheDir, "Warframes");
+  expect(x!.components![0]!.name).toBe("ThingItem");
+});
+
+test("cachedItemsFull: a pre-#992 cache is returned as is (no other category is read)", async () => {
+  const old = [{ name: "Rhino", components: [{ uniqueName: BP, name: "Blueprint", drops: [{ location: "old", chance: 1 }] }] }];
+  await seed({ "Warframes-full.json": old }); // no Components-full.json: resolving would try to fetch
+  expect(await cachedItemsFull(cacheDir, "Warframes")).toEqual(old);
+});
+
+test("lookupI18nName: reads the per-language file shape", async () => {
+  await seed({ "i18n-ja.json": { [BP]: { name: "ライノ 設計図", description: "..." } } });
+  expect(await lookupI18nName(cacheDir, BP, "ja")).toBe("ライノ 設計図");
+  await expect(lookupI18nName(cacheDir, "/nope", "ja")).rejects.toThrow("not found");
+});
+
+test("lookupI18nName: rejects a lang that isn't a language code", async () => {
+  await expect(lookupI18nName(cacheDir, BP, "../Warframes-full")).rejects.toThrow("invalid lang");
 });
