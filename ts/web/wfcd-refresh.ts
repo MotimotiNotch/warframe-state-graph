@@ -128,6 +128,17 @@ async function reload(): Promise<void> {
   render();
 }
 
+const REFRESHED_EVENT = "wfcd-cache-refreshed";
+
+/** Runs fn after every cache refresh on this page. For a module that keeps
+ * WFCD-derived lists in memory but can't be reached through the page's
+ * `onRefreshed` — Chain View's wizard and node modal import `state` from
+ * graph-state.ts, so graph-state.ts importing them back would reorder module
+ * evaluation (Issue #16). */
+export function onWfcdRefreshed(fn: () => void | Promise<void>): void {
+  window.addEventListener(REFRESHED_EVENT, () => void fn());
+}
+
 /** Wires #refresh-wfcd-btn and inserts the "as of" reading in front of it.
  * `labels()` is called fresh each time so it follows the page's own locale
  * switch; `onRefreshed` runs after the cache is wiped, for pages that also
@@ -150,6 +161,7 @@ export function initWfcdRefresh(opts: {
     btn.title = opts.labels().updating;
     await fetch("/api/wfcd/refresh", { method: "POST" });
     await opts.onRefreshed?.();
+    window.dispatchEvent(new Event(REFRESHED_EVENT));
     // After the refresh the cache is empty and the reading falls back to the
     // refresh marker the server just wrote — i.e. "as of now", which is what
     // the next lazy fetch will actually deliver.

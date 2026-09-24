@@ -14,6 +14,7 @@ import { loadGraph, loadReport, state } from "./graph-state.ts";
 import { nodeDisplayName, questJa } from "./quest-i18n.ts";
 import { showToast } from "./toast.ts";
 import { effective } from "./locale.ts";
+import { onWfcdRefreshed } from "./wfcd-refresh.ts";
 
 export const NODE_TYPES: NodeType[] = ["Goal", "Weapon", "Frame", "Mod", "Riven", "Syndicate", "Quest", "Resource", "Relic", "Other"];
 const NODE_TYPE_LABELS: Record<"ja" | "en", Record<string, string>> = {
@@ -239,6 +240,7 @@ async function loadNodeNameRefData(): Promise<void> {
   );
 }
 void loadNodeNameRefData();
+onWfcdRefreshed(loadNodeNameRefData);
 
 const nodeNameInput = el<HTMLInputElement>("node-name");
 const nodeNameSuggest = el("node-name-suggest");
