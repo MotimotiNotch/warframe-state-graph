@@ -108,6 +108,20 @@ bun run typecheck
 bun test
 ```
 
+## WFCD データの版を上げる
+
+アイテムデータ（WFCD/warframe-items）は `ts/server/wfcd.ts` の `WFCD_ITEMS_REF` でタグに固定している。新アイテムを取り込むには、この定数を上げてリリースする。上げる前に必ず次を回すこと。
+
+```bash
+cd ts
+bun run check:wfcd v1.xxxx.x   # 上げたいタグ
+```
+
+- **形の検査**: アプリが取得する全ファイル（`WFCD_ITEMS_FILES`）を取得し、読んでいるフィールドの形を確かめる。1つでも FAIL があれば、アプリ側の対応が済むまで上げない。
+- **結果の差分**: 今のタグと新しいタグで、ウィザードが生成する内容（分類とパーツ名）を実際と同じ経路で作って比べ、変わるアイテムを一覧にする。**形は正しいまま結果だけ変わる**ことがある（WFCD #992 では、Misc 由来の部品の drops が消えた）ので、FAIL が無くてもこの一覧は読む。
+- バージョン番号は目印にならない。#992 はマイナー上げ（1.1275.92 → 1.1276.0）で入った。
+- 新しいファイルを取得し始めたら、`WFCD_ITEMS_FILES` に足す。
+
 ## コードオーナー
 
 `ts/server/engine.ts`（DAG探索・Next Action導出）と `ts/server/model.ts`（flat DAGの型定義）は

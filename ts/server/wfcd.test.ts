@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { cacheStatus, cachedItemsFull, cachedJSON, findSyndicateWeaponRank, isRelicVaulted, lookupI18nName, refreshCache, type SyndicateEntry } from "./wfcd.ts";
+import { cacheStatus, cachedItemsFull, cachedJSON, findSyndicateWeaponRank, isRelicVaulted, lookupI18nName, refreshCache, WFCD_ITEMS_REF, wfcdItemsURL, type SyndicateEntry } from "./wfcd.ts";
 
 test("isRelicVaulted: normalizes refinement suffix and 'Relic' suffix before lookup", () => {
   const active = new Set(["Axi A22", "Meso B2"]);
@@ -47,6 +47,8 @@ afterEach(async () => {
 
 test("cacheStatus: nothing fetched yet", async () => {
   const st = await cacheStatus(cacheDir);
+  expect(st.ref).toBe(WFCD_ITEMS_REF);
+  expect(st.shapeError).toBeNull();
   expect(st.files).toBe(0);
   expect(st.asOf).toBeNull();
   expect(st.newest).toBeNull();
@@ -144,4 +146,26 @@ test("lookupI18nName: reads the per-language file shape", async () => {
 
 test("lookupI18nName: rejects a lang that isn't a language code", async () => {
   await expect(lookupI18nName(cacheDir, BP, "../Warframes-full")).rejects.toThrow("invalid lang");
+});
+
+test("wfcdItemsURL: pinned to the tag, never master", () => {
+  expect(WFCD_ITEMS_REF).toMatch(/^v\d+\.\d+\.\d+$/);
+  expect(wfcdItemsURL("Warframes.json")).toBe(`https://raw.githubusercontent.com/WFCD/warframe-items/${WFCD_ITEMS_REF}/data/json/Warframes.json`);
+});
+
+test("a file failing its shape check is not cached, and shows in cacheStatus until the next refresh", async () => {
+  const realFetch = globalThis.fetch;
+  // The pre-#992 i18n shape, served where the per-language file is expected.
+  globalThis.fetch = (async () => Response.json({ "/a": { ja: { name: "ライノ" } } })) as unknown as typeof fetch;
+  try {
+    await expect(lookupI18nName(cacheDir, "/a", "ja")).rejects.toThrow("WFCD i18n/ja.json");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  const st = await cacheStatus(cacheDir);
+  expect(st.shapeError?.file).toBe("i18n/ja.json");
+  expect(st.files).toBe(0); // nothing written for the failed file
+
+  await refreshCache(cacheDir);
+  expect((await cacheStatus(cacheDir)).shapeError).toBeNull();
 });

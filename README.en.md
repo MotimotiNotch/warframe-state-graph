@@ -90,6 +90,8 @@ saving a file and reloading the browser is enough to see the latest version).
 - **Chain View** (`/`): dependency graph display/drill-down/one-tap toggling, WFCD auto node generation (frames/weapons/quests/syndicates, etc.)
 
 Every page shows when the external data was fetched (`WFCD Sep 1, 2026`) to the left of its refresh button. Relic Vault status is inferred from a relic being *absent* from the drop tables, so stale data surfaces as a wrong answer rather than a missing one — the reading is there to tell the two apart.
+
+Item data (frames, weapons, ...; WFCD warframe-items) is pinned to a fixed version per app release (hover the reading to see it). That keeps an unannounced format change upstream from silently changing what gets imported; the trade-off is that **items added by a game update can't be imported until the app is updated**. Drop tables, Varzia's stock and syndicate rewards are still fetched at their latest.
 - **Loadouts** (`/loadouts.html`): mod configs (A/B/C, single config for companions) and build-set management for frames/weapons/companions
 - **Collections** (`/collections.html`): Riven / Kuva·Tenet·Coda weapon acquisition log, frame ownership status, Duviri progress
 - **Standing** (`/standing.html`): current rank / highest-reached tracking across 18 syndicates (the 6 major syndicates + 12 open-world etc.)
