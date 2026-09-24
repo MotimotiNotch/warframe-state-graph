@@ -78,15 +78,23 @@ let lastShapeError: { file: string; message: string; at: string } | null = null;
 async function fetchChecked<T>(file: string, check: (file: string, data: unknown) => void): Promise<T> {
   const url = wfcdItemsURL(file);
   const res = await fetch(url);
+  // A 404 at a tag means the file moved, which is a format change too: that
+  // is how #992's i18n.json split first showed up.
+  if (res.status === 404) return recordShapeError(new ShapeError(file, `not found at ${WFCD_ITEMS_REF} (404)`));
   if (!res.ok) throw new Error(`fetch ${url}: status ${res.status}`);
   const data: unknown = await res.json();
   try {
     check(file, data);
   } catch (err) {
-    if (err instanceof ShapeError) lastShapeError = { file, message: err.message, at: new Date().toISOString() };
+    if (err instanceof ShapeError) recordShapeError(err);
     throw err;
   }
   return data as T;
+}
+
+function recordShapeError(err: ShapeError): never {
+  lastShapeError = { file: err.file, message: err.message, at: new Date().toISOString() };
+  throw err;
 }
 
 async function fetchNames(category: string): Promise<string[]> {
