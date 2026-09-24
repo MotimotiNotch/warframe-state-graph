@@ -9,7 +9,11 @@
 // classifyParadigm(), from seeded temporary caches) and lists every item
 // whose paradigm or part names change. Read that list before bumping.
 //
-// Exits 1 if any file fails its shape check.
+// Exit codes (the wfcd-watch workflow opens an Issue on 1 or 2):
+//   0  nothing that affects this app — at most new items
+//   1  a file failed its shape check
+//   2  existing items would be generated differently (paradigm / part
+//      names) or disappeared
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -105,8 +109,7 @@ console.log(`\nwhat changes: ${oldRef} -> ${newRef}`);
 const before = await build((await checkRef(oldRef)).items);
 const after = await build(target.items);
 
-console.log(`
-compared ${before.size} -> ${after.size} items (${WIZARD_CATEGORIES.join(", ")})`);
+console.log(`\ncompared ${before.size} -> ${after.size} items (${WIZARD_CATEGORIES.join(", ")})`);
 const added = [...after.keys()].filter((k) => !before.has(k)).map((k) => after.get(k)!.name);
 const removed = [...before.keys()].filter((k) => !after.has(k)).map((k) => before.get(k)!.name);
 const paradigm: string[] = [];
@@ -125,3 +128,10 @@ section("new items", added);
 section("removed items", removed);
 section("paradigm changed (these would be generated differently)", paradigm);
 section("part names changed (existing nodes are matched by name)", parts);
+
+// New items alone are what a bump is for; anything touching existing items
+// is the kind of upstream change #992 was.
+if (removed.length > 0 || paradigm.length > 0 || parts.length > 0) {
+  console.log(`\nexisting items change: read the lists above before bumping to ${newRef}.`);
+  process.exit(2);
+}

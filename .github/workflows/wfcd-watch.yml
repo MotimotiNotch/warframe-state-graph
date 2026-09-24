@@ -1,0 +1,97 @@
+name: WFCD watch
+
+# Item data is pinned to a warframe-items tag (WFCD_ITEMS_REF in
+# ts/server/wfcd.ts), so an upstream format change never reaches the app on
+# its own — and nothing would tell us it happened either (Issue #19). This
+# runs check:wfcd against the latest tag and opens an Issue only when the
+# change would affect this app: a file failing its shape check (exit 1) or
+# existing items generated differently (exit 2). New items alone stay quiet.
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    name: Check the latest warframe-items tag
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LABEL: wfcd-upstream
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+
+      - name: Install dependencies
+        working-directory: ts
+        run: bun install --frozen-lockfile
+
+      - name: Compare the pinned tag with the latest
+        id: check
+        run: |
+          pinned=$(sed -n 's/^export const WFCD_ITEMS_REF = "\(.*\)";$/\1/p' ts/server/wfcd.ts)
+          [ -n "$pinned" ] || { echo "WFCD_ITEMS_REF not found in ts/server/wfcd.ts"; exit 1; }
+          latest=$(gh api repos/WFCD/warframe-items/releases/latest --jq .tag_name)
+          echo "pinned=$pinned latest=$latest"
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$pinned" = "$latest" ]; then
+            echo "result=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          set +e
+          (cd ts && bun scripts/check-wfcd.ts "$latest") > report.txt 2>&1
+          code=$?
+          set -e
+          cat report.txt
+          echo "result=$code" >> "$GITHUB_OUTPUT"
+          # 0/1/2 are verdicts; anything else means the script itself broke.
+          if [ "$code" -gt 2 ]; then exit "$code"; fi
+
+      - name: Report on an Issue
+        if: steps.check.outputs.result == '1' || steps.check.outputs.result == '2'
+        env:
+          PINNED: ${{ steps.check.outputs.pinned }}
+          LATEST: ${{ steps.check.outputs.latest }}
+          RESULT: ${{ steps.check.outputs.result }}
+        run: |
+          if [ "$RESULT" = "1" ]; then
+            verdict="形の検査で FAIL が出た。アプリ側の対応が済むまで \`WFCD_ITEMS_REF\` を上げない。"
+          else
+            verdict="既存アイテムの分類かパーツ名が変わる（または消える）。一覧を読んでから上げるか決める。"
+          fi
+          {
+            echo "warframe-items \`$LATEST\`（固定中: \`$PINNED\`）: $verdict"
+            echo
+            echo "手順は CONTRIBUTING の「WFCD データの版を上げる」。実行: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '```'
+            head -c 60000 report.txt
+            echo '```'
+          } > body.md
+
+          # One open thread per unresolved upstream change: a later tag that
+          # still trips the check is added to it rather than opening another,
+          # and the title moves to that tag so next week's run (same latest
+          # tag) sees it as covered instead of commenting again.
+          title="WFCD $LATEST: このツールに影響する変更"
+          open=$(gh issue list --state open --label "$LABEL" --json number,title --jq '.[] | "\(.number)\t\(.title)"')
+          if printf '%s\n' "$open" | grep -qF "WFCD $LATEST:"; then
+            echo "an open Issue already covers $LATEST"
+          elif [ -n "$open" ]; then
+            number=$(printf '%s\n' "$open" | head -n1 | cut -f1)
+            gh issue comment "$number" --body-file body.md
+            gh issue edit "$number" --title "$title"
+          else
+            gh issue create --title "$title" --label "$LABEL" --body-file body.md
+          fi
