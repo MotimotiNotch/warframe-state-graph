@@ -55,7 +55,7 @@ const AS_OF: Record<Locale, AsOfStrings> = {
     tipNever: "外部データ（WFCD {ref}）はまだ取得していません。必要になった時点で自動的に取得されます。",
     shapeError: "取り込みエラー",
     tipShapeError:
-      "外部データ（WFCD {ref}）の {file} が想定と違う形だったため、取り込めませんでした。このファイルを使う機能は動きません。" +
+      "外部データ（WFCD {ref}）の {file} が見つからないか、想定と違う形だったため、取り込めませんでした。このファイルを使う機能は動きません。" +
       "アプリ側の対応が必要です（詳細: {message}）",
   },
   en: {
@@ -69,7 +69,7 @@ const AS_OF: Record<Locale, AsOfStrings> = {
     tipNever: "External (WFCD {ref}) data hasn't been fetched yet. It is fetched automatically the first time it is needed.",
     shapeError: "import error",
     tipShapeError:
-      "{file} from the external (WFCD {ref}) data didn't have the expected shape, so it wasn't imported. Features that use it won't work " +
+      "{file} from the external (WFCD {ref}) data was missing or didn't have the expected shape, so it wasn't imported. Features that use it won't work " +
       "until the app is updated (detail: {message})",
   },
 };

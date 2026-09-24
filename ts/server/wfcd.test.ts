@@ -169,3 +169,14 @@ test("a file failing its shape check is not cached, and shows in cacheStatus unt
   await refreshCache(cacheDir);
   expect((await cacheStatus(cacheDir)).shapeError).toBeNull();
 });
+
+test("a file missing at the pinned tag (404) counts as a shape error too", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("404: Not Found", { status: 404 })) as unknown as typeof fetch;
+  try {
+    await expect(lookupI18nName(cacheDir, "/a", "ja")).rejects.toThrow("not found at");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  expect((await cacheStatus(cacheDir)).shapeError?.file).toBe("i18n/ja.json");
+});
