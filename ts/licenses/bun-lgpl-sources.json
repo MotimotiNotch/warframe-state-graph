@@ -1,0 +1,6 @@
+{
+  "_comment": "LGPL components statically linked into the Bun runtime that the release exe embeds, pinned per Bun version. When bun-version in .github/workflows/release.yml changes, update every field from oven-sh/bun at the new tag: scripts/build/deps/webkit.ts (WEBKIT_VERSION) and scripts/build/deps/tinycc.ts (TINYCC_COMMIT).",
+  "bun": "1.4.0",
+  "webkit": "0f966e81b78c84bb23213e391bc679c4ef83e56b",
+  "tinycc": "05f0fafaa3be31e31d7b4b5c17dc60f62c991171"
+}
