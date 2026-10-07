@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { CodedError } from "./coded-error.ts";
 import { GraphStore } from "./store.ts";
 import type { Node } from "./model.ts";
 
@@ -291,4 +292,22 @@ test("reparentNode then detachNode round-trips back to a fully independent node 
   g = await store.load();
   expect(g.nodes["b"]!.contains).toEqual([]);
   expect(g.nodes["a"]!.type).toBe("Goal");
+});
+
+// reparent/detach failures carry a code the UI words in the user's language (#26).
+test("reparentNode / detachNode: failures carry stable error codes", async () => {
+  const store = new GraphStore(path.join(tmpDir, "graph.json"));
+  await store.upsertNodes([node("a", "A"), { ...node("b", "B"), contains: ["c"] }, node("c", "C")]);
+  const codeOf = async (p: Promise<unknown>) => {
+    try {
+      await p;
+    } catch (err) {
+      return { code: (err as CodedError).code, params: (err as CodedError).params };
+    }
+    return undefined;
+  };
+  expect(await codeOf(store.detachNode("missing"))).toEqual({ code: "node.notFound", params: { id: "missing" } });
+  expect(await codeOf(store.reparentNode("a", "missing", "contains"))).toEqual({ code: "reparent.targetNotFound", params: { id: "missing" } });
+  expect(await codeOf(store.reparentNode("a", "a", "contains"))).toEqual({ code: "reparent.self", params: {} });
+  expect(await codeOf(store.reparentNode("b", "c", "contains"))).toEqual({ code: "reparent.intoDescendant", params: {} });
 });

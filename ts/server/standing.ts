@@ -25,7 +25,9 @@ export const SyndicateInfoSchema = z.object({
   faction: Faction,
   ranks: z.array(z.string()),
   sacrifices: z.array(RankSacrificeSchema),
-  note: z.string().optional(),
+  // Shown on the Standing page in the user's language, so both are required:
+  // a note written in only one language fails the type check (#26).
+  note: z.object({ ja: z.string(), en: z.string() }).optional(),
 });
 export type SyndicateInfo = z.infer<typeof SyndicateInfoSchema>;
 
@@ -105,7 +107,7 @@ export const EXTENDED_SYNDICATES: SyndicateInfo[] = [
       sac("Shelter Debt-Bond×3", "Medical Debt-Bond×4", "Advances Debt-Bond×5"),
       sac("Medical Debt-Bond×3", "Advances Debt-Bond×5", "Familial Debt-Bond×5"),
     ],
-    note: "1ランクにつき複数種の負債証書(Debt-Bond)を同時消費する。公式Wiki（wiki.warframe.com/w/Debt-Bond）のランク別テーブルに各証書種別の合計行（Training6/Shelter9/Medical11/Advances10/Familial5）が付記されており、ここに掲載した各ランクの個数を合算するとその合計と一致することを確認済み（2026-08-22、WebFetch調査でその場での新規消費量と確定）",
+    note: { ja: "1ランクにつき複数種の負債証書(Debt-Bond)を同時消費する。公式Wiki（wiki.warframe.com/w/Debt-Bond）のランク別テーブルに各証書種別の合計行（Training6/Shelter9/Medical11/Advances10/Familial5）が付記されており、ここに掲載した各ランクの個数を合算するとその合計と一致することを確認済み（2026-08-22、WebFetch調査でその場での新規消費量と確定）", en: "Each rank consumes several kinds of Debt-Bonds at once. The per-rank table on the official wiki (wiki.warframe.com/w/Debt-Bond) gives a total for each bond type (Training 6 / Shelter 9 / Medical 11 / Advances 10 / Familial 5), and the per-rank counts listed here add up to those totals (checked 2026-08-22; they are the amounts newly consumed at each rank)." },
   },
   {
     name: "Vox Solaris",
@@ -124,7 +126,7 @@ export const EXTENDED_SYNDICATES: SyndicateInfo[] = [
     faction: "none",
     ranks: ["Glinty", "Whozit", "Proper Felon", "Primo", "Logical"],
     sacrifices: [noSacrifice, noSacrifice, noSacrifice, noSacrifice, noSacrifice],
-    note: "貢献アイテムを消費しない。K-Driveのトリック/レースで稼いだStandingのみで昇格する",
+    note: { ja: "貢献アイテムを消費しない。K-Driveのトリック/レースで稼いだStandingのみで昇格する", en: "Does not consume any sacrifice items. Ranks go up on Standing earned from K-Drive tricks and races alone." },
   },
   {
     name: "Entrati",
@@ -147,21 +149,21 @@ export const EXTENDED_SYNDICATES: SyndicateInfo[] = [
       sac("Orokin Ballistics Matrix×15", "Void Traces×250", "Sepulcrum Barrel Blueprint×1", "Father Token×20"),
       sac("Orokin Animus Matrix×15", "Void Traces×350", "Trumna Barrel Blueprint×1", "Father Token×20"),
     ],
-    note: "Orokinマトリクス自体もStandingを付与する特殊なアイテム",
+    note: { ja: "Orokinマトリクス自体もStandingを付与する特殊なアイテム", en: "Orokin Matrices are a special item that also grant Standing themselves." },
   },
   {
     name: "Kahl's Garrison",
     faction: "none",
     ranks: ["Shelter", "Encampment", "Fort", "Settlement", "Home"],
     sacrifices: [noSacrifice, noSacrifice, noSacrifice, noSacrifice, noSacrifice],
-    note: "Standingという概念自体を使わない。週次ミッション「Kahl's Break」の完了で自動的にランクが進む（シンジケート端末にも表示されない）",
+    note: { ja: "Standingという概念自体を使わない。週次ミッション「Kahl's Break」の完了で自動的にランクが進む（シンジケート端末にも表示されない）", en: "Does not use Standing at all. The rank advances automatically when you complete the weekly mission \"Kahl's Break\" (it does not appear at the syndicate terminals either)." },
   },
   {
     name: "Operational Supply",
     faction: "none",
     ranks: ["Collaborator", "Defender", "Champion"],
     sacrifices: [sac("Grokdrul×10"), sac("Iradite×10"), sac("Nistlepod×10")],
-    note: "Operation: Plague Star開催期間中のみ有効なイベント専用シンジケート",
+    note: { ja: "Operation: Plague Star開催期間中のみ有効なイベント専用シンジケート", en: "An event-only syndicate, active only while Operation: Plague Star is running." },
   },
   {
     name: "The Holdfasts",
@@ -231,7 +233,7 @@ export const EXTENDED_SYNDICATES: SyndicateInfo[] = [
         "35mm Film×1",
       ),
     ],
-    note: "ランク4は素材に加えて、KIMでメンバー6人全員と一定の親密度に達し、該当クエストのフィナーレをクリアしている必要がある",
+    note: { ja: "ランク4は素材に加えて、KIMでメンバー6人全員と一定の親密度に達し、該当クエストのフィナーレをクリアしている必要がある", en: "Besides the materials, Rank 4 also requires reaching a certain friendship level with all six members over KIM, and having cleared the finale of the related quest." },
   },
 ];
 

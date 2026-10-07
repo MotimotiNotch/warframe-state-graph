@@ -157,3 +157,24 @@ test("error position points at the offending token", () => {
   expect(errors).toHaveLength(1);
   expect(errors[0]!.pos).toBe("A -> B -> ".length);
 });
+
+// The UI words parser errors from `code` in the user's language (#26), so
+// each kind of failure has to come back with its own stable code.
+test.each([
+  ["", "empty"],
+  ["->", "identAtStart"],
+  ["A -> []", "identAfterBracket"],
+  ["A ->", "afterArrow"],
+  ["A -> [B -> C", "unclosedBracket"],
+  ["A -> B,", "afterComma"],
+  ["A ]", "unexpectedToken"],
+] as const)("error code for %p is %p", (input, code) => {
+  const { errors } = parseDsl(input);
+  expect(errors).toHaveLength(1);
+  expect(errors[0]!.code).toBe(code);
+});
+
+test("unexpectedToken carries the token so the UI can quote it (#26)", () => {
+  const { errors } = parseDsl("A ]");
+  expect(errors[0]!.params).toEqual({ token: "]" });
+});

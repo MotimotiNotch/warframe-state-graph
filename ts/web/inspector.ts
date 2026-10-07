@@ -5,6 +5,7 @@ import { gameIcon, icon, iconLabel } from "./icons.ts";
 import { STATE_COLOR, loadReport, refreshGraph, state, stateLabel } from "./graph-state.ts";
 import { refreshSidebar } from "./build-sidebar.ts";
 import { nodeTypeLabel, openNodeModal } from "./node-modal.ts";
+import type { CodedErrorBody } from "../server/coded-error.ts";
 import type { Counter } from "../server/model.ts";
 import { createLiveEditor } from "./notemd.ts";
 import { nodeDisplayName } from "./quest-i18n.ts";
@@ -37,6 +38,8 @@ interface InspectorStrings {
   addCountUp: string;
   cannotReparentToSelf: string;
   reparentFailed: (what: string, detail: string) => string;
+  /** Errors the server sends as a code (#26), worded per language. */
+  serverErrors: Record<string, (params: Record<string, string>) => string>;
   reparentWord: string;
   detachWord: string;
   reparented: (relation: string) => string;
@@ -83,6 +86,14 @@ const STRINGS: Record<"ja" | "en", InspectorStrings> = {
     addCountUp: "カウントアップを追加",
     cannotReparentToSelf: "自分自身へは付け替えできません",
     reparentFailed: (what, detail) => `${what}のに失敗しました${detail ? `：${detail}` : ""}`,
+    serverErrors: {
+      "node.notFound": (p) => `ノード「${p.id ?? ""}」が見つかりません`,
+      "reparent.targetNotFound": (p) => `移動先のノード「${p.id ?? ""}」が見つかりません`,
+      "reparent.self": () => "自分自身へは付け替えできません",
+      "reparent.intoDescendant": () => "自分の中身（子孫）の下へは付け替えできません（循環参照になります）",
+      "reparent.targetRequired": () => "移動先が指定されていません",
+      "reparent.badRelation": () => "付け替えの種類が正しくありません",
+    },
     reparentWord: "付け替え",
     detachWord: "独立させる",
     reparented: (relation) => `付け替えました（${relation}として）`,
@@ -136,6 +147,14 @@ const STRINGS: Record<"ja" | "en", InspectorStrings> = {
     addCountUp: "Add a counter",
     cannotReparentToSelf: "A node can't be re-linked to itself",
     reparentFailed: (what, detail) => `Failed to ${what}${detail ? `: ${detail}` : ""}`,
+    serverErrors: {
+      "node.notFound": (p) => `Node "${p.id ?? ""}" was not found`,
+      "reparent.targetNotFound": (p) => `Target node "${p.id ?? ""}" was not found`,
+      "reparent.self": () => "A node can't be re-linked to itself",
+      "reparent.intoDescendant": () => "A node can't be re-linked under its own contents (that would make a cycle)",
+      "reparent.targetRequired": () => "No target node was given",
+      "reparent.badRelation": () => "Unknown re-link type",
+    },
     reparentWord: "re-link",
     detachWord: "detach",
     reparented: (relation) => `Re-linked (as ${relation})`,
@@ -163,6 +182,20 @@ const STRINGS: Record<"ja" | "en", InspectorStrings> = {
     collectionsSuffix: (name, category) => `${name} (Collections ${category})`,
   },
 };
+
+/** The reason the server gave for a failed request, in the current language.
+ *  A coded error (JSON) is looked up in STRINGS; an unknown code falls back to
+ *  the server's own sentence, and a plain-text body is shown as-is. */
+async function serverErrorText(res: Response): Promise<string> {
+  const text = await res.text();
+  try {
+    const body = JSON.parse(text) as Partial<CodedErrorBody>;
+    if (typeof body.code === "string") return t().serverErrors[body.code]?.(body.params ?? {}) ?? body.message ?? text;
+  } catch {
+    /* not JSON: a plain-text error */
+  }
+  return text;
+}
 
 function t(): InspectorStrings {
   return STRINGS[effective()];
@@ -348,9 +381,9 @@ export function renderPanel(): void {
           })
         : await fetch(`/api/nodes/${encodeURIComponent(state.selected!)}/detach`, { method: "POST" });
       if (!res.ok) {
-        // サーバー側のエラー文言をそのまま表示（存在しないID、サイクルに
-        // なる付け替え等、理由ごとに変わるため固定文言にしない）。
-        const detail = await res.text();
+        // 理由（存在しないID、サイクルになる付け替え等）ごとに文言が変わる。
+        // サーバーはコードで返すので、ここで今の言語の文にする（#26）。
+        const detail = await serverErrorText(res);
         showToast(t().reparentFailed(targetId ? t().reparentWord : t().detachWord, detail));
         return;
       }

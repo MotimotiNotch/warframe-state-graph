@@ -14,6 +14,7 @@
 // anyway for an actual end-user run, not a test.
 
 import * as path from "node:path";
+import { CodedError, type CodedErrorBody } from "./coded-error.ts";
 import { initLogging, logError, logInfo, pruneOldLogs } from "./log.ts";
 import {
   ArchwingEntrySchema,
@@ -215,6 +216,12 @@ function errorResponse(err: unknown, status: number): Response {
   // Only 5xx — 4xx here is expected client-input rejection (bad JSON,
   // not-found lookups), not a bug worth cluttering the log with.
   if (status >= 500) logError("errorResponse", err);
+  // A coded error goes out as JSON so the UI can word it in the user's
+  // language (#26); anything else stays plain text as before.
+  if (err instanceof CodedError) {
+    const body: CodedErrorBody = { code: err.code, params: err.params, message };
+    return Response.json(body, { status });
+  }
   return new Response(message, { status });
 }
 
@@ -600,10 +607,10 @@ const server = Bun.serve({
         const targetId = (body as { targetId?: unknown } | null)?.targetId;
         const relation = (body as { relation?: unknown } | null)?.relation;
         if (typeof targetId !== "string" || !targetId) {
-          return new Response("targetId (string) is required", { status: 400 });
+          return errorResponse(new CodedError("reparent.targetRequired", "targetId (string) is required"), 400);
         }
         if (relation !== "requires" && relation !== "contains") {
-          return new Response('relation must be "requires" or "contains"', { status: 400 });
+          return errorResponse(new CodedError("reparent.badRelation", 'relation must be "requires" or "contains"'), 400);
         }
         try {
           return json(await graphStore.reparentNode(req.params.id, targetId, relation));
