@@ -3,6 +3,7 @@
 // this module is UI-only: textarea -> preview (nodes + errors + conflicts
 // with existing graph nodes) -> confirm -> import via the same
 // /api/wfcd/import endpoint the WFCD wizard uses (see wfcd-wizard.ts).
+import type { DslError, DslErrorCode } from "../server/dsl.ts";
 import type { Node } from "../server/model.ts";
 import { el } from "./dom.ts";
 import { dslAiPrompt } from "./dsl-help.ts";
@@ -19,6 +20,8 @@ interface DslStrings {
   parsing: string;
   parseFailed: string;
   syntaxError: (msg: string, pos: number) => string;
+  /** The parser's errors, worded here rather than on the server (#26). */
+  dslErrors: Record<DslErrorCode, (params: Record<string, string>) => string>;
   overwriteWarning: (names: string) => string;
   nameSep: string;
   requiresLabel: string;
@@ -39,6 +42,15 @@ const STRINGS: Record<"ja" | "en", DslStrings> = {
     parsing: "解析中…",
     parseFailed: "解析に失敗しました",
     syntaxError: (msg, pos) => `構文エラー: ${msg}（${pos}文字目付近）`,
+    dslErrors: {
+      empty: () => "入力が空です",
+      identAtStart: () => "式の先頭にはノード名が必要です",
+      identAfterBracket: () => "'[' の後にはノード名が必要です",
+      afterArrow: () => "'->' の後にノード名または '[' が必要です",
+      unclosedBracket: () => "']' が閉じられていません",
+      afterComma: () => "',' の後にノード名が必要です",
+      unexpectedToken: (p) => `予期しないトークン: '${p.token ?? ""}'`,
+    },
     overwriteWarning: (names) => `既存の同名ノードを上書きします（前提/中身（requires/contains）は新しい内容で置き換わります）: ${names}`,
     nameSep: "、",
     requiresLabel: "前提",
@@ -57,6 +69,15 @@ const STRINGS: Record<"ja" | "en", DslStrings> = {
     parsing: "Parsing…",
     parseFailed: "Parsing failed",
     syntaxError: (msg, pos) => `Syntax error: ${msg} (around character ${pos})`,
+    dslErrors: {
+      empty: () => "The input is empty",
+      identAtStart: () => "An expression must start with a node name",
+      identAfterBracket: () => "A node name is needed after '['",
+      afterArrow: () => "A node name or '[' is needed after '->'",
+      unclosedBracket: () => "']' is missing",
+      afterComma: () => "A node name is needed after ','",
+      unexpectedToken: (p) => `Unexpected token: '${p.token ?? ""}'`,
+    },
     overwriteWarning: (names) => `Existing nodes with the same name will be overwritten (their requires/contains are replaced with the new content): ${names}`,
     nameSep: ", ",
     requiresLabel: "Requires",
@@ -73,10 +94,12 @@ function t(): DslStrings {
   return STRINGS[effective()];
 }
 
-interface DslError {
-  message: string;
-  pos: number;
+/** Words a parser error in the current language from its code. Falls back to
+ *  the server's own sentence for a code this build doesn't know. */
+function dslErrorText(e: DslError): string {
+  return t().dslErrors[e.code]?.(e.params ?? {}) ?? e.message;
 }
+
 interface DslParseResponse {
   nodes: Node[];
   errors: DslError[];
@@ -140,7 +163,7 @@ el("dsl-preview-btn").addEventListener("click", async () => {
   const data = (await res.json()) as DslParseResponse;
   if (data.errors.length > 0) {
     preview.innerHTML = data.errors
-      .map((e) => `<div class="wfcd-part" style="border-color:var(--blocked);color:var(--blocked);">${t().syntaxError(e.message, e.pos)}</div>`)
+      .map((e) => `<div class="wfcd-part" style="border-color:var(--blocked);color:var(--blocked);">${t().syntaxError(dslErrorText(e), e.pos)}</div>`)
       .join("");
     return;
   }

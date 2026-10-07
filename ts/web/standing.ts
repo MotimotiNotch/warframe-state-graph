@@ -277,7 +277,7 @@ function sacrificeTable(s: SyndicateInfo, highest: number, current: number): str
       </tr>`;
     })
     .join("");
-  const note = s.note ? `<div class="syn-note">${escapeHtml(s.note)}</div>` : "";
+  const note = s.note ? `<div class="syn-note">${escapeHtml(s.note[effective()])}</div>` : "";
   const recovery =
     current < 0 ? `<div class="syn-recovery">${t().recoveryPrefix}${escapeHtml(recoverySacrifice(s))}</div>` : "";
   return `<table>${rows}</table>${note}${recovery}`;

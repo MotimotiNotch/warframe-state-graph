@@ -16,9 +16,22 @@
 import type { Node } from "./model.ts";
 
 export interface DslError {
+  /** A readable sentence (Japanese) for logs and tests. The UI words the error
+   *  from `code` + `params` instead, in the user's language (#26). */
   message: string;
   pos: number;
+  code: DslErrorCode;
+  params?: Record<string, string>;
 }
+
+export type DslErrorCode =
+  | "empty"
+  | "identAtStart"
+  | "identAfterBracket"
+  | "afterArrow"
+  | "unclosedBracket"
+  | "afterComma"
+  | "unexpectedToken";
 
 export interface DslParseResult {
   nodes: Node[];
@@ -82,9 +95,13 @@ function tokenize(input: string): Token[] {
 
 class DslSyntaxError extends Error {
   pos: number;
-  constructor(message: string, pos: number) {
+  code: DslErrorCode;
+  params?: Record<string, string>;
+  constructor(code: DslErrorCode, message: string, pos: number, params?: Record<string, string>) {
     super(message);
+    this.code = code;
     this.pos = pos;
+    if (params) this.params = params;
   }
 }
 
@@ -122,10 +139,10 @@ export function parseDsl(input: string): DslParseResult {
   const next = (): Token | undefined => tokens[pos++];
   const endPos = input.length;
 
-  function expectIdent(context: string): Token {
+  function expectIdent(code: "identAtStart" | "identAfterBracket", context: string): Token {
     const t = peek();
     if (!t || t.type !== "IDENT") {
-      throw new DslSyntaxError(`${context}にはノード名が必要です`, t?.pos ?? endPos);
+      throw new DslSyntaxError(code, `${context}にはノード名が必要です`, t?.pos ?? endPos);
     }
     next();
     return t;
@@ -140,7 +157,7 @@ export function parseDsl(input: string): DslParseResult {
     while (peek()?.type === "ARROW") {
       next();
       const t = peek();
-      if (!t) throw new DslSyntaxError("'->' の後にノード名または '[' が必要です", endPos);
+      if (!t) throw new DslSyntaxError("afterArrow", "'->' の後にノード名または '[' が必要です", endPos);
       if (t.type === "IDENT") {
         next();
         const target = getOrCreateNode(t.value);
@@ -148,25 +165,25 @@ export function parseDsl(input: string): DslParseResult {
         current = target;
       } else if (t.type === "LBRACKET") {
         next();
-        const innerFirstTok = expectIdent("'['");
+        const innerFirstTok = expectIdent("identAfterBracket", "'['");
         const innerFirst = getOrCreateNode(innerFirstTok.value);
         addContains(current, innerFirst.id);
         continueChain(innerFirst);
         const close = peek();
         if (!close || close.type !== "RBRACKET") {
-          throw new DslSyntaxError("']' が閉じられていません", close?.pos ?? endPos);
+          throw new DslSyntaxError("unclosedBracket", "']' が閉じられていません", close?.pos ?? endPos);
         }
         next();
         // current stays startNode's own current — a bracket is a side
         // branch, not a continuation of the requires-chain.
       } else {
-        throw new DslSyntaxError("'->' の後にノード名または '[' が必要です", t.pos);
+        throw new DslSyntaxError("afterArrow", "'->' の後にノード名または '[' が必要です", t.pos);
       }
     }
   }
 
   function parseChain(): void {
-    const first = expectIdent("式の先頭");
+    const first = expectIdent("identAtStart", "式の先頭");
     const node = getOrCreateNode(first.value);
     continueChain(node);
   }
@@ -174,22 +191,22 @@ export function parseDsl(input: string): DslParseResult {
   const errors: DslError[] = [];
   try {
     if (tokens.length === 0) {
-      throw new DslSyntaxError("入力が空です", 0);
+      throw new DslSyntaxError("empty", "入力が空です", 0);
     }
     parseChain();
     while (peek()) {
       const t = peek()!;
       if (t.type === "COMMA") {
         next();
-        if (!peek()) throw new DslSyntaxError("',' の後にノード名が必要です", endPos);
+        if (!peek()) throw new DslSyntaxError("afterComma", "',' の後にノード名が必要です", endPos);
         parseChain();
       } else {
-        throw new DslSyntaxError(`予期しないトークン: '${t.value}'`, t.pos);
+        throw new DslSyntaxError("unexpectedToken", `予期しないトークン: '${t.value}'`, t.pos, { token: t.value });
       }
     }
   } catch (err) {
     if (err instanceof DslSyntaxError) {
-      errors.push({ message: err.message, pos: err.pos });
+      errors.push({ message: err.message, pos: err.pos, code: err.code, ...(err.params ? { params: err.params } : {}) });
     } else {
       throw err;
     }

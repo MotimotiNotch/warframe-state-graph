@@ -2,6 +2,7 @@
 // the ToggleSatisfied entry point that invokes engine's cascades.
 
 import { AsyncMutex } from "./async-mutex.ts";
+import { CodedError } from "./coded-error.ts";
 import { cascadeSatisfyContainsParents, cascadeSatisfyRequires, cascadeUnsatisfyDependents } from "./engine.ts";
 import { CURRENT_SCHEMA_VERSION, GraphSchema, newGraph, type Counter, type Graph, type Node } from "./model.ts";
 import { loadJSON, saveJSON, NotFoundError } from "./persist.ts";
@@ -147,12 +148,12 @@ export class GraphStore {
     return this.#mutex.run(async () => {
       const g = await this.#loadLocked();
       const n = g.nodes[id];
-      if (!n) throw new Error(`ノード "${id}" が見つかりません`);
+      if (!n) throw new CodedError("node.notFound", `ノード "${id}" が見つかりません`, { id });
       const target = g.nodes[targetId];
-      if (!target) throw new Error(`移動先ノード "${targetId}" が見つかりません`);
-      if (targetId === id) throw new Error("自分自身へは付け替えできません");
+      if (!target) throw new CodedError("reparent.targetNotFound", `移動先ノード "${targetId}" が見つかりません`, { id: targetId });
+      if (targetId === id) throw new CodedError("reparent.self", "自分自身へは付け替えできません");
       if (isDescendant(g, id, targetId)) {
-        throw new Error("自分の中身（子孫）の下へは付け替えできません（循環参照になります）");
+        throw new CodedError("reparent.intoDescendant", "自分の中身（子孫）の下へは付け替えできません（循環参照になります）");
       }
       for (const other of Object.values(g.nodes)) {
         other.requires = other.requires.filter((x) => x !== id);
@@ -179,7 +180,7 @@ export class GraphStore {
     return this.#mutex.run(async () => {
       const g = await this.#loadLocked();
       const n = g.nodes[id];
-      if (!n) throw new Error(`ノード "${id}" が見つかりません`);
+      if (!n) throw new CodedError("node.notFound", `ノード "${id}" が見つかりません`, { id });
       for (const other of Object.values(g.nodes)) {
         other.requires = other.requires.filter((x) => x !== id);
         other.contains = other.contains.filter((x) => x !== id);
