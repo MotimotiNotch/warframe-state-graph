@@ -5,7 +5,7 @@
 
 import { el } from "./dom.ts";
 import { icon } from "./icons.ts";
-import { effective } from "./locale.ts";
+import { effective, onLocaleChange } from "./locale.ts";
 
 const SIDEBAR_TOGGLE_TITLE: Record<"ja" | "en", { show: string; hide: string }> = {
   ja: { show: "目標一覧を表示", hide: "目標一覧を隠す" },
@@ -150,6 +150,10 @@ function applySidebarCollapsed(collapsed: boolean): void {
   } else if (!MOBILE_MQ.matches) {
     restorePanelWidths();
   }
+  renderSidebarToggle(collapsed);
+}
+
+function renderSidebarToggle(collapsed: boolean): void {
   const btn = el("sidebar-toggle-btn");
   btn.innerHTML = icon(collapsed ? "panel-left-open" : "panel-left-close");
   btn.title = collapsed ? SIDEBAR_TOGGLE_TITLE[effective()].show : SIDEBAR_TOGGLE_TITLE[effective()].hide;
@@ -163,6 +167,11 @@ function wireSidebarToggle(): void {
     applySidebarCollapsed(next);
     saveWidths({ folderCollapsed: next });
   });
+  // The title used to be written only when the sidebar was toggled, so it
+  // stayed in the old language after a switch until the next toggle (#27).
+  // Re-render just the button — applySidebarCollapsed() also restores panel
+  // widths, which a language switch has no business touching.
+  onLocaleChange(() => renderSidebarToggle(el("folder-col").classList.contains("collapsed")));
 }
 
 export function initResizer(): void {
