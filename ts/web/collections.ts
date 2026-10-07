@@ -65,6 +65,7 @@ interface UIStrings {
   rivenNewTitle: string;
   enterWeaponName: string;
   bulkAdded: string;
+  bulkSkippedDup: string;
   emptyRegistry: string;
   fixedTitle: string;
   rerollingTitle: string;
@@ -195,6 +196,7 @@ const STRINGS: Record<"ja" | "en", UIStrings> = {
     rivenNewTitle: "Riven 新規登録",
     enterWeaponName: "対象武器名を入力して",
     bulkAdded: "件追加しました（最新:",
+    bulkSkippedDup: "既に登録済みのためスキップ:",
     emptyRegistry: "まだ登録がありません（見出し横の＋から登録できます）",
     fixedTitle: "確定",
     rerollingTitle: "リロール中",
@@ -329,6 +331,7 @@ const STRINGS: Record<"ja" | "en", UIStrings> = {
     rivenNewTitle: "Register a Riven",
     enterWeaponName: "Enter the target weapon's name",
     bulkAdded: " added (latest:",
+    bulkSkippedDup: "Already registered, skipped:",
     emptyRegistry: "Nothing registered yet (use the + next to the heading)",
     fixedTitle: "Finalized",
     rerollingTitle: "Rerolling",
@@ -1518,7 +1521,7 @@ el("frame-modal-save").addEventListener("click", () => {
     // On a name collision during bulk registration, skip instead of
     // creating a duplicate, and prompt the next input.
     const fb = el("frame-bulk-feedback");
-    fb.textContent = `既に登録済みのためスキップ: ${dup.name}`;
+    fb.textContent = `${t().bulkSkippedDup} ${dup.name}`;
     fb.classList.remove("hidden");
     const nameInput = el<HTMLInputElement>("frame-name-input");
     nameInput.value = "";
@@ -1699,7 +1702,7 @@ function equipSave(kind: EquipKind): void {
 
   if (dup && bulk) {
     const fb = el(`${kind}-bulk-feedback`);
-    fb.textContent = `既に登録済みのためスキップ: ${dup.name}`;
+    fb.textContent = `${t().bulkSkippedDup} ${dup.name}`;
     fb.classList.remove("hidden");
     const nameInput = el<HTMLInputElement>(`${kind}-name-input`);
     nameInput.value = "";

@@ -35,6 +35,13 @@ export function effective(): Locale {
 
 const CHANGE_EVENT = "warframe-state-graph:locale-changed";
 
+// Every page's HTML ships `<html lang="ja">`, and setLocale() below only
+// rewrites it when the language is switched. A page opened in English (saved
+// choice or an English browser) kept lang="ja" — screen readers then read the
+// English UI with a Japanese voice, and CJK glyph selection follows lang (#27).
+// Every page bundles this module, so applying it once at load covers them all.
+if (typeof document !== "undefined") document.documentElement.setAttribute("lang", effective());
+
 export function setLocale(locale: Locale): void {
   try {
     localStorage.setItem(KEY, locale);
