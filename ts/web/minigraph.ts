@@ -32,7 +32,7 @@ const STYLE = `
     .minigraph-hit { cursor: pointer; }
     #minigraph-tip {
       position: fixed; z-index: 500; pointer-events: none;
-      background: var(--panel, #1b1e27); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
+      background: var(--popover-bg, rgba(20, 22, 28, 0.94)); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur));
       border: 1px solid var(--border, #2a2e3a); border-radius: 8px;
       padding: 4px 8px; font-size: 0.75rem; color: var(--text, #e4e6ec);
       box-shadow: 0 6px 16px rgba(0,0,0,0.35); white-space: nowrap;
