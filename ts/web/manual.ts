@@ -442,12 +442,14 @@ const MANUAL_TOPICS: ManualTopic[] = [
         <li>このツールは MIT ライセンスです</li>
         <li>アイコン: <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer">Lucide</a>（ISC）、<a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a> の「<a href="https://game-icons.net/1x1/lorc/padlock.html" target="_blank" rel="noopener noreferrer">Padlock</a>」「<a href="https://game-icons.net/1x1/lorc/hourglass.html" target="_blank" rel="noopener noreferrer">Hourglass</a>」（いずれも Lorc 作、<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0</a>、色をテーマに合わせて描画）</li>
         <li>実行環境: <a href="https://bun.com" target="_blank" rel="noopener noreferrer">Bun</a>（MIT、静的リンクしているライブラリを含む）。データの検証に <a href="https://zod.dev" target="_blank" rel="noopener noreferrer">zod</a>（MIT）</li>
+        <li>Bun に含まれる <a href="https://github.com/oven-sh/WebKit" target="_blank" rel="noopener noreferrer">JavaScriptCore / WebKit</a>（Copyright © Apple Inc. ほか）は GNU LGPL 2.0、tinycc は GNU LGPL 2.1 です。ソースの入手先と、改変したライブラリで作り直す手順は <code>THIRD_PARTY_LICENSES.txt</code> にあります</li>
         <li>それぞれのライセンス本文は、exe と同じフォルダの <code>THIRD_PARTY_LICENSES.txt</code> にあります</li>
       </ul>`,
       en: `<ul>
         <li>This tool is MIT licensed</li>
         <li>Icons: <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer">Lucide</a> (ISC), and "<a href="https://game-icons.net/1x1/lorc/padlock.html" target="_blank" rel="noopener noreferrer">Padlock</a>" and "<a href="https://game-icons.net/1x1/lorc/hourglass.html" target="_blank" rel="noopener noreferrer">Hourglass</a>" by Lorc from <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a> (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0</a>, drawn in the theme's colors)</li>
         <li>Runtime: <a href="https://bun.com" target="_blank" rel="noopener noreferrer">Bun</a> (MIT, including the libraries it statically links). Data validation: <a href="https://zod.dev" target="_blank" rel="noopener noreferrer">zod</a> (MIT)</li>
+        <li><a href="https://github.com/oven-sh/WebKit" target="_blank" rel="noopener noreferrer">JavaScriptCore / WebKit</a> (Copyright © Apple Inc. and others), included in Bun, is under the GNU LGPL 2.0, and tinycc under the GNU LGPL 2.1. Where to get their source, and how to rebuild with a modified library, is in <code>THIRD_PARTY_LICENSES.txt</code></li>
         <li>The full license texts are in <code>THIRD_PARTY_LICENSES.txt</code>, next to the exe</li>
       </ul>`,
     },
