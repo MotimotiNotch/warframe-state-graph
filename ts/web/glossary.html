@@ -19,6 +19,8 @@
 </script>
 <style>
   :root {
+    /* ネイティブの部品（スクロールバー・フォーム）もテーマに合わせる（#24） */
+    color-scheme: dark;
     --bg: #12141a;
     --panel: rgba(27, 30, 39, 0.35);
     --border: #454b5c;
@@ -28,6 +30,7 @@
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
+      color-scheme: light;
       --bg: #f5f6f8;
       --panel: rgba(255, 255, 255, 0.4);
       --border: #aab0bd;
@@ -37,6 +40,7 @@
     }
   }
   :root[data-theme="light"] {
+    color-scheme: light;
     --bg: #f5f6f8;
     --panel: rgba(255, 255, 255, 0.4);
     --border: #aab0bd;
