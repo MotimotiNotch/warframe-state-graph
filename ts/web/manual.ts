@@ -432,6 +432,28 @@ const MANUAL_TOPICS: ManualTopic[] = [
     section: SECTION_OTHER,
   },
   {
+    // Attribution that the icon licenses require to be shown in the
+    // distributed work (game-icons.net is CC BY 3.0). The first-run modal is
+    // shown once, so this has to live somewhere the user can always reach (#28).
+    id: "credits",
+    title: { ja: "クレジット・ライセンス", en: "Credits and licenses" },
+    body: {
+      ja: `<ul>
+        <li>このツールは MIT ライセンスです</li>
+        <li>アイコン: <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer">Lucide</a>（ISC）、<a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a> の「<a href="https://game-icons.net/1x1/lorc/padlock.html" target="_blank" rel="noopener noreferrer">Padlock</a>」「<a href="https://game-icons.net/1x1/lorc/hourglass.html" target="_blank" rel="noopener noreferrer">Hourglass</a>」（いずれも Lorc 作、<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0</a>、色をテーマに合わせて描画）</li>
+        <li>実行環境: <a href="https://bun.com" target="_blank" rel="noopener noreferrer">Bun</a>（MIT、静的リンクしているライブラリを含む）。データの検証に <a href="https://zod.dev" target="_blank" rel="noopener noreferrer">zod</a>（MIT）</li>
+        <li>それぞれのライセンス本文は、exe と同じフォルダの <code>THIRD_PARTY_LICENSES.txt</code> にあります</li>
+      </ul>`,
+      en: `<ul>
+        <li>This tool is MIT licensed</li>
+        <li>Icons: <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer">Lucide</a> (ISC), and "<a href="https://game-icons.net/1x1/lorc/padlock.html" target="_blank" rel="noopener noreferrer">Padlock</a>" and "<a href="https://game-icons.net/1x1/lorc/hourglass.html" target="_blank" rel="noopener noreferrer">Hourglass</a>" by Lorc from <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a> (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0</a>, drawn in the theme's colors)</li>
+        <li>Runtime: <a href="https://bun.com" target="_blank" rel="noopener noreferrer">Bun</a> (MIT, including the libraries it statically links). Data validation: <a href="https://zod.dev" target="_blank" rel="noopener noreferrer">zod</a> (MIT)</li>
+        <li>The full license texts are in <code>THIRD_PARTY_LICENSES.txt</code>, next to the exe</li>
+      </ul>`,
+    },
+    section: SECTION_OTHER,
+  },
+  {
     id: "easter-egg",
     title: { ja: "おまけ", en: "One more thing" },
     body: {

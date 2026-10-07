@@ -61,6 +61,12 @@ jobs:
           # only the real 7-face group remains. See scripts/fix-windows-icon.ts.
           bun run scripts/fix-windows-icon.ts ./dist/warframe-state-graph.exe ./assets/app-icon.ico
 
+      - name: Generate third-party notices
+        # The exe embeds the Bun runtime, zod and two icon sets, whose licenses
+        # require their notices to travel with the binary (#28). Regenerated
+        # here so the zip always matches what this build bundles.
+        run: bun run licenses
+
       - name: Package into a dedicated folder
         # A bare .exe tends to end up loose in Downloads/Desktop, where the
         # data/ folder it creates on first save looks like a mystery item
@@ -74,6 +80,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path package/WarframeStateGraph | Out-Null
           Copy-Item dist/warframe-state-graph.exe package/WarframeStateGraph/warframe-state-graph.exe
           Copy-Item assets/release-readme.txt package/WarframeStateGraph/README.txt
+          Copy-Item ../LICENSE package/WarframeStateGraph/LICENSE.txt
+          Copy-Item licenses/THIRD_PARTY_LICENSES.txt package/WarframeStateGraph/THIRD_PARTY_LICENSES.txt
           Compress-Archive -Path package/WarframeStateGraph -DestinationPath "dist/warframe-state-graph-${{ github.ref_name }}.zip"
 
       # The Release page, not the Code page, is what SNS links to: someone
