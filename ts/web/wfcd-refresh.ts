@@ -22,6 +22,7 @@ interface CacheStatus {
   files: number;
   ref: string;
   shapeError: { file: string; message: string; at: string } | null;
+  dataWarning: { file: string; reason: string; keptAt: string | null; at: string } | null;
 }
 
 export interface RefreshLabels {
@@ -41,6 +42,9 @@ interface AsOfStrings {
   tipNever: string;
   shapeError: string;
   tipShapeError: string; // {ref} {file} {message}
+  dataWarning: string;
+  tipDataWarningKept: string; // {keptAt} {reason}
+  tipDataWarningNone: string; // {reason}
 }
 
 const AS_OF: Record<Locale, AsOfStrings> = {
@@ -57,6 +61,13 @@ const AS_OF: Record<Locale, AsOfStrings> = {
     tipShapeError:
       "外部データ（WFCD {ref}）の {file} が見つからないか、想定と違う形だったため、取り込めませんでした。このファイルを使う機能は動きません。" +
       "アプリ側の対応が必要です（詳細: {message}）",
+    dataWarning: "一部欠け",
+    tipDataWarningKept:
+      "配信元のシンジケートの交換品の表がほとんど空になっているため、{keptAt} に取得した前回の表を代わりに使っています。" +
+      "配信元が直れば、自動で新しい表に戻ります（詳細: {reason}）",
+    tipDataWarningNone:
+      "配信元のシンジケートの交換品の表がほとんど空で、手元に前回の表もないため、ウィザードはシンジケートのランクを提案しません。" +
+      "配信元が直れば、自動で提案が戻ります（詳細: {reason}）",
   },
   en: {
     prefix: "WFCD ",
@@ -71,6 +82,13 @@ const AS_OF: Record<Locale, AsOfStrings> = {
     tipShapeError:
       "{file} from the external (WFCD {ref}) data was missing or didn't have the expected shape, so it wasn't imported. Features that use it won't work " +
       "until the app is updated (detail: {message})",
+    dataWarning: "partly missing",
+    tipDataWarningKept:
+      "The syndicate offerings table from the source is mostly empty, so the previous table, fetched {keptAt}, is used instead. " +
+      "It switches back to a fresh table by itself once the source is fixed (detail: {reason})",
+    tipDataWarningNone:
+      "The syndicate offerings table from the source is mostly empty and no previous table is kept, so the wizard won't suggest syndicate ranks. " +
+      "Suggestions come back by themselves once the source is fixed (detail: {reason})",
   },
 };
 
@@ -93,6 +111,7 @@ function injectStyle(): void {
         cursor: help;
       }
       #${LABEL_ID}.shape-error { color: var(--danger, #e5484d); }
+      #${LABEL_ID}.data-warning { color: var(--accent); }
       @media (max-width: 700px) { #${LABEL_ID} { display: none; } }
     `;
   document.head.appendChild(style);
@@ -122,8 +141,18 @@ function render(): void {
   const err = lastStatus?.shapeError;
   label.classList.toggle("shape-error", !!err);
   if (err) {
+    label.classList.remove("data-warning");
     label.textContent = s.prefix + s.shapeError;
     label.title = fill(s.tipShapeError, { ref, file: err.file, message: err.message });
+    return;
+  }
+  const warn = lastStatus?.dataWarning;
+  label.classList.toggle("data-warning", !!warn);
+  if (warn) {
+    label.textContent = s.prefix + s.dataWarning;
+    label.title = warn.keptAt
+      ? fill(s.tipDataWarningKept, { keptAt: formatDate(warn.keptAt), reason: warn.reason })
+      : fill(s.tipDataWarningNone, { reason: warn.reason });
     return;
   }
   if (!lastStatus || !lastStatus.asOf) {
@@ -139,7 +168,10 @@ function render(): void {
       : fill(s.tipSingle, { ref, date: asOf });
 }
 
-async function reload(): Promise<void> {
+/** Re-reads /api/wfcd/status. Exported for callers that just triggered a
+ * lazy fetch whose result the reading should show (the wizard: the syndicate
+ * table is only fetched when it suggests nodes, Issue #38). */
+export async function reload(): Promise<void> {
   try {
     const res = await fetch("/api/wfcd/status");
     lastStatus = res.ok ? ((await res.json()) as CacheStatus) : null;
