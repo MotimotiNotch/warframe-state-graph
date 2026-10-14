@@ -1,6 +1,6 @@
 // Port of web/quest-onboarding.js. One-time first-launch modal offering to
 // pre-register already-cleared gating quests (pkg/stats.GatingQuests — only
-// the 3 quests that gate Focus School/Railjack/Drifter spoiler sections,
+// the 4 quests that gate Focus School/Railjack/Drifter/Tektolyst spoiler sections,
 // not the full quest list). Waits for spoiler-warning.ts's ack event so the
 // two first-run modals never stack.
 
@@ -39,7 +39,7 @@ function markSeen(): void {
 // match requirement); the Japanese label is derived via questJa() from
 // quest-i18n.ts rather than duplicated here (2026-08-30, was previously its
 // own hardcoded `ja` field — quest-i18n.ts is the single source now).
-const GATING_QUESTS: { name: string }[] = [{ name: "The Second Dream" }, { name: "Rising Tide" }, { name: "The Duviri Paradox" }];
+const GATING_QUESTS: { name: string }[] = [{ name: "The Second Dream" }, { name: "Rising Tide" }, { name: "The Duviri Paradox" }, { name: "The Old Peace" }];
 function gatingQuestLabel(name: string, locale: Locale): string {
   return locale === "ja" ? questJa(name) : name;
 }

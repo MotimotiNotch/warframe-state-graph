@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { StatsStore } from "./stats.ts";
+import { GatingQuests, StatsStore, TektolystArtifacts, TektolystModSlots } from "./stats.ts";
 
 let tmpDir: string;
 beforeEach(async () => {
@@ -63,4 +63,32 @@ test("FileStore: setRailjackComponent and plexus note persist and reload", async
   expect(reloaded.railjackPlexusNote).toBe("Battle 3x Tactical 1x");
   // Untouched slots should still be present, unset.
   expect(reloaded.railjackComponents["Engines"]).toEqual({ house: "", grade: "" });
+});
+
+// Issue #39: Tektolyst Artifacts, one per Focus School.
+test("FileStore: Tektolyst owned and mods persist; slots keep their position", async () => {
+  const filePath = path.join(tmpDir, "stats.json");
+  const store = new StatsStore(filePath);
+
+  await store.setTektolystArtifact("Zenurik", { owned: true });
+  await store.setTektolystArtifact("Zenurik", { mods: ["", "Omn-Evi"] }); // slot 1 only
+
+  const reloaded = await new StatsStore(filePath).load();
+  expect(reloaded.tektolystArtifacts["Zenurik"]).toEqual({ owned: true, mods: ["", "Omn-Evi", "", "", ""] });
+  // Setting mods alone leaves owned as it was, and vice versa.
+  await store.setTektolystArtifact("Zenurik", { owned: false });
+  expect((await store.load()).tektolystArtifacts["Zenurik"]!.mods[1]).toBe("Omn-Evi");
+  // Untouched schools are present, not owned, with empty slots.
+  expect(reloaded.tektolystArtifacts["Madurai"]).toEqual({ owned: false, mods: Array(TektolystModSlots).fill("") });
+});
+
+test("FileStore: stats saved before #39 load with every Tektolyst entry and the new gating quest backfilled", async () => {
+  const filePath = path.join(tmpDir, "stats.json");
+  await fs.writeFile(filePath, JSON.stringify({ schemaVersion: 1, questsCleared: { "The Second Dream": true } }), "utf8");
+
+  const d = await new StatsStore(filePath).load();
+  expect(Object.keys(d.tektolystArtifacts).sort()).toEqual(Object.keys(TektolystArtifacts).sort());
+  expect(d.questsCleared["The Second Dream"]).toBe(true);
+  expect(d.questsCleared["The Old Peace"]).toBe(false);
+  expect(GatingQuests).toContain("The Old Peace");
 });
