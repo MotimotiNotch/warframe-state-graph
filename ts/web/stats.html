@@ -178,11 +178,11 @@
      同じ折りたたみ＋triangle-alertアイコン＋注意文パターンを流用する（2026-08-20）。
      Railjack/Drifter Intrinsics（2026-08-21追加）も同じ理由でゲート対象——Intrinsicsパネル自体は
      項目22実装時（2026-08-19）にこの保護が漏れており、見出し文字列が常時表示のままだった不備を修正。 */
-  #focus-toggle, #railjack-toggle, #railjack-intrinsics-toggle, #drifter-intrinsics-toggle {
+  #focus-toggle, #railjack-toggle, #railjack-intrinsics-toggle, #drifter-intrinsics-toggle, #tektolyst-toggle {
     cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; margin: 0;
   }
-  #focus-toggle:hover, #railjack-toggle:hover, #railjack-intrinsics-toggle:hover, #drifter-intrinsics-toggle:hover { color: var(--accent); }
-  #focus-icon, #railjack-icon, #railjack-intrinsics-icon, #drifter-intrinsics-icon { display: inline-flex; color: var(--accent); }
+  #focus-toggle:hover, #railjack-toggle:hover, #railjack-intrinsics-toggle:hover, #drifter-intrinsics-toggle:hover, #tektolyst-toggle:hover { color: var(--accent); }
+  #focus-icon, #railjack-icon, #railjack-intrinsics-icon, #drifter-intrinsics-icon, #tektolyst-icon { display: inline-flex; color: var(--accent); }
   .section-chevron { transition: transform 0.15s ease; }
   .section-chevron.expanded { transform: rotate(180deg); }
   .section-warning {
@@ -215,6 +215,23 @@
     width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
     border-radius: 6px; padding: 4px 6px; font-size: 0.82rem; font-family: inherit;
   }
+  /* Tektolyst Artifacts (Issue #39): nested in the Focus panel behind its
+     own quest gate, same pattern as Railjack/Drifter Intrinsics. An artifact
+     not owned yet has nothing to fill in, so it shows no slots, only a dimmed card. */
+  .tektolyst-section { margin-top: 16px; }
+  .tektolyst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .tektolyst-card { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; opacity: 0.6; }
+  .tektolyst-card.owned { border-color: var(--accent); opacity: 1; }
+  .tektolyst-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+  .tektolyst-name { font-weight: 600; }
+  .tektolyst-school { font-size: 0.75rem; color: var(--muted); }
+  .tektolyst-owned { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; }
+  .tektolyst-mods { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .tektolyst-mods select {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 6px; font-family: inherit; font-size: 0.8rem;
+  }
+  .tektolyst-note { font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
   .focus-active-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.85rem; }
   .focus-active-row select { background: var(--bg); color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px; font-family: inherit; }
   .railjack-note-field { margin-top: 10px; }
@@ -349,6 +366,17 @@
       <div class="focus-active-row">
         <label for="focus-active-select" data-i18n="activeSchoolLabel">アクティブな校</label>
         <select id="focus-active-select"></select>
+      </div>
+
+      <div class="tektolyst-section">
+        <div class="panel-head">
+          <h3 id="tektolyst-toggle"><span id="tektolyst-icon"></span><span id="tektolyst-title">未解放セクション</span></h3>
+          <button class="icon-btn section-chevron" id="tektolyst-chevron" data-i18n-title="chevronToggle" title="開閉"></button>
+        </div>
+        <div class="section-warning" data-i18n="oldPeaceWarning">前提クエスト（古の同盟）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。</div>
+        <div id="tektolyst-body" class="collapsible-body hidden">
+          <div class="tektolyst-grid" id="tektolyst-grid"></div>
+        </div>
       </div>
     </div>
   </div>

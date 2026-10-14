@@ -71,6 +71,11 @@ interface UIStrings {
   revealedTitleRailjack: string;
   revealedTitleRailjackIntrinsics: string;
   revealedTitleDrifterIntrinsics: string;
+  oldPeaceWarning: string;
+  revealedTitleTektolyst: string;
+  tektolystOwned: string;
+  tektolystEmptySlot: string;
+  tektolystModsUnavailable: string;
   activeSchoolLabel: string;
   notSet: string;
   investedNo: string;
@@ -144,6 +149,11 @@ const STRINGS: Record<"ja" | "en", UIStrings> = {
     revealedTitleRailjack: "レールジャック（Railjack）",
     revealedTitleRailjackIntrinsics: "レールジャック性能値",
     revealedTitleDrifterIntrinsics: "ドリフター性能値",
+    oldPeaceWarning: "前提クエスト（古の同盟）をクリアすると内容が明らかになります。ネタバレ回避のため、未クリアの場合は開かないことをおすすめします。",
+    revealedTitleTektolyst: "テクトリストアーティファクト",
+    tektolystOwned: "入手済み",
+    tektolystEmptySlot: "（空き）",
+    tektolystModsUnavailable: "Mod の一覧を取得できませんでした。WFCD の更新ボタンで取り直せます。",
     activeSchoolLabel: "アクティブな校",
     notSet: "未設定",
     investedNo: "未投資",
@@ -215,6 +225,11 @@ const STRINGS: Record<"ja" | "en", UIStrings> = {
     revealedTitleRailjack: "Railjack",
     revealedTitleRailjackIntrinsics: "Railjack Intrinsics",
     revealedTitleDrifterIntrinsics: "Drifter Intrinsics",
+    oldPeaceWarning: "This section is revealed once the gating quest (The Old Peace) is cleared. To avoid spoilers, we recommend not opening it until then.",
+    revealedTitleTektolyst: "Tektolyst Artifacts",
+    tektolystOwned: "Owned",
+    tektolystEmptySlot: "(empty)",
+    tektolystModsUnavailable: "Couldn't load the mod list. The WFCD refresh button fetches it again.",
     activeSchoolLabel: "Active School",
     notSet: "Not set",
     investedNo: "Not Invested",
@@ -292,6 +307,7 @@ const state: {
     railjackComponents: {},
     railjackPlexusNote: "",
     questsCleared: {},
+    tektolystArtifacts: {},
   },
   allQuests: [],
   mainQuestNames: [],
@@ -710,6 +726,99 @@ function renderFocusActiveSelect(): void {
   });
 }
 
+// ---------- Tektolyst Artifacts (one per school: owned + 5 mod slots, Issue #39) ----------
+// Not in WFCD, so the school -> artifact pairing mirrors server/stats.ts's
+// TektolystArtifacts. Names stay in English like the school names. Rank and
+// the arcane slot are deliberately not tracked (owner's call).
+const TEKTOLYST: Record<string, string> = { Madurai: "Thara", Naramon: "Vexoric", Zenurik: "Lorak", Vazarin: "Nidri", Unairu: "Cogron" };
+const TEKTOLYST_SLOTS = 5;
+// Fetched on first need: the list comes out of WFCD's Mods.json, which the
+// rest of this page never touches. null = not loaded yet, "error" = failed.
+let tektolystMods: string[] | null | "error" = null;
+
+async function loadTektolystMods(): Promise<void> {
+  try {
+    const res = await fetch("/api/reference/tektolyst-mods");
+    tektolystMods = res.ok ? ((await res.json()) as string[]) : "error";
+  } catch {
+    tektolystMods = "error";
+  }
+}
+
+async function saveTektolyst(school: string, patch: { owned?: boolean; mods?: string[] }): Promise<void> {
+  const res = await fetch(`/api/stats/tektolyst/${encodeURIComponent(school)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  state.statsData = await res.json();
+  renderTektolyst();
+}
+
+function tektolystSlots(mods: string[]): string[] {
+  return Array.from({ length: TEKTOLYST_SLOTS }, (_, i) => mods[i] || "");
+}
+
+function renderTektolyst(): void {
+  const container = el("tektolyst-grid");
+  const all = state.statsData.tektolystArtifacts || {};
+  if (tektolystMods === null && FOCUS_SCHOOLS.some((s) => all[s]?.owned)) {
+    void loadTektolystMods().then(renderTektolyst);
+  }
+  container.innerHTML = FOCUS_SCHOOLS.map((school) => {
+    const a = all[school] || { owned: false, mods: [] };
+    const mods = tektolystSlots(a.mods);
+    let slots = "";
+    if (a.owned) {
+      if (tektolystMods === "error") {
+        slots = `<div class="tektolyst-note">${escapeHtml(t().tektolystModsUnavailable)}</div>`;
+      } else if (tektolystMods === null) {
+        slots = `<div class="tektolyst-note">${escapeHtml(t().loading)}</div>`;
+      } else {
+        const list = tektolystMods;
+        slots = mods
+          .map((current, i) => {
+            // A mod can't go on the same artifact twice: offer only what the
+            // other slots haven't taken. A saved name missing from the list
+            // (renamed upstream) stays as an option so it still shows.
+            const taken = new Set(mods.filter((m, j) => j !== i && m));
+            const options = list.filter((m) => !taken.has(m));
+            if (current && !options.includes(current)) options.unshift(current);
+            return `<select data-tekto-school="${escapeHtml(school)}" data-tekto-slot="${i}">
+              <option value="">${escapeHtml(t().tektolystEmptySlot)}</option>
+              ${options.map((m) => `<option value="${escapeHtml(m)}" ${m === current ? "selected" : ""}>${escapeHtml(m)}</option>`).join("")}
+            </select>`;
+          })
+          .join("");
+        slots = `<div class="tektolyst-mods">${slots}</div>`;
+      }
+    }
+    return `
+      <div class="tektolyst-card${a.owned ? " owned" : ""}">
+        <div class="tektolyst-head">
+          <span class="tektolyst-name">${escapeHtml(TEKTOLYST[school] || school)}</span>
+          <span class="tektolyst-school">${escapeHtml(school)}</span>
+        </div>
+        <label class="tektolyst-owned">
+          <input type="checkbox" data-tekto-owned="${escapeHtml(school)}" ${a.owned ? "checked" : ""}>
+          <span>${escapeHtml(t().tektolystOwned)}</span>
+        </label>
+        ${slots}
+      </div>`;
+  }).join("");
+  container.querySelectorAll<HTMLInputElement>("[data-tekto-owned]").forEach((cb) => {
+    cb.addEventListener("change", () => void saveTektolyst(cb.dataset.tektoOwned!, { owned: cb.checked }));
+  });
+  container.querySelectorAll<HTMLSelectElement>("[data-tekto-school]").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      const school = sel.dataset.tektoSchool!;
+      const mods = tektolystSlots(all[school]?.mods || []);
+      mods[Number(sel.dataset.tektoSlot)] = sel.value;
+      void saveTektolyst(school, { mods });
+    });
+  });
+}
+
 // ---------- Railjack hull (4 components x House/Grade + Plexus mod note) ----------
 const RAILJACK_SLOTS = ["Shield Array", "Engines", "Plating", "Reactor"];
 // wikiwiki.jp/warframe-sourced label table (2026-08-20, same direct-write pattern as standing.ts's SYNDICATE_JA).
@@ -1095,6 +1204,7 @@ Promise.all([
   renderIntrinsics();
   renderFocusGrid();
   renderFocusActiveSelect();
+  renderTektolyst();
   renderRailjackGrid();
   renderRailjackNote();
   renderProxima();
@@ -1106,6 +1216,7 @@ Promise.all([
   initCollapsiblePanel("railjack", "Rising Tide", t().revealedTitleRailjack);
   initCollapsiblePanel("railjack-intrinsics", "Rising Tide", t().revealedTitleRailjackIntrinsics);
   initCollapsiblePanel("drifter-intrinsics", "The Duviri Paradox", t().revealedTitleDrifterIntrinsics);
+  initCollapsiblePanel("tektolyst", "The Old Peace", t().revealedTitleTektolyst);
   renderQuestProgress();
 });
 
@@ -1119,6 +1230,7 @@ onLocaleChange(() => {
   renderIntrinsics();
   renderFocusGrid();
   renderFocusActiveSelect();
+  renderTektolyst();
   renderRailjackGrid();
   renderProxima();
   renderQuestProgress();
@@ -1129,6 +1241,7 @@ onLocaleChange(() => {
         railjack: t().revealedTitleRailjack,
         "railjack-intrinsics": t().revealedTitleRailjackIntrinsics,
         "drifter-intrinsics": t().revealedTitleDrifterIntrinsics,
+        tektolyst: t().revealedTitleTektolyst,
       };
       revealPanel(prefix, revealed[prefix] || prefix, isQuestCleared(questName));
     });

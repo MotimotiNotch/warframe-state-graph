@@ -351,6 +351,17 @@ export async function fetchModNames(): Promise<string[]> {
   return [...new Set(names)];
 }
 
+/** Mods that go on a Tektolyst Artifact (Issue #39): `type` "Tektolyst
+ * Artifact Mod", 21 in v1.1276.1. SampleAntiqueUpgrade is left out — a test
+ * entry with no Japanese name and no stats. */
+export async function tektolystModNames(cacheDir: string): Promise<string[]> {
+  const mods = await cachedItemsFull(cacheDir, CategoryMods);
+  const names = mods
+    .filter((m) => m.type === "Tektolyst Artifact Mod" && !m.uniqueName?.endsWith("/SampleAntiqueUpgrade"))
+    .map((m) => m.name);
+  return [...new Set(names)].sort();
+}
+
 // Main + side quests (Quests.json, 46 entries confirmed 2026-08-22). Unlike
 // questchain.MainStoryChain (the prerequisite-carrying main-story subset),
 // this backs Stats "quest progress" where only "did I actually clear this"

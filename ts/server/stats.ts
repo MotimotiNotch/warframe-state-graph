@@ -37,6 +37,31 @@ export function IsValidFocusInvestment(v: string): v is FocusInvestment {
   return (ValidFocusInvestments as readonly string[]).includes(v);
 }
 
+/** Tektolyst Artifacts (Update 41.0): one per Focus School, bought after
+ * The Old Peace. Not in WFCD (checked v1.1276.1), so the pairing is kept
+ * here; source: wiki.warframe.com/w/Tektolyst_Artifact (2026-10-14). Only
+ * ownership and the 5 mod slots are tracked — rank and the arcane slot were
+ * left out by the owner's call (Issue #39). */
+export const TektolystArtifacts: Record<(typeof FocusSchools)[number], string> = {
+  Madurai: "Thara",
+  Naramon: "Vexoric",
+  Zenurik: "Lorak",
+  Vazarin: "Nidri",
+  Unairu: "Cogron",
+};
+export const TektolystModSlots = 5;
+
+export const TektolystArtifactSchema = z.object({
+  owned: z.boolean().default(false),
+  /** Always TektolystModSlots long; "" is an empty slot. */
+  mods: z.array(z.string()).default([]),
+});
+export type TektolystArtifact = z.infer<typeof TektolystArtifactSchema>;
+
+function emptyTektolyst(): TektolystArtifact {
+  return { owned: false, mods: Array(TektolystModSlots).fill("") };
+}
+
 /** Railjack's 4 component slots. Plexus (mods are a free-text note, tracked
  * separately as railjackPlexusNote) is deliberately excluded here
  * (2026-08-20, item 23). */
@@ -60,7 +85,7 @@ export function IsValidRailjackValue(v: string, allowed: readonly string[]): boo
  * true without any corresponding Chain View node existing (2026-08-22, added
  * as Stats' own input after "not registered in Chain View shouldn't mean
  * uncleared" feedback, replacing the old Chain-View-derived isQuestSatisfied() check). */
-export const GatingQuests = ["The Second Dream", "Rising Tide", "The Duviri Paradox"] as const;
+export const GatingQuests = ["The Second Dream", "Rising Tide", "The Duviri Paradox", "The Old Peace"] as const;
 
 export const CURRENT_SCHEMA_VERSION = 1;
 
@@ -75,6 +100,7 @@ export const DataSchema = z.object({
   railjackComponents: z.record(z.string(), RailjackComponentSchema).default({}),
   railjackPlexusNote: z.string().default(""),
   questsCleared: z.record(z.string(), z.boolean()).default({}),
+  tektolystArtifacts: z.record(z.string(), TektolystArtifactSchema).default({}),
 });
 export type Data = z.infer<typeof DataSchema>;
 
@@ -90,12 +116,14 @@ export function newData(): Data {
     railjackComponents: {},
     railjackPlexusNote: "",
     questsCleared: {},
+    tektolystArtifacts: {},
   };
   for (const name of RailjackCategories) d.railjackIntrinsics[name] = 0;
   for (const name of DrifterCategories) d.drifterIntrinsics[name] = 0;
   for (const name of FocusSchools) d.focusInvestment[name] = "not_invested";
   for (const slot of RailjackComponentSlots) d.railjackComponents[slot] = { house: "", grade: "" };
   for (const quest of GatingQuests) d.questsCleared[quest] = false;
+  for (const school of FocusSchools) d.tektolystArtifacts[school] = emptyTektolyst();
   return d;
 }
 
@@ -133,6 +161,11 @@ export class StatsStore {
     }
     for (const quest of GatingQuests) {
       if (!(quest in d.questsCleared)) d.questsCleared[quest] = false;
+    }
+    for (const school of FocusSchools) {
+      const a = d.tektolystArtifacts[school] ?? emptyTektolyst();
+      a.mods = padMods(a.mods);
+      d.tektolystArtifacts[school] = a;
     }
     return d;
   }
@@ -241,6 +274,19 @@ export class StatsStore {
     });
   }
 
+  /** Updates whichever of `owned` / `mods` is given. */
+  async setTektolystArtifact(school: string, patch: { owned?: boolean; mods?: string[] }): Promise<Data> {
+    return this.#mutex.run(async () => {
+      const d = await this.#loadLocked();
+      const a = d.tektolystArtifacts[school] ?? emptyTektolyst();
+      if (patch.owned !== undefined) a.owned = patch.owned;
+      if (patch.mods !== undefined) a.mods = padMods(patch.mods);
+      d.tektolystArtifacts[school] = a;
+      await this.#saveLocked(d);
+      return d;
+    });
+  }
+
   async setRailjackComponent(slot: string, component: RailjackComponent): Promise<Data> {
     return this.#mutex.run(async () => {
       const d = await this.#loadLocked();
@@ -258,4 +304,12 @@ export class StatsStore {
       return d;
     });
   }
+}
+
+/** Exactly TektolystModSlots entries, "" for empty, so a slot keeps its
+ * position when the one before it is cleared. */
+function padMods(mods: string[]): string[] {
+  const out = mods.slice(0, TektolystModSlots);
+  while (out.length < TektolystModSlots) out.push("");
+  return out;
 }

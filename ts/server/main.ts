@@ -49,6 +49,7 @@ import {
   PlanetProgressSchema,
   RailjackComponentSchema,
   StatsStore,
+  TektolystModSlots,
   ValidRailjackGrades,
   ValidRailjackHouses,
 } from "./stats.ts";
@@ -73,6 +74,7 @@ import {
   fetchResourceNames,
   fetchWeaponNames,
   findItemByName,
+  tektolystModNames,
   isRelicVaulted,
   lookupI18nName,
   refreshCache,
@@ -1128,6 +1130,34 @@ const server = Bun.serve({
       },
     },
 
+    // Tektolyst Artifact per Focus School: owned + the 5 mod slots (Issue
+    // #39). Either field may be sent alone. Mod names aren't checked against
+    // WFCD — same as the Plexus note, a stale or hand-typed name just shows.
+    "/api/stats/tektolyst/:school": {
+      POST: async (req) => {
+        const school = req.params.school;
+        if (!IsValidRailjackValue(school, FocusSchools)) {
+          return new Response("school must be a valid Focus School name", { status: 400 });
+        }
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch (err) {
+          return errorResponse(err, 400);
+        }
+        const { owned, mods } = (body ?? {}) as { owned?: unknown; mods?: unknown };
+        if (owned !== undefined && typeof owned !== "boolean") return new Response("owned must be a boolean", { status: 400 });
+        if (
+          mods !== undefined &&
+          (!Array.isArray(mods) || mods.length > TektolystModSlots || !mods.every((m) => typeof m === "string" && m.length <= 100))
+        ) {
+          return new Response(`mods must be up to ${TektolystModSlots} strings`, { status: 400 });
+        }
+        if (owned === undefined && mods === undefined) return new Response("owned or mods is required", { status: 400 });
+        return json(await statsStore.setTektolystArtifact(school, { owned, mods: mods as string[] | undefined }));
+      },
+    },
+
     // Railjack hull: 4 components' coarse current fit (House x Grade) + a
     // free-text Plexus mod note (2026-08-20, item 23).
     "/api/stats/railjack-component/:slot": {
@@ -1371,6 +1401,15 @@ const server = Bun.serve({
       GET: async () => {
         try {
           return json(await cachedNames(wfcdCacheDir, "companions.json", fetchCompanionNames));
+        } catch (err) {
+          return errorResponse(err, 502);
+        }
+      },
+    },
+    "/api/reference/tektolyst-mods": {
+      GET: async () => {
+        try {
+          return json(await tektolystModNames(wfcdCacheDir));
         } catch (err) {
           return errorResponse(err, 502);
         }
