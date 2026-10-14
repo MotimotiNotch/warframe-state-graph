@@ -238,6 +238,32 @@ export async function cachedJSON<T>(cacheDir: string, cacheFile: string, fetchFn
   return v;
 }
 
+/** cachedJSON for a fetch that may decide not to be cached (see
+ * cachedSyndicates). A cached file that `accept` rejects is ignored and
+ * fetched again, as if it weren't there. */
+async function cachedJSONIf<T>(
+  cacheDir: string,
+  cacheFile: string,
+  fetchFn: () => Promise<{ value: T; cache: boolean }>,
+  accept: (cached: T) => boolean = () => true,
+): Promise<T> {
+  try {
+    const cached = JSON.parse(await fs.readFile(path.join(cacheDir, cacheFile), "utf8")) as T;
+    if (accept(cached)) return cached;
+  } catch {
+    // not cached (or unreadable): fetch below
+  }
+  const { value, cache } = await fetchFn();
+  if (!cache) return value;
+  try {
+    await fs.mkdir(cacheDir, { recursive: true });
+    await fs.writeFile(path.join(cacheDir, cacheFile), JSON.stringify(value, null, 2), "utf8");
+  } catch {
+    // best-effort cache write, as in cachedJSON
+  }
+  return value;
+}
+
 /** Same as cachedJSON, but sorts the name list before caching (name lists only). */
 export async function cachedNames(cacheDir: string, cacheFile: string, fetchFn: () => Promise<string[]>): Promise<string[]> {
   return cachedJSON(cacheDir, cacheFile, async () => {
@@ -258,6 +284,7 @@ const REFRESH_MARKER = "refreshed-at.txt";
 export async function refreshCache(cacheDir: string): Promise<void> {
   componentIndexes.delete(cacheDir);
   lastShapeError = null;
+  lastDataWarning = null;
   await fs.rm(cacheDir, { recursive: true, force: true });
   try {
     await fs.mkdir(cacheDir, { recursive: true });
@@ -280,6 +307,9 @@ export interface CacheStatus {
   ref: string;
   /** Set when a fetched file failed its shape check since the last refresh. */
   shapeError: { file: string; message: string; at: string } | null;
+  /** Set while a fetched file passed its shape check but looks broken
+   * upstream (Issue #38: syndicates.json gone mostly empty). */
+  dataWarning: DataWarning | null;
 }
 
 /** How stale the WFCD data can be, from the cache's own mtimes — each file
@@ -288,7 +318,7 @@ export interface CacheStatus {
  * access, which is why an empty cache reports the refresh time rather than
  * "unknown". */
 export async function cacheStatus(cacheDir: string): Promise<CacheStatus> {
-  return { ...(await cacheTimes(cacheDir)), ref: WFCD_ITEMS_REF, shapeError: lastShapeError };
+  return { ...(await cacheTimes(cacheDir)), ref: WFCD_ITEMS_REF, shapeError: lastShapeError, dataWarning: lastDataWarning };
 }
 
 async function cacheTimes(cacheDir: string): Promise<Pick<CacheStatus, "asOf" | "newest" | "files">> {
@@ -624,8 +654,83 @@ export async function fetchSyndicates(): Promise<Record<string, SyndicateEntry[]
   return wrapped.syndicates;
 }
 
+// syndicates.json is not pinned, so a broken upstream run reaches every
+// install on its next fetch — and it breaks by going empty, not by changing
+// shape, which no shape check catches (Issue #38). Healthy tables had 0 of
+// 18 syndicates empty (2026-06-25, 2026-09-25); the 2026-04 outage emptied
+// all 18 (warframe-drop-data#94) and the 2026-10-07 one 15 of 18 (#97).
+// Either rule below catches both with room to spare.
+
+/** Why a freshly fetched table looks like a broken upstream run rather than
+ * real data, or null when it looks fine. `kept` is the last table that
+ * passed. */
+export function syndicatesShrinkReason(
+  fresh: Record<string, SyndicateEntry[]>,
+  kept?: Record<string, SyndicateEntry[]>,
+): string | null {
+  const names = Object.keys(fresh);
+  const empty = names.filter((n) => !fresh[n]?.length).length;
+  if (names.length === 0 || empty * 2 > names.length) return `${empty}/${names.length} syndicates empty`;
+  if (kept) {
+    const total = (d: Record<string, SyndicateEntry[]>) => Object.values(d).reduce((s, v) => s + (v?.length ?? 0), 0);
+    if (total(fresh) * 2 < total(kept)) return `${total(fresh)} entries, last good table had ${total(kept)}`;
+  }
+  return null;
+}
+
+/** The last table that passed syndicatesShrinkReason. Lives next to the
+ * cache directory, not in it: refreshCache() wipes the cache, and a refresh
+ * during an outage is exactly when this copy is needed. */
+function keptSyndicatesPath(cacheDir: string): string {
+  return path.join(path.dirname(cacheDir), "wfcd-keep", "syndicates.json");
+}
+
+export interface DataWarning {
+  file: string;
+  reason: string;
+  /** When the table being used instead was fetched, or null when there is
+   * none and the features that need it are skipped. */
+  keptAt: string | null;
+  at: string;
+}
+
+/** Set while the fetched syndicate table looks broken. In memory like
+ * lastShapeError: the next fetch decides again. */
+let lastDataWarning: DataWarning | null = null;
+
+/** Syndicate tables, cached like the rest — except a table that looks broken
+ * is never cached. Then the last good table is used (or, without one, this
+ * throws and the rank suggestion is skipped), and every later call fetches
+ * again, so the app recovers by itself once upstream is fixed. */
 export async function cachedSyndicates(cacheDir: string): Promise<Record<string, SyndicateEntry[]>> {
-  return cachedJSON(cacheDir, "syndicates.json", fetchSyndicates);
+  return cachedJSONIf(cacheDir, "syndicates.json", async () => {
+    const fresh = await fetchSyndicates();
+    const keptPath = keptSyndicatesPath(cacheDir);
+    let kept: Record<string, SyndicateEntry[]> | undefined;
+    let keptAt: string | null = null;
+    try {
+      kept = JSON.parse(await fs.readFile(keptPath, "utf8"));
+      keptAt = (await fs.stat(keptPath)).mtime.toISOString();
+    } catch {
+      // no good table kept yet (fresh install, or never fetched before #38)
+    }
+    const reason = syndicatesShrinkReason(fresh, kept);
+    if (!reason) {
+      lastDataWarning = null;
+      try {
+        await fs.mkdir(path.dirname(keptPath), { recursive: true });
+        await fs.writeFile(keptPath, JSON.stringify(fresh), "utf8");
+      } catch {
+        // best-effort, like the cache write itself
+      }
+      return { value: fresh, cache: true };
+    }
+    lastDataWarning = { file: "syndicates.json", reason, keptAt: kept ? keptAt : null, at: new Date().toISOString() };
+    if (!kept) throw new Error(`syndicates.json looks broken upstream (${reason}) and no earlier table is kept`);
+    return { value: kept, cache: false };
+    // The cached copy gets the same check: a broken table cached before #38
+    // (fetched 2026-10-07 or later) would otherwise stay until a refresh.
+  }, (cached) => syndicatesShrinkReason(cached) === null);
 }
 
 export interface SyndicateRank {

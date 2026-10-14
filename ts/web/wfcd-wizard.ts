@@ -17,7 +17,7 @@ import { forcePushToCollections, forcePushToLoadoutItem } from "./wfcd-autolink.
 import { nodeTypeLabel } from "./node-modal.ts";
 import { showToast } from "./toast.ts";
 import { effective, onLocaleChange } from "./locale.ts";
-import { onWfcdRefreshed } from "./wfcd-refresh.ts";
+import { onWfcdRefreshed, reload as reloadWfcdStatus } from "./wfcd-refresh.ts";
 
 interface WizardStrings {
   companionNote: string;
@@ -332,6 +332,9 @@ async function runWfcdFetch(): Promise<void> {
   }
   wfcdSuggestion = (await res.json()) as WfcdSuggestion;
   renderWfcdPreview();
+  // Generating is what fetches the syndicate table, so a broken one (#38)
+  // only becomes known here.
+  void reloadWfcdStatus();
   el("wfcd-modal-import").style.display = "";
 }
 el("wfcd-fetch-btn").addEventListener("click", () => void runWfcdFetch());
