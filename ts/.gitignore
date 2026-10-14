@@ -4,6 +4,9 @@ node_modules
 # scratch copy of data/ used for dev/test verification (never the real
 # git-tracked data — see CONTRIBUTING.md's isolated-test discipline)
 scratch-data/
+# English-locale copy of the above, used to shoot the English announcement
+# screenshots (custom node names are free text and are not translated).
+scratch-data-en/
 
 # output
 out
