@@ -83,9 +83,11 @@ jobs:
           # One open thread per unresolved upstream change: a later tag that
           # still trips the check is added to it rather than opening another,
           # and the title moves to that tag so next week's run (same latest
-          # tag) sees it as covered instead of commenting again.
+          # tag) sees it as covered instead of commenting again. Only this
+          # workflow's own threads (title "WFCD v...") count: other Issues can
+          # carry the same label, and must not be commented on or renamed.
           title="WFCD $LATEST: このツールに影響する変更"
-          open=$(gh issue list --state open --label "$LABEL" --json number,title --jq '.[] | "\(.number)\t\(.title)"')
+          open=$(gh issue list --state open --label "$LABEL" --json number,title --jq '.[] | select(.title | startswith("WFCD v")) | "\(.number)\t\(.title)"')
           if printf '%s\n' "$open" | grep -qF "WFCD $LATEST:"; then
             echo "an open Issue already covers $LATEST"
           elif [ -n "$open" ]; then
