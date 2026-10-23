@@ -108,6 +108,11 @@ bun run typecheck
 bun test
 ```
 
+Claude Code で作業する場合は、`.claude/settings.json` のフックがこれを自動で走らせる。`ts/` の
+`.ts` を編集するたびに型チェックを、`ts/` に未コミットの変更があるときはターンの終わりに型チェックと
+テストを走らせ、落ちればそのまま Claude に差し戻す（実体は `.claude/hooks/verify.ts`。`bun` が
+PATH 上にあることが前提）。
+
 ## WFCD データの版を上げる
 
 アイテムデータ（WFCD/warframe-items）は `ts/server/wfcd.ts` の `WFCD_ITEMS_REF` でタグに固定している。新アイテムを取り込むには、この定数を上げてリリースする。上げる前に必ず次を回すこと。
