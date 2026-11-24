@@ -29,7 +29,7 @@ import { checkI18n, checkItemList, ShapeError } from "./wfcd-shape.ts";
 // install on its next cache refresh, silently. With a tag, new items arrive
 // only when this constant is bumped — run `bun run check:wfcd <new tag>`
 // first (see CONTRIBUTING.md).
-export const WFCD_ITEMS_REF = "v1.1276.1";
+export const WFCD_ITEMS_REF = "v1.1276.51";
 
 /** URL of a file under warframe-items' data/json/ at `ref`. */
 export function wfcdItemsURL(file: string, ref: string = WFCD_ITEMS_REF): string {
